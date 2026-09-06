@@ -1,0 +1,323 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #140e0a;
+  font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+  color: #f3e6d0;
+  user-select: none;
+  touch-action: none;
+}
+
+#canvas-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+canvas {
+  background: #1a120c;
+  display: block;
+  box-shadow: 0 0 40px rgba(20, 8, 4, 0.9);
+}
+
+#rotate-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #1a120c;
+  color: #f3e6d0;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  text-align: center;
+  gap: 12px;
+}
+
+#rotate-overlay h1 {
+  font-family: Georgia, "Iowan Old Style", serif;
+  color: #c44536;
+  letter-spacing: 0.12em;
+}
+
+@media (orientation: portrait) {
+  #rotate-overlay {
+    display: flex;
+  }
+}
+
+#overlay-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+#overlay-root .panel {
+  pointer-events: auto;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(90, 56, 32, 0.07) 0 1px,
+      transparent 1px 8px
+    ),
+    linear-gradient(180deg, rgba(64, 38, 24, 0.96), rgba(24, 14, 10, 0.97));
+  border: 1px solid #d4b07a;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 230, 190, 0.14);
+  color: #f3e6d0;
+  padding: 24px 26px;
+  width: min(940px, 92%);
+  max-height: 92%;
+  overflow: auto;
+  border-radius: 6px;
+}
+
+#overlay-root .kicker {
+  font-family: Georgia, "Iowan Old Style", Palatino, serif;
+  color: #e0a33a;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+#overlay-root h1,
+#overlay-root h2 {
+  font-family: Georgia, "Iowan Old Style", Palatino, serif;
+  color: #f3e6d0;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+#overlay-root h1 {
+  color: #c44536;
+  font-size: 42px;
+  text-shadow: 0 2px 0 #1a0c08;
+}
+
+#overlay-root h2 {
+  color: #e0a33a;
+}
+
+#overlay-root .muted {
+  color: #c4a990;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#overlay-root .row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+#overlay-root button {
+  background: #3a2418;
+  color: #f3e6d0;
+  border: 1px solid #c4a574;
+  padding: 9px 16px;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+#overlay-root button:hover,
+#overlay-root button.active {
+  background: #c44536;
+  border-color: #e8c4a0;
+  color: #fff6ea;
+}
+
+#overlay-root button.primary {
+  background: #c44536;
+  border-color: #e8a090;
+  color: #fff6ea;
+  font-weight: 600;
+}
+
+#overlay-root button.primary:hover {
+  background: #a8362a;
+}
+
+#overlay-root button.gold {
+  background: #5a3e18;
+  border-color: #e0a33a;
+  color: #ffe7b0;
+}
+
+#overlay-root button.gold:hover {
+  background: #e0a33a;
+  color: #2a1c10;
+}
+
+#overlay-root button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #3a2418;
+  color: #f3e6d0;
+}
+
+#overlay-root .stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 16px;
+  margin: 14px 0;
+  font-size: 13px;
+}
+
+#overlay-root .stats div {
+  background: rgba(12, 8, 4, 0.28);
+  border: 1px solid #5a4030;
+  padding: 8px 10px;
+  border-radius: 3px;
+}
+
+#overlay-root .split {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+#overlay-root .slot-list,
+#overlay-root .part-list,
+#overlay-root .skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#overlay-root .item {
+  border: 1px solid #6a5038;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+#overlay-root .item.selected,
+#overlay-root .item:hover {
+  border-color: #e0a33a;
+  background: rgba(224, 163, 58, 0.1);
+}
+
+#overlay-root .item.equipped {
+  background: rgba(196, 69, 54, 0.16);
+  border-color: #c44536;
+}
+
+#overlay-root .item.locked {
+  opacity: 0.55;
+}
+
+#overlay-root .tracks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 16px 0 8px;
+}
+
+#overlay-root .track-card {
+  position: relative;
+  text-align: left;
+  padding: 56px 12px 14px;
+  min-height: 148px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: #2a1c14;
+  border: 1px solid #6a5038;
+  width: 100%;
+  overflow: hidden;
+}
+
+#overlay-root .track-card .sky {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 46px;
+}
+
+#overlay-root .track-card .place {
+  font-family: Georgia, serif;
+  font-size: 17px;
+  display: block;
+}
+
+#overlay-root .track-card .foe {
+  color: #e0a33a;
+  font-size: 12px;
+  margin-top: 4px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#overlay-root .track-card.forest {
+  background: linear-gradient(180deg, #1e3324 46px, #2a1c14 46px);
+}
+#overlay-root .track-card.forest .sky {
+  background: linear-gradient(180deg, #2a3a58, #e08a48);
+}
+#overlay-root .track-card.forest .foe { color: #7dba78; }
+
+#overlay-root .track-card.desert {
+  background: linear-gradient(180deg, #8a6a38 46px, #2a1c14 46px);
+}
+#overlay-root .track-card.desert .sky {
+  background: linear-gradient(180deg, #4a88c4, #f6d48a);
+}
+#overlay-root .track-card.desert .foe { color: #f0c86a; }
+
+#overlay-root .track-card.transylvania {
+  background: linear-gradient(180deg, #1a1016 46px, #2a1c14 46px);
+}
+#overlay-root .track-card.transylvania .sky {
+  background: linear-gradient(180deg, #080910, #3a1824);
+}
+#overlay-root .track-card.transylvania .foe { color: #e07070; }
+
+#overlay-root .track-card.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#overlay-root .track-card.current {
+  border-color: #e0a33a;
+  box-shadow: 0 0 0 1px #e0a33a;
+}
+
+#overlay-root .track-card:hover:not(:disabled) {
+  background: #3d281c;
+  color: #fff6ea;
+}
+
+#overlay-root .track-card:disabled:hover {
+  background: #2a1c14;
+}
+
+#overlay-root .hidden {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  #overlay-root .split,
+  #overlay-root .tracks {
+    grid-template-columns: 1fr;
+  }
+}
