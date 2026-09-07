@@ -19,6 +19,8 @@ export function createCanvas(canvas) {
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     viewport.w = cssW;
     viewport.h = cssH;
     viewport.cssW = cssW;

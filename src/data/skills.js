@@ -26,7 +26,7 @@ export const SKILLS = {
   scavenger: {
     id: 'scavenger',
     name: 'Scavenger Focus',
-    desc: 'More cash from distance and limb hits.',
+    desc: 'More cash from kills.',
     maxRank: 8,
     baseCost: 35,
     perRank: { cashMul: 0.08 },
@@ -57,4 +57,18 @@ export function emptyRanks() {
   const ranks = {};
   for (const id of Object.keys(SKILLS)) ranks[id] = 0;
   return ranks;
+}
+
+export function xpInvested(ranks) {
+  let spent = 0;
+  for (const def of Object.values(SKILLS)) {
+    const rank = ranks?.[def.id] || 0;
+    for (let r = 0; r < rank; r++) spent += skillCost(def, r);
+  }
+  return spent;
+}
+
+export function gunnerLevel(profile) {
+  const total = Math.max(0, Math.floor(profile.xp) + xpInvested(profile.skillRanks));
+  return 1 + Math.floor(total / 80);
 }

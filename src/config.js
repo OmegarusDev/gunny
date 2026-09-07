@@ -41,15 +41,11 @@ export const COLORS = {
 };
 
 export const ECONOMY = {
-  cashPerMeter: 0.45,
-  cashPerKill: 14,
-  cashPerHeadshot: 8,
-  cashPerLimb: 1.5,
-  cashPerPerfect: 5,
-  xpPerMeter: 0.35,
+  cashPerKill: 20,
+  xpPerMeter: 0.12,
   xpPerKill: 10,
   xpPerHeadshot: 7,
-  extractBonus: 220,
+  extractBonus: 180,
   extractXp: 80,
 };
 

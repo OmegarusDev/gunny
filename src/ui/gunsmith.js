@@ -7,12 +7,12 @@ import { fmtMoney } from './overlays.js';
 const SLOT_LABEL = {
   receiver: 'Receiver',
   barrel: 'Barrel',
-  magazine: 'Magazine',
+  magazine: 'Mag',
   optic: 'Optic',
   stock: 'Stock',
   muzzle: 'Muzzle',
   trigger: 'Trigger',
-  gasBlock: 'Gas Block',
+  gasBlock: 'Gas',
   springs: 'Springs',
 };
 
@@ -21,55 +21,73 @@ export function renderGunsmith(el, profile, handlers) {
   const selected = el.dataset.slot || 'receiver';
   const stats = resolveStats(profile);
   const items = catalog(selected, recId);
+  const lockedSlot = selected !== 'receiver' && !slotUnlockedFor(recId, selected);
 
   el.innerHTML = `
-    <p class="kicker">Workbench</p>
-    <h2>Gunsmith</h2>
-    <p class="muted">T1 barrel + mag · T2 optic / stock / muzzle · T3 internals · Bank ${fmtMoney(profile.cash)}</p>
-    <div class="split">
-      <div class="slot-list">
-        ${SLOTS.map((slot) => {
-          const locked = !slotUnlockedFor(recId, slot) && slot !== 'receiver';
-          const eq = slot === 'receiver' ? RECEIVERS[profile.loadout.receiver]?.name : PARTS[profile.loadout[slot]]?.name;
-          return `<div class="item ${selected === slot ? 'selected' : ''} ${locked ? 'locked' : ''}" data-slot="${slot}">
-            ${SLOT_LABEL[slot]}${locked ? '  LOCKED T' + SLOT_MIN_TIER[slot] : ''}<br/><span class="muted">${eq ?? '—'}</span>
-          </div>`;
-        }).join('')}
-      </div>
+    <div class="page-head">
       <div>
-        <div class="part-list">
-          ${items
-            .map((item) => {
-              const equipped = isEquipped(profile, selected, item.id);
-              const have = owns(profile, item.id);
-              return `<div class="item ${equipped ? 'equipped' : ''} ${have ? '' : 'locked'}" data-id="${item.id}">
-                <strong>${item.name}</strong> ${have ? '' : fmtMoney(item.cost)} ${equipped ? '· EQUIPPED' : have ? '· OWNED' : ''}<br/>
-                <span class="muted">${item.desc}</span>
-              </div>`;
-            })
-            .join('')}
-        </div>
-        <div class="stats" style="margin-top:12px">
-          <div>DMG ${stats.damage.toFixed(1)}</div>
-          <div>ROF ${stats.rof.toFixed(1)}</div>
-          <div>MAG ${stats.magSize}</div>
-          <div>VEL ${stats.bulletSpeed.toFixed(0)}</div>
-          <div>PEN ${stats.pen.toFixed(2)}</div>
-          <div>RELOAD ${stats.reload.toFixed(2)}s</div>
-          <div>PERF ${(stats.perfectWidth * 100).toFixed(0)}%</div>
-          <div>BLOOM ${stats.bloomPerShot.toFixed(2)}°/SH</div>
-        </div>
-        <div class="row" id="gs-actions"></div>
-        <div class="row">
-          <button data-act="hub">Back to camp</button>
-        </div>
+        <p class="kicker">Facility</p>
+        <h2>Gunsmith</h2>
+      </div>
+      <div class="page-meta">
+        <span>${fmtMoney(profile.cash)}</span>
+        <button class="ghost" data-act="hub">Camp</button>
       </div>
     </div>
+    <div class="chips" role="tablist">
+      ${SLOTS.map((slot) => {
+        const locked = !slotUnlockedFor(recId, slot) && slot !== 'receiver';
+        const eq =
+          slot === 'receiver'
+            ? RECEIVERS[profile.loadout.receiver]?.name
+            : PARTS[profile.loadout[slot]]?.name;
+        return `<button class="chip ${selected === slot ? 'selected' : ''} ${locked ? 'locked' : ''}" data-slot="${slot}">
+          <span>${SLOT_LABEL[slot]}</span>
+          <small>${locked ? 'T' + SLOT_MIN_TIER[slot] : eq ?? '—'}</small>
+        </button>`;
+      }).join('')}
+    </div>
+    <div class="sheet-body">
+      ${
+        lockedSlot
+          ? `<p class="empty-note">Needs a T${SLOT_MIN_TIER[selected]} receiver.</p>`
+          : `<div class="card-list">
+              ${items
+                .map((item) => {
+                  const equipped = isEquipped(profile, selected, item.id);
+                  const have = owns(profile, item.id);
+                  return `<button class="card ${equipped ? 'equipped' : ''} ${have ? '' : 'unowned'}" data-id="${item.id}">
+                    <div class="card-top">
+                      <strong>${item.name}</strong>
+                      <span class="tag ${equipped ? 'hot' : have ? 'own' : ''}">${
+                        equipped ? 'Equipped' : have ? 'Owned' : fmtMoney(item.cost)
+                      }</span>
+                    </div>
+                    <span class="muted">${item.desc}</span>
+                  </button>`;
+                })
+                .join('')}
+            </div>`
+      }
+      <div class="stats">
+        <div><span>DMG</span>${stats.damage.toFixed(1)}</div>
+        <div><span>ROF</span>${stats.rof.toFixed(1)}</div>
+        <div><span>MAG</span>${stats.magSize}</div>
+        <div><span>VEL</span>${stats.bulletSpeed.toFixed(0)}</div>
+        <div><span>PEN</span>${stats.pen.toFixed(2)}</div>
+        <div><span>RELOAD</span>${stats.reload.toFixed(2)}s</div>
+        <div><span>PERF</span>${(stats.perfectWidth * 100).toFixed(0)}%</div>
+        <div><span>BLOOM</span>${stats.bloomPerShot.toFixed(2)}°</div>
+      </div>
+    </div>
+    <div class="sheet-foot" id="gs-actions"></div>
   `;
 
+  el.querySelector('[data-act="hub"]').onclick = () => handlers.hub();
   el.querySelectorAll('[data-slot]').forEach((n) => {
     n.onclick = () => {
       el.dataset.slot = n.dataset.slot;
+      el.dataset.part = '';
       renderGunsmith(el, profile, handlers);
     };
   });
@@ -87,28 +105,31 @@ export function renderGunsmith(el, profile, handlers) {
   });
 
   const item = items.find((i) => i.id === picked);
-  if (item && actions) {
+  if (item && actions && !lockedSlot) {
     const have = owns(profile, item.id);
+    const equipped = isEquipped(profile, selected, item.id);
+    const hint = document.createElement('p');
+    hint.className = 'muted foot-hint';
+    hint.textContent = item.name;
+    actions.appendChild(hint);
+    const b = document.createElement('button');
     if (!have) {
-      const b = document.createElement('button');
-      b.textContent = `BUY ${fmtMoney(item.cost)}`;
+      b.className = 'primary';
+      b.textContent = `Buy ${fmtMoney(item.cost)}`;
       b.disabled = profile.cash < item.cost;
       b.onclick = () => {
         if (buyPart(profile, item.id, item.cost)) renderGunsmith(el, profile, handlers);
       };
-      actions.appendChild(b);
     } else {
-      const b = document.createElement('button');
-      b.textContent = 'EQUIP';
-      b.disabled = isEquipped(profile, selected, item.id) || (selected !== 'receiver' && !slotUnlockedFor(recId, selected));
+      b.className = 'primary';
+      b.textContent = equipped ? 'Equipped' : 'Equip';
+      b.disabled = equipped || (selected !== 'receiver' && !slotUnlockedFor(recId, selected));
       b.onclick = () => {
         if (equipPart(profile, selected, item.id)) renderGunsmith(el, profile, handlers);
       };
-      actions.appendChild(b);
     }
+    actions.appendChild(b);
   }
-
-  el.querySelector('[data-act="hub"]').onclick = () => handlers.hub();
 }
 
 function catalog(slot, recId) {

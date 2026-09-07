@@ -1,29 +1,48 @@
-import { SKILLS, skillCost } from '../data/skills.js';
+import { SKILLS, gunnerLevel, skillCost } from '../data/skills.js';
 import { resolveStats } from '../entities/loadout.js';
 import { saveProfile } from '../state/profile.js';
 
 export function renderSkills(el, profile, handlers) {
   const stats = resolveStats(profile);
   el.innerHTML = `
-    <p class="kicker">Blood & powder</p>
-    <h2>Gunner skills</h2>
-    <p class="muted">XP ${Math.floor(profile.xp)} · Crit ${(stats.critChance * 100).toFixed(0)}% × ${stats.critMult.toFixed(2)} · Headshots are not crits</p>
-    <div class="skill-list">
+    <div class="page-head">
+      <div>
+        <p class="kicker">Facility</p>
+        <h2>Training</h2>
+      </div>
+      <div class="page-meta">
+        <span>${Math.floor(profile.xp)} XP · Lv ${gunnerLevel(profile)}</span>
+        <button class="ghost" data-act="hub">Camp</button>
+      </div>
+    </div>
+    <p class="muted train-blurb">Headshots are not crits. Crits are their own roll.</p>
+    <div class="card-list train-grid">
       ${Object.values(SKILLS)
         .map((def) => {
           const rank = profile.skillRanks[def.id] || 0;
           const maxed = rank >= def.maxRank;
           const cost = skillCost(def, rank);
-          return `<div class="item">
-            <strong>${def.name}</strong>  RANK ${rank}/${def.maxRank} ${maxed ? '' : '· ' + cost + ' XP'}<br/>
+          const can = !maxed && profile.xp >= cost;
+          const pips = Array.from({ length: def.maxRank }, (_, i) => `<i class="${i < rank ? 'on' : ''}"></i>`).join('');
+          return `<div class="card skill-card">
+            <div class="card-top">
+              <strong>${def.name}</strong>
+              <span class="tag">${rank}/${def.maxRank}</span>
+            </div>
+            <div class="pips">${pips}</div>
             <span class="muted">${def.desc}</span>
-            <div class="row"><button data-skill="${def.id}" ${maxed || profile.xp < cost ? 'disabled' : ''}>UPGRADE</button></div>
+            <button class="${can ? 'primary' : ''}" data-skill="${def.id}" ${can ? '' : 'disabled'}>
+              ${maxed ? 'Maxed' : 'Upgrade · ' + cost + ' XP'}
+            </button>
           </div>`;
         })
         .join('')}
     </div>
-    <div class="row">
-      <button data-act="hub">Back to camp</button>
+    <div class="stats">
+      <div><span>Crit</span>${(stats.critChance * 100).toFixed(0)}%</div>
+      <div><span>Crit ×</span>${stats.critMult.toFixed(2)}</div>
+      <div><span>Cash from kills</span>×${stats.cashMul.toFixed(2)}</div>
+      <div><span>Aim rate</span>${stats.aimRate.toFixed(1)}</div>
     </div>
   `;
   el.querySelectorAll('[data-skill]').forEach((btn) => {

@@ -81,10 +81,12 @@ export function palette(kind) {
     return {
       skin: '#e8d9b0',
       wrap: '#d4c08a',
+      wrapHi: '#efe4c4',
       gap: '#5a4030',
       cloth: '#c4b07a',
       accent: '#c9a227',
-      eye: '#2a1810',
+      gold: '#e0b84a',
+      eye: '#1a100c',
     };
   }
   if (kind === 'vampire') {
@@ -93,7 +95,10 @@ export function palette(kind) {
       hair: '#140c0c',
       cloth: '#1a1214',
       cape: '#5a1424',
+      lining: '#3a0810',
+      shirt: '#efe6dc',
       accent: '#8b1e2d',
+      lip: '#8a2830',
       eye: '#c44536',
     };
   }
@@ -101,7 +106,10 @@ export function palette(kind) {
     skin: '#8a9a62',
     cloth: '#4a3a32',
     rot: '#5a6a40',
+    bone: '#cfc3a4',
+    gum: '#7a3030',
     accent: '#6a3028',
-    eye: '#1a140c',
+    pant: '#3a342c',
+    eye: '#c8d45a',
   };
 }

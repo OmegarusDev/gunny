@@ -95,7 +95,7 @@ function applyHits(run) {
     const remaining = Math.max(0, enemy.hp[pool]);
     enemy.hp[pool] -= dmg;
     if (zone === 'head') enemy.hp.head = Math.max(0, enemy.hp.head);
-    onHit(run.score, zone, crit, stats.cashMul);
+    onHit(run.score, zone, crit);
     playFlesh(zone === 'head');
 
     let label = zone === 'head' ? 'HEAD' : zone === 'upper' ? 'UPPER' : zone === 'lower' ? 'LOWER' : 'LEG';
@@ -203,7 +203,7 @@ export function simulate(run, dt, viewport, input) {
   if (weapon.reloading) {
     if (tap) {
       const result = tapReload(weapon, stats);
-      if (result === 'perfect') onPerfect(run.score, stats.cashMul);
+      if (result === 'perfect') onPerfect(run.score);
       if (result) weapon.suppressFire = true;
     }
   } else {
@@ -228,7 +228,7 @@ export function simulate(run, dt, viewport, input) {
   run.enemies = run.enemies.filter((e) => e.alive && e.worldX > player.worldX - 80);
   stepRagdolls(run, dt);
   stepGibs(run, dt);
-  tickDistance(run.score, runMeters(run), stats.cashMul);
+  tickDistance(run.score, runMeters(run));
   checkContact(run);
 
   if (!run.endless && runMeters(run) >= TRACK_METERS && !run.ended) {

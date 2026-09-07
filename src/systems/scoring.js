@@ -11,27 +11,21 @@ export function createScore() {
   };
 }
 
-export function tickDistance(score, meters, cashMul) {
+export function tickDistance(score, meters) {
   const gained = meters - score.lastMetersPaid;
   if (gained <= 0) return;
   score.lastMetersPaid = meters;
-  score.cash += gained * ECONOMY.cashPerMeter * cashMul;
   score.xp += gained * ECONOMY.xpPerMeter;
 }
 
-export function onHit(score, zone, crit, cashMul) {
+export function onHit(score, zone, crit) {
   if (zone === 'head') {
     score.headshots += 1;
-    score.cash += ECONOMY.cashPerHeadshot * cashMul;
     score.xp += ECONOMY.xpPerHeadshot;
   } else if (zone === 'lLeg' || zone === 'rLeg') {
-    score.cash += ECONOMY.cashPerLimb * cashMul;
     score.xp += 1;
   }
-  if (crit) {
-    score.cash += 2 * cashMul;
-    score.xp += 1;
-  }
+  if (crit) score.xp += 1;
 }
 
 export function onKill(score, cashMul) {
@@ -40,9 +34,8 @@ export function onKill(score, cashMul) {
   score.xp += ECONOMY.xpPerKill;
 }
 
-export function onPerfect(score, cashMul) {
+export function onPerfect(score) {
   score.perfects += 1;
-  score.cash += ECONOMY.cashPerPerfect * cashMul;
   score.xp += 3;
 }
 
