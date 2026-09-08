@@ -7,7 +7,8 @@ export function stepSpawner(run, dt, viewport) {
   run.spawnTimer -= dt;
   const meters = -run.player.worldX / PX_PER_M;
   if (!run.endless && meters >= TRACK_METERS) return;
-  const threat = threatForDistance(meters, run.levelIndex, run.endless);
+  const stage = run.endless ? 0 : Math.floor(run.levelIndex / 5);
+  const threat = threatForDistance(meters, stage, run.endless);
   run.threat = threat;
   const alive = run.enemies.filter((e) => e.alive).length;
   if (run.spawnTimer > 0 || alive >= threat.maxAlive) return;

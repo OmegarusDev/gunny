@@ -3,7 +3,7 @@ import { worldToScreen } from '../entities/player.js';
 import { perfectBand, reloadNorm, reloadGaugeBounds } from '../systems/activeReload.js';
 import { runMeters } from '../systems/run.js';
 import { drawCreature, drawFrozenCorpse, drawRagdollBody, drawSurvivor } from './creatures.js';
-import { gunWorld } from './figure.js';
+import { gunWorld } from '../figure.js';
 import {
   drawAirHaze,
   drawGrain,

@@ -59,7 +59,7 @@ export function renderHub(el, profile, handlers) {
   `;
   el.querySelector('[data-act="deploy"]').onclick = () => handlers.deploy(profile.unlockedLevel);
   el.querySelector('[data-act="gunsmith"]').onclick = () => handlers.gunsmith();
-  el.querySelector('[data-act="training"]').onclick = () => handlers.skills();
+  el.querySelector('[data-act="training"]').onclick = () => handlers.training();
   el.querySelector('[data-act="endless"]').onclick = () => handlers.endless();
 }
 
@@ -120,5 +120,5 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
   if (retry) retry.onclick = () => handlers.retry();
   el.querySelector('[data-act="hub"]').onclick = () => handlers.hub();
   el.querySelector('[data-act="gunsmith"]').onclick = () => handlers.gunsmith();
-  el.querySelector('[data-act="training"]').onclick = () => handlers.skills();
+  el.querySelector('[data-act="training"]').onclick = () => handlers.training();
 }

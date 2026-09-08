@@ -9,7 +9,7 @@ import { createRun, simulate } from './systems/run.js';
 import { renderGunsmith } from './ui/gunsmith.js';
 import { renderHub, renderEnd } from './ui/hub.js';
 import { mountOverlays } from './ui/overlays.js';
-import { renderSkills } from './ui/skills.js';
+import { renderTraining } from './ui/training.js';
 
 const canvas = document.getElementById('gameCanvas');
 const overlayRoot = document.getElementById('overlay-root');
@@ -36,7 +36,7 @@ const handlers = {
   },
   hub: showHub,
   gunsmith: showGunsmith,
-  skills: showSkills,
+  training: showTraining,
   retry() {
     startRun(lastType, lastLevel, lastSeed);
   },
@@ -67,11 +67,11 @@ function showGunsmith() {
   renderGunsmith(overlays.gunsmith, profile, handlers);
 }
 
-function showSkills() {
-  mode = 'skills';
+function showTraining() {
+  mode = 'training';
   run = null;
-  overlays.show('skills');
-  renderSkills(overlays.skills, profile, handlers);
+  overlays.show('training');
+  renderTraining(overlays.training, profile, handlers);
 }
 
 function settleRun() {

@@ -1,5 +1,5 @@
 import { GRAVITY, RAGDOLL_FREEZE_SPEED, MAX_FROZEN } from '../config.js';
-import { poseEnemy, ragdollLinks, ragdollNodesFromPose } from '../render/figure.js';
+import { poseEnemy, ragdollLinks, ragdollNodesFromPose } from '../figure.js';
 
 export function spawnRagdoll(enemy, ix, iy) {
   const pose = poseEnemy(enemy);

@@ -1,5 +1,5 @@
 import { LOCATIONAL, enemyHp } from '../config.js';
-import { limbCirclesFromPose, poseEnemy } from '../render/figure.js';
+import { limbCirclesFromPose, poseEnemy } from '../figure.js';
 
 let nextId = 1;
 

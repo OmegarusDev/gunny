@@ -6,7 +6,7 @@ import {
   poseFromNodes,
   poseLocal,
   posePlayerLocal,
-} from './figure.js';
+} from '../figure.js';
 
 function oval(ctx, x, y, rx, ry, fill) {
   ctx.fillStyle = fill;

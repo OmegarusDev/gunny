@@ -2,7 +2,7 @@ import { SKILLS, gunnerLevel, skillCost } from '../data/skills.js';
 import { resolveStats } from '../entities/loadout.js';
 import { saveProfile } from '../state/profile.js';
 
-export function renderSkills(el, profile, handlers) {
+export function renderTraining(el, profile, handlers) {
   const stats = resolveStats(profile);
   el.innerHTML = `
     <div class="page-head">
@@ -55,7 +55,7 @@ export function renderSkills(el, profile, handlers) {
       profile.xp -= cost;
       profile.skillRanks[def.id] = rank + 1;
       saveProfile(profile);
-      renderSkills(el, profile, handlers);
+      renderTraining(el, profile, handlers);
     };
   });
   el.querySelector('[data-act="hub"]').onclick = () => handlers.hub();

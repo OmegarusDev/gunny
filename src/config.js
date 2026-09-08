@@ -35,9 +35,10 @@ export const ECONOMY = {
   extractXp: 80,
 };
 
-export function threatForDistance(meters, levelIndex, endless) {
-  const tier = 1 + levelIndex * 0.15;
-  const speedTier = 1 + levelIndex * 0.08;
+/** @param {number} stage Campaign stage (floor(level/5)); Endless always 0. */
+export function threatForDistance(meters, stage, endless) {
+  const tier = 1 + stage * 0.15;
+  const speedTier = 1 + stage * 0.08;
   let band;
   const d = endless ? meters : Math.min(meters, TRACK_METERS);
   if (d < 50) {

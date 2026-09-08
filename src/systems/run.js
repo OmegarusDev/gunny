@@ -5,7 +5,7 @@ import { createTerrain } from '../world/terrain.js';
 import { createWeather } from '../world/weather.js';
 import { createPlayer, screenToWorld, cameraX } from '../entities/player.js';
 import { lethalCircles, isDead, updateLocomotion } from '../entities/enemy.js';
-import { gunWorld, playerCoreFromPose } from '../render/figure.js';
+import { gunWorld, playerCoreFromPose } from '../figure.js';
 import { resolveStats } from '../entities/loadout.js';
 import { spawnBullet, stepBullets } from './ballistics.js';
 import { stepSpawner } from './spawner.js';
