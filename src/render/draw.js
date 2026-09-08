@@ -292,7 +292,11 @@ export function drawHud(ctx, run, viewport, profile) {
   ctx.fillText(`Mag  ${w.ammo}/${run.stats.magSize}${perfectHud}`, 22, viewport.h - 58);
   ctx.fillText(`Bloom  ${w.bloom.toFixed(1)}° / ${run.stats.bloomCap}°    Heat  ${(w.heat * 100).toFixed(0)}%`, 22, viewport.h - 40);
   ctx.fillStyle = 'rgba(243, 230, 208, 0.72)';
-  ctx.fillText(run.lastCallout || 'Click to fire    Click the reload bar    P pause', 22, viewport.h - 22);
+  ctx.fillText(
+    run.lastCallout || 'Tap to fire · tap reload bar · P pause',
+    22,
+    viewport.h - 22,
+  );
 
   const magW = 120;
   const bx = viewport.w - 158;
@@ -313,15 +317,21 @@ export function drawHud(ctx, run, viewport, profile) {
   ctx.fillRect(bx, by + 16, magW * w.heat, 6);
 
   if (run.paused) {
-    ctx.fillStyle = 'rgba(12, 6, 4, 0.58)';
+    ctx.fillStyle = 'rgba(12, 6, 4, 0.62)';
     ctx.fillRect(0, 0, viewport.w, viewport.h);
-    ctx.fillStyle = bone;
-    ctx.font = '32px Georgia, serif';
     ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0,0,0,0.6)';
     ctx.shadowBlur = 12;
-    ctx.fillText('PAUSED', viewport.w / 2, viewport.h / 2);
+    ctx.fillStyle = bone;
+    ctx.font = '700 36px Georgia, "Iowan Old Style", serif';
+    ctx.fillText('PAUSED', viewport.w / 2, viewport.h / 2 - 10);
     ctx.shadowBlur = 0;
+    ctx.fillStyle = '#e0a33a';
+    ctx.font = '16px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText('Tap anywhere to resume', viewport.w / 2, viewport.h / 2 + 28);
+    ctx.fillStyle = 'rgba(243, 230, 208, 0.7)';
+    ctx.font = '13px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText('P · Esc · Space also works', viewport.w / 2, viewport.h / 2 + 52);
     ctx.textAlign = 'left';
   }
 }

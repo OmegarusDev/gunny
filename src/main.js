@@ -1,6 +1,7 @@
 import { FIXED_DT, MAX_FRAME_DT } from './config.js';
 import { createCanvas } from './engine/canvas.js';
 import { createInput } from './engine/input.js';
+import { enterImmersive, exitImmersive } from './engine/immersive.js';
 import { createLoop } from './engine/loop.js';
 import { resumeAudio } from './audio/synth.js';
 import { drawBackdrop, drawHud, drawWorld } from './render/draw.js';
@@ -10,9 +11,11 @@ import { renderGunsmith } from './ui/gunsmith.js';
 import { renderHub, renderEnd } from './ui/hub.js';
 import { mountOverlays } from './ui/overlays.js';
 import { renderTraining } from './ui/training.js';
+import { applyPwaUpdate, hasPwaUpdate, initPwa } from './pwa.js';
 
 const canvas = document.getElementById('gameCanvas');
 const overlayRoot = document.getElementById('overlay-root');
+const updateBtn = document.getElementById('pwa-update');
 const { ctx, viewport } = createCanvas(canvas);
 const input = createInput(canvas);
 const loop = createLoop(FIXED_DT, MAX_FRAME_DT);
@@ -26,6 +29,36 @@ let lastSeed = null;
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener('pointerdown', () => resumeAudio(), { once: true });
+
+function inActiveRun() {
+  return mode === 'run' && run && !run.ended;
+}
+
+function syncUpdateBanner() {
+  if (!updateBtn) return;
+  updateBtn.classList.toggle('hidden', !hasPwaUpdate() || !inActiveRun());
+}
+
+function offerOrApplyUpdate() {
+  if (!hasPwaUpdate()) {
+    syncUpdateBanner();
+    return;
+  }
+  if (inActiveRun()) {
+    syncUpdateBanner();
+    return;
+  }
+  applyPwaUpdate();
+}
+
+initPwa({
+  isSafeToReload: () => !inActiveRun(),
+  onUpdateAvailable: offerOrApplyUpdate,
+});
+
+updateBtn?.addEventListener('click', () => {
+  applyPwaUpdate();
+});
 
 const handlers = {
   deploy(level) {
@@ -44,20 +77,25 @@ const handlers = {
 
 function startRun(type, levelIndex, seed) {
   resumeAudio();
+  enterImmersive();
   lastType = type;
   lastLevel = levelIndex;
   run = createRun({ profile, viewport, type, levelIndex, seed });
   lastSeed = run.seed;
   mode = 'run';
   overlays.hideAll();
+  input.clearFireIntent();
   loop.reset();
+  syncUpdateBanner();
 }
 
 function showHub() {
   mode = 'hub';
   run = null;
+  exitImmersive();
   overlays.show('hub');
   renderHub(overlays.hub, profile, handlers);
+  offerOrApplyUpdate();
 }
 
 function showGunsmith() {
@@ -65,6 +103,7 @@ function showGunsmith() {
   run = null;
   overlays.show('gunsmith');
   renderGunsmith(overlays.gunsmith, profile, handlers);
+  offerOrApplyUpdate();
 }
 
 function showTraining() {
@@ -72,6 +111,7 @@ function showTraining() {
   run = null;
   overlays.show('training');
   renderTraining(overlays.training, profile, handlers);
+  offerOrApplyUpdate();
 }
 
 function settleRun() {
@@ -91,23 +131,43 @@ function settleRun() {
     handlers,
     extract: run.ended === 'extract',
   });
+  syncUpdateBanner();
+  offerOrApplyUpdate();
 }
 
 function frame(now) {
   const { steps } = loop.tick(now);
   if (mode === 'run' && run) {
-    if (input.consume('forcePause') && !run.ended) run.paused = true;
-    if (input.consume('pauseTap') && !run.ended) run.paused = !run.paused;
-    const reloadPressed = input.consume('reloadTap');
+    const forcePause = input.consume('forcePause');
+    const pauseTap = input.consume('pauseTap');
     const pointerTap = input.consume('pointerTap');
-    for (let i = 0; i < steps; i++) {
-      simulate(run, FIXED_DT, viewport, {
-        pointerX: input.state.pointerX,
-        pointerY: input.state.pointerY,
-        firing: input.state.firing,
-        reloadPressed: i === 0 ? reloadPressed : false,
-        pointerTap: i === 0 ? pointerTap : false,
-      });
+    const reloadPressed = input.consume('reloadTap');
+    let skipSim = false;
+
+    if (!run.ended) {
+      if (run.paused) {
+        if (pointerTap || pauseTap) {
+          run.paused = false;
+          input.clearFireIntent();
+          skipSim = true; // resume gesture is not a shot
+        }
+      } else if (forcePause || pauseTap) {
+        run.paused = true;
+        input.clearFireIntent();
+        skipSim = true;
+      }
+    }
+
+    if (!run.paused && !run.ended && !skipSim) {
+      for (let i = 0; i < steps; i++) {
+        simulate(run, FIXED_DT, viewport, {
+          pointerX: input.state.pointerX,
+          pointerY: input.state.pointerY,
+          firing: input.state.firing,
+          reloadPressed: i === 0 ? reloadPressed : false,
+          pointerTap: i === 0 ? pointerTap : false,
+        });
+      }
     }
     drawWorld(ctx, run, viewport);
     drawHud(ctx, run, viewport, profile);

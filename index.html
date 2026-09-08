@@ -2,20 +2,36 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1a120c" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Gunny" />
+    <meta name="application-name" content="Gunny" />
+    <meta name="description" content="Shoulder-fire auto-runner. Shoot over your shoulder." />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <title>GUNNY</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
     <div id="rotate-overlay">
-    <h1>GUNNY</h1>
-    <p>Turn the device sideways</p>
+      <h1>GUNNY</h1>
+      <p>Turn the device sideways</p>
+      <p class="rotate-hint">Landscape only</p>
     </div>
 
     <div id="canvas-container">
       <canvas id="gameCanvas"></canvas>
       <div id="overlay-root"></div>
     </div>
+
+    <button id="pwa-update" class="hidden" type="button">Update ready — tap to refresh</button>
 
     <script type="module" src="./src/main.js"></script>
   </body>

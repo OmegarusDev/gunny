@@ -50,7 +50,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     pendingHits: [],
     spawnTimer: 1.15,
     threat: null,
-    paused: false,
+    paused: true,
     ended: null,
     weapon: {
       ammo: stats.magSize,

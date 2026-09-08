@@ -6,7 +6,7 @@
     <img src="https://img.shields.io/badge/▶_PLAY_NOW-playable_in_browser-brightgreen?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Play Now" height="40" />
   </a>
 </p>
-<p align="center"><strong>No install.</strong> Works in the browser (desktop &amp; mobile).</p>
+<p align="center"><strong>Play in the browser</strong> — or install as an app from the live game page.</p>
 
 # Gunny
 
@@ -22,10 +22,10 @@ A 2D HTML5 Canvas chase. Zero art files, zero audio files, no runtime deps beyon
 
 - **Aim** — mouse / touch
 - **Fire** — click / tap and hold
-- **Reload** — click the arc after the mag is empty (`R` also taps it)
-- **Pause** — `P`
+- **Reload** — tap the reload bar after the mag is empty (`R` also taps it)
+- **Pause** — `P` / Esc / Space (or leave the tab). **Tap the pause screen to resume.** Runs start paused.
 
-Perfect reloads are a timing tap on that arc. Miss after the forgive window and you jam.
+Perfect reloads are a timing tap on the reload bar. Miss after the forgive window and you jam.
 
 ## How to play
 
@@ -42,6 +42,20 @@ npm install && npm run dev
 ```
 
 Open [http://localhost:5174/](http://localhost:5174/).
+
+## Mobile / install (PWA)
+
+Landscape only (portrait shows a rotate prompt). Touch-first: tap-hold to fire, tap the pause screen to resume.
+
+**Install as an app** (standalone window, no URL bar) from the live game page — not from the GitHub README itself:
+
+1. Open [omegarusdev.github.io/gunny](https://omegarusdev.github.io/gunny/) (the PLAY button).
+2. Install from that page:
+   - **Android Chrome:** address-bar install icon or menu → Install app / Add to Home screen
+   - **iPhone/iPad (Safari):** Share → Add to Home Screen
+3. Later launches use the home-screen icon. Pushes to `main` deploy a new Pages build; the installed app picks it up (auto-refresh when you’re not mid-run, or an “Update ready” tap if you are).
+
+Deploy / Endless also requests browser fullscreen when the OS allows it (stronger on Android; iOS prefers the installed PWA).
 
 ## Development
 

@@ -37,6 +37,9 @@ export function createInput(canvas) {
   window.visualViewport?.addEventListener('resize', () => {
     if (!state.moved) placeDefault();
   });
+  window.visualViewport?.addEventListener('scroll', () => {
+    if (!state.moved) placeDefault();
+  });
 
   function toLocal(e) {
     const p = toDesign(e.clientX, e.clientY);
@@ -45,8 +48,12 @@ export function createInput(canvas) {
     state.moved = true;
   }
 
+  function onPanel(e) {
+    return !!e.target.closest('#overlay-root .panel:not(.hidden)');
+  }
+
   function onDown(e) {
-    if (e.target.closest('#overlay-root .panel:not(.hidden)')) return;
+    if (onPanel(e)) return;
     if (!e.target.closest('#canvas-container')) return;
     toLocal(e);
     state.firing = true;
@@ -61,31 +68,66 @@ export function createInput(canvas) {
     if (state.firing || e.target.closest('#canvas-container')) toLocal(e);
   }
 
-  canvas.addEventListener('pointerdown', (e) => {
-    canvas.setPointerCapture(e.pointerId);
-    onDown(e);
-    e.preventDefault();
-  });
-  window.addEventListener('pointerdown', (e) => {
-    if (e.target === canvas) return;
-    onDown(e);
-  });
-  window.addEventListener('pointermove', onMove);
+  function requestPause() {
+    state.firing = false;
+    state.forcePause = true;
+  }
+
+  canvas.addEventListener(
+    'pointerdown',
+    (e) => {
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch {
+        /* some browsers reject capture mid-gesture */
+      }
+      onDown(e);
+      e.preventDefault();
+    },
+    { passive: false },
+  );
+  window.addEventListener(
+    'pointerdown',
+    (e) => {
+      if (e.target === canvas) return;
+      onDown(e);
+    },
+    { passive: true },
+  );
+  window.addEventListener('pointermove', onMove, { passive: true });
   canvas.addEventListener('pointerup', endFire);
   canvas.addEventListener('lostpointercapture', endFire);
   canvas.addEventListener('pointercancel', endFire);
   window.addEventListener('pointerup', endFire);
   window.addEventListener('pointercancel', endFire);
+
+  // Block iOS long-press callout / selection on the canvas surface.
+  canvas.addEventListener(
+    'touchstart',
+    (e) => {
+      if (onPanel(e)) return;
+      e.preventDefault();
+    },
+    { passive: false },
+  );
+
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;
     const k = e.key.toLowerCase();
     if (k === 'r') state.reloadTap = true;
-    if (k === 'p') state.pauseTap = true;
+    if (k === 'p' || k === 'escape') state.pauseTap = true;
+    if (k === ' ' || k === 'enter') {
+      // Resume / pause with keyboard when focused (desktop + bluetooth keyboards).
+      state.pauseTap = true;
+      e.preventDefault();
+    }
   });
-  window.addEventListener('blur', () => {
-    state.firing = false;
-    state.forcePause = true;
+
+  window.addEventListener('blur', requestPause);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) requestPause();
   });
+  window.addEventListener('pagehide', requestPause);
 
   return {
     state,
@@ -93,6 +135,11 @@ export function createInput(canvas) {
       const v = state[name];
       state[name] = false;
       return v;
+    },
+    /** Drop a resume/start tap so it does not also fire. */
+    clearFireIntent() {
+      state.firing = false;
+      state.pointerTap = false;
     },
   };
 }

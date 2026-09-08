@@ -1,4 +1,4 @@
-import { palette } from '../data/biomes.js';
+import { palette } from './data/biomes.js';
 
 export const S = 1;
 export const MUZZLE_LEN = 48 * S;
