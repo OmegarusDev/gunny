@@ -15,7 +15,7 @@ export function renderTraining(el, profile, handlers) {
         <button class="ghost" data-act="hub">Camp</button>
       </div>
     </div>
-    <p class="muted train-blurb">Headshots are not crits. Crits are their own roll.</p>
+    <p class="muted train-blurb">Precision Reloading speeds the bar and widens the perfect zone. Headshots are not crits.</p>
     <div class="card-list train-grid">
       ${Object.values(SKILLS)
         .map((def) => {

@@ -26,13 +26,14 @@ export const LOCATIONAL = {
 export const BASE_CRIT_CHANCE = 0.05;
 export const BASE_CRIT_MULT = 1.1;
 
+/** Kill cash is the only early store fuel. mag_2 costs 100 ≈ 10 kills. */
 export const ECONOMY = {
-  cashPerKill: 20,
-  xpPerMeter: 0.12,
-  xpPerKill: 10,
-  xpPerHeadshot: 7,
-  extractBonus: 180,
-  extractXp: 80,
+  cashPerKill: 10,
+  xpPerMeter: 0.1,
+  xpPerKill: 8,
+  xpPerHeadshot: 5,
+  extractBonus: 40,
+  extractXp: 45,
 };
 
 /** @param {number} stage Campaign stage (floor(level/5)); Endless always 0. */

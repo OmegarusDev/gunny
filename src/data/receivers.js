@@ -2,24 +2,25 @@ export const SLOTS = [
   'receiver',
   'barrel',
   'magazine',
+  'springs',
   'optic',
   'stock',
   'muzzle',
   'trigger',
   'gasBlock',
-  'springs',
 ];
 
+/** Springs unlock on T1 so reload is available before optic/stock. */
 export const SLOT_MIN_TIER = {
   receiver: 1,
   barrel: 1,
   magazine: 1,
+  springs: 1,
   optic: 2,
   stock: 2,
   muzzle: 2,
   trigger: 3,
   gasBlock: 3,
-  springs: 3,
 };
 
 export const RECEIVERS = {
@@ -27,14 +28,15 @@ export const RECEIVERS = {
     id: 't1_stock',
     name: 'Stock Receiver',
     tier: 1,
+    rank: 0,
     cost: 0,
-    desc: 'Bare receiver. Barrel and mag only. Heavy, slow, hot.',
+    desc: 'Bare receiver. Barrel, mag, and springs. Heavy, slow, hot.',
     base: {
       damage: 13,
       rof: 2.2,
       magSize: 1,
-      reload: 2.45,
-      perfectWidth: 0.08,
+      reload: 2.55,
+      perfectWidth: 0.07,
       bulletSpeed: 820,
       pen: 1.05,
       penDecay: 0.0009,
@@ -51,14 +53,16 @@ export const RECEIVERS = {
     id: 't2_tactical',
     name: 'Tactical Receiver',
     tier: 2,
-    cost: 420,
-    desc: 'Opens optic, stock, and muzzle slots. Better heat path.',
+    rank: 1,
+    requires: 't1_stock',
+    cost: 450,
+    desc: 'Opens optic, stock, and muzzle. Better heat path.',
     base: {
       damage: 14,
       rof: 7.4,
       magSize: 1,
-      reload: 2.2,
-      perfectWidth: 0.09,
+      reload: 2.35,
+      perfectWidth: 0.08,
       bulletSpeed: 860,
       pen: 1.15,
       penDecay: 0.0008,
@@ -75,14 +79,16 @@ export const RECEIVERS = {
     id: 't3_ordnance',
     name: 'Ordnance Receiver',
     tier: 3,
-    cost: 1250,
-    desc: 'Full internals: trigger, gas block, springs. High RoF ceiling.',
+    rank: 2,
+    requires: 't2_tactical',
+    cost: 1100,
+    desc: 'Full internals: trigger and gas. High RoF ceiling.',
     base: {
       damage: 15,
       rof: 8.1,
       magSize: 1,
-      reload: 2.05,
-      perfectWidth: 0.1,
+      reload: 2.2,
+      perfectWidth: 0.09,
       bulletSpeed: 900,
       pen: 1.25,
       penDecay: 0.0007,
@@ -96,3 +102,7 @@ export const RECEIVERS = {
     },
   },
 };
+
+export function receiverRequirement(id) {
+  return RECEIVERS[id]?.requires || null;
+}

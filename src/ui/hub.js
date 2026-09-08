@@ -92,7 +92,7 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
       <div><span>Cash</span>+${fmtMoney(run.score.cash)}</div>
       <div><span>XP</span>+${Math.floor(run.score.xp)}</div>
     </div>
-    <p class="muted">${extract ? `Clear bonus paid. Next: ${next.place}.` : 'Cash from kills. A little XP for the metres you ran.'}</p>
+    <p class="muted">${extract ? `Clear bonus paid. Next: ${next.place}.` : 'Cash from kills only. Extract pays a small clear bonus.'}</p>
     <div class="facilities end-actions">
       ${extract ? '' : `<button class="facility start" data-act="retry">
         <span class="facility-kicker">Mission</span>

@@ -386,6 +386,10 @@ canvas {
   opacity: 0.5;
 }
 
+#overlay-root .card.locked {
+  opacity: 0.55;
+}
+
 #overlay-root .card-list {
   display: flex;
   flex-direction: column;

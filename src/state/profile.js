@@ -1,13 +1,14 @@
-import { RECEIVERS } from '../data/receivers.js';
-import { PARTS, STARTER_LOADOUT, STARTER_OWNED } from '../data/attachments.js';
+import { RECEIVERS, receiverRequirement } from '../data/receivers.js';
+import { PARTS, STARTER_LOADOUT, STARTER_OWNED, partRequirement } from '../data/attachments.js';
 import { emptyRanks } from '../data/skills.js';
 
-const KEY = 'gunny.profile.v1';
+/** Bumped for economy + ladder rebalance (fresh camp). */
+const KEY = 'gunny.profile.v2';
 
 export function defaultProfile() {
   return {
-    cash: 90,
-    xp: 40,
+    cash: 0,
+    xp: 0,
     unlockedLevel: 0,
     owned: [...STARTER_OWNED],
     loadout: { ...STARTER_LOADOUT },
@@ -22,23 +23,26 @@ export function loadProfile() {
     const parsed = JSON.parse(raw);
     const base = defaultProfile();
     const loadout = { ...base.loadout, ...(parsed.loadout || {}) };
-    let owned = Array.from(new Set([...(parsed.owned || []), ...STARTER_OWNED]));
-    let migrated = false;
-    const upgradedMag = ['mag_10', 'mag_20', 'mag_drum'].includes(loadout.magazine);
-    if (loadout.magazine === 'mag_6' && !upgradedMag) {
-      loadout.magazine = 'mag_1';
-      owned = owned.filter((id) => id !== 'mag_6');
-      migrated = true;
+    const owned = Array.from(new Set([...(parsed.owned || []), ...STARTER_OWNED])).filter(
+      (id) => PARTS[id] || RECEIVERS[id],
+    );
+    for (const slot of Object.keys(base.loadout)) {
+      const id = loadout[slot];
+      if (slot === 'receiver') {
+        if (!RECEIVERS[id] || !owned.includes(id)) loadout[slot] = base.loadout[slot];
+      } else if (!PARTS[id] || !owned.includes(id)) {
+        loadout[slot] = base.loadout[slot];
+      }
     }
-    const profile = {
+    return {
       ...base,
       ...parsed,
       owned,
       loadout,
       skillRanks: { ...base.skillRanks, ...(parsed.skillRanks || {}) },
+      cash: Math.max(0, Number(parsed.cash) || 0),
+      xp: Math.max(0, Number(parsed.xp) || 0),
     };
-    if (migrated) saveProfile(profile);
-    return profile;
   } catch {
     return defaultProfile();
   }
@@ -52,9 +56,31 @@ export function owns(profile, id) {
   return profile.owned.includes(id);
 }
 
-export function buyPart(profile, id, cost) {
+export function itemRequirement(id) {
+  return partRequirement(id) || receiverRequirement(id);
+}
+
+/** Next ladder step only — cannot skip parts. */
+export function canBuy(profile, id, cost) {
   if (owns(profile, id)) return false;
   if (profile.cash < cost) return false;
+  const req = itemRequirement(id);
+  if (req && !owns(profile, req)) return false;
+  return true;
+}
+
+export function buyBlockedReason(profile, id) {
+  if (owns(profile, id)) return 'Owned';
+  const req = itemRequirement(id);
+  if (req && !owns(profile, req)) {
+    const name = PARTS[req]?.name || RECEIVERS[req]?.name || req;
+    return `Need ${name}`;
+  }
+  return null;
+}
+
+export function buyPart(profile, id, cost) {
+  if (!canBuy(profile, id, cost)) return false;
   profile.cash -= cost;
   profile.owned.push(id);
   saveProfile(profile);

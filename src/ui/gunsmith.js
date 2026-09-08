@@ -1,19 +1,19 @@
 import { RECEIVERS, SLOTS, SLOT_MIN_TIER } from '../data/receivers.js';
 import { PARTS, partsForSlot } from '../data/attachments.js';
 import { resolveStats, slotUnlockedFor } from '../entities/loadout.js';
-import { buyPart, equipPart, owns } from '../state/profile.js';
+import { buyBlockedReason, buyPart, equipPart, owns } from '../state/profile.js';
 import { fmtMoney } from './overlays.js';
 
 const SLOT_LABEL = {
   receiver: 'Receiver',
   barrel: 'Barrel',
   magazine: 'Mag',
+  springs: 'Springs',
   optic: 'Optic',
   stock: 'Stock',
   muzzle: 'Muzzle',
   trigger: 'Trigger',
   gasBlock: 'Gas',
-  springs: 'Springs',
 };
 
 export function renderGunsmith(el, profile, handlers) {
@@ -34,6 +34,7 @@ export function renderGunsmith(el, profile, handlers) {
         <button class="ghost" data-act="hub">Camp</button>
       </div>
     </div>
+    <p class="muted train-blurb">Buy the next rung only. Mag = ammo (drums/belts late). Springs = reload speed.</p>
     <div class="chips" role="tablist">
       ${SLOTS.map((slot) => {
         const locked = !slotUnlockedFor(recId, slot) && slot !== 'receiver';
@@ -56,11 +57,13 @@ export function renderGunsmith(el, profile, handlers) {
                 .map((item) => {
                   const equipped = isEquipped(profile, selected, item.id);
                   const have = owns(profile, item.id);
-                  return `<button class="card ${equipped ? 'equipped' : ''} ${have ? '' : 'unowned'}" data-id="${item.id}">
+                  const gate = buyBlockedReason(profile, item.id);
+                  const gated = !have && gate && gate !== 'Owned';
+                  return `<button class="card ${equipped ? 'equipped' : ''} ${have ? '' : 'unowned'} ${gated ? 'locked' : ''}" data-id="${item.id}">
                     <div class="card-top">
                       <strong>${item.name}</strong>
-                      <span class="tag ${equipped ? 'hot' : have ? 'own' : ''}">${
-                        equipped ? 'Equipped' : have ? 'Owned' : fmtMoney(item.cost)
+                      <span class="tag ${equipped ? 'hot' : have ? 'own' : gated ? '' : ''}">${
+                        equipped ? 'Equipped' : have ? 'Owned' : gated ? gate : fmtMoney(item.cost)
                       }</span>
                     </div>
                     <span class="muted">${item.desc}</span>
@@ -108,6 +111,7 @@ export function renderGunsmith(el, profile, handlers) {
   if (item && actions && !lockedSlot) {
     const have = owns(profile, item.id);
     const equipped = isEquipped(profile, selected, item.id);
+    const gate = buyBlockedReason(profile, item.id);
     const hint = document.createElement('p');
     hint.className = 'muted foot-hint';
     hint.textContent = item.name;
@@ -115,11 +119,16 @@ export function renderGunsmith(el, profile, handlers) {
     const b = document.createElement('button');
     if (!have) {
       b.className = 'primary';
-      b.textContent = `Buy ${fmtMoney(item.cost)}`;
-      b.disabled = profile.cash < item.cost;
-      b.onclick = () => {
-        if (buyPart(profile, item.id, item.cost)) renderGunsmith(el, profile, handlers);
-      };
+      if (gate && gate !== 'Owned') {
+        b.textContent = gate;
+        b.disabled = true;
+      } else {
+        b.textContent = `Buy ${fmtMoney(item.cost)}`;
+        b.disabled = profile.cash < item.cost;
+        b.onclick = () => {
+          if (buyPart(profile, item.id, item.cost)) renderGunsmith(el, profile, handlers);
+        };
+      }
     } else {
       b.className = 'primary';
       b.textContent = equipped ? 'Equipped' : 'Equip';
@@ -133,7 +142,9 @@ export function renderGunsmith(el, profile, handlers) {
 }
 
 function catalog(slot, recId) {
-  if (slot === 'receiver') return Object.values(RECEIVERS);
+  if (slot === 'receiver') {
+    return Object.values(RECEIVERS).sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
+  }
   if (!slotUnlockedFor(recId, slot)) return [];
   return partsForSlot(slot);
 }
