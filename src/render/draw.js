@@ -293,7 +293,7 @@ export function drawHud(ctx, run, viewport, profile) {
   ctx.fillText(`Bloom  ${w.bloom.toFixed(1)}° / ${run.stats.bloomCap}°    Heat  ${(w.heat * 100).toFixed(0)}%`, 22, viewport.h - 40);
   ctx.fillStyle = 'rgba(243, 230, 208, 0.72)';
   ctx.fillText(
-    run.lastCallout || 'Tap to fire · tap reload bar · P pause',
+    run.lastCallout || 'Tap to fire · tap again to reload · P pause',
     22,
     viewport.h - 22,
   );

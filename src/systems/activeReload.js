@@ -2,12 +2,12 @@ import { JAM_PENALTY, RELOAD_FORGIVE } from '../config.js';
 import { playJam, playPerfect, playReloadTone } from '../audio/synth.js';
 
 export function reloadGaugeBounds(viewport) {
-  const barW = Math.min(420, viewport.w * 0.42);
-  const barH = 18;
+  const barW = Math.min(480, viewport.w * 0.5);
+  const barH = 22;
   const x = (viewport.w - barW) * 0.5;
   const y = viewport.h * 0.42;
-  const padX = 10;
-  const padY = 16;
+  const padX = 24;
+  const padY = 36;
   return {
     x: x - 6 - padX,
     y: y - 14 - padY,

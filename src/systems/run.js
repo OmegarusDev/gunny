@@ -48,7 +48,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     callouts: [],
     impacts: [],
     pendingHits: [],
-    spawnTimer: 1.15,
+    spawnTimer: 0.35,
     threat: null,
     paused: true,
     ended: null,
@@ -194,6 +194,7 @@ export function simulate(run, dt, viewport, input) {
 
   const tapReloadIntent =
     input.reloadPressed ||
+    (weapon.reloading && input.pointerTap) ||
     (input.pointerTap && pointerInReloadGauge(input.pointerX, input.pointerY, viewport));
   if (weapon.reloading) {
     if (tapReloadIntent) {

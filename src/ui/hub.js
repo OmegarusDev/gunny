@@ -33,7 +33,7 @@ export function renderHub(el, profile, handlers) {
       <button class="facility start" data-act="deploy">
         <span class="facility-kicker">Mission</span>
         <span class="facility-title">Start Run</span>
-        <span class="facility-sub">${next.place} · 200m</span>
+        <span class="facility-sub">${next.place} · 250m</span>
       </button>
       <button class="facility" data-act="gunsmith">
         <span class="facility-kicker">Facility</span>
