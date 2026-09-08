@@ -31,7 +31,7 @@ Perfect reloads are a timing tap on that arc. Miss after the forgive window and 
 
 `Camp → Start Run → shoot over your shoulder → extract or die → Gunsmith / Training`
 
-Cash comes from **kills** (and a 200m extract bonus). Spend it in Gunsmith. XP is for Training. Clear 200m to unlock the next road; Endless Hunt picks one biome and keeps it.
+Cash comes from **kills** (and a 200m extract bonus). Spend it in Gunsmith. XP is for Training. Clear 200m to unlock the next road. The loop is Forest Road, Fen Causeway, Transylvanian Lane, Desert Wadi, Bone Quarry. Endless Hunt picks one biome and keeps it.
 
 Contact with a living enemy’s head or torso ends the run. Legs don’t.
 

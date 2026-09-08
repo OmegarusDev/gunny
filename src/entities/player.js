@@ -1,17 +1,15 @@
-import { PLAYER } from '../config.js';
+import { PLAYER_SCREEN_X_RATIO } from '../config.js';
 
 export function createPlayer(worldX, terrain) {
   return {
     worldX,
     y: terrain.height(worldX),
     aimAngle: 0,
-    coreW: PLAYER.coreW,
-    coreH: PLAYER.coreH,
   };
 }
 
 export function playerScreenX(viewport) {
-  return viewport.w * 0.25;
+  return viewport.w * PLAYER_SCREEN_X_RATIO;
 }
 
 export function cameraX(playerWorldX, viewport) {

@@ -71,6 +71,24 @@ function toScreen(worldX, playerWorldX, viewport) {
   return worldX - worldLeft(playerWorldX, viewport);
 }
 
+function inViewX(sx, half, viewW) {
+  return sx + half > 0 && sx - half < viewW;
+}
+
+function treeHalf(h) {
+  return h * 0.82 + 8;
+}
+
+function pineHalf(scale) {
+  return 42 * scale;
+}
+
+function tilesInView(left, viewW, spacing, half) {
+  const start = Math.floor((left - half) / spacing) * spacing;
+  const end = left + viewW + half;
+  return { start, end };
+}
+
 export function drawSky(ctx, viewport, biome) {
   const g = ctx.createLinearGradient(0, 0, 0, viewport.h);
   g.addColorStop(0, biome.sky[0]);
@@ -107,14 +125,29 @@ export function drawSky(ctx, viewport, biome) {
     ctx.beginPath();
     ctx.arc(mx + 10, my - 4, 22, 0, Math.PI * 2);
     ctx.fill();
+  } else if (biome.id === 'fen') {
+    const sunX = viewport.w * 0.7;
+    const sunY = viewport.h * 0.2;
+    const glow = ctx.createRadialGradient(sunX, sunY, 6, sunX, sunY, 70);
+    glow.addColorStop(0, 'rgba(200, 210, 150, 0.28)');
+    glow.addColorStop(1, 'rgba(200, 210, 150, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 70, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = biome.sun;
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 16, 0, Math.PI * 2);
+    ctx.fill();
   } else {
-    const sunX = viewport.w * (biome.id === 'desert' ? 0.8 : 0.84);
-    const sunY = viewport.h * (biome.id === 'desert' ? 0.16 : 0.22);
-    const sunR = biome.id === 'desert' ? 42 : 28;
+    const pale = biome.id === 'desert' || biome.id === 'quarry';
+    const sunX = viewport.w * (pale ? 0.8 : 0.84);
+    const sunY = viewport.h * (pale ? 0.16 : 0.22);
+    const sunR = biome.id === 'desert' ? 42 : biome.id === 'quarry' ? 34 : 28;
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
     ctx.globalAlpha = 0.12;
-    ctx.fillStyle = biome.id === 'desert' ? '#fff1c0' : '#ffb060';
+    ctx.fillStyle = pale ? '#fff1c0' : '#ffb060';
     for (let i = 0; i < 7; i++) {
       const a = -0.9 + i * 0.22;
       ctx.beginPath();
@@ -127,7 +160,7 @@ export function drawSky(ctx, viewport, biome) {
     ctx.restore();
     const glow = ctx.createRadialGradient(sunX, sunY, 4, sunX, sunY, sunR * 3.2);
     glow.addColorStop(0, biome.sun);
-    glow.addColorStop(0.28, biome.id === 'desert' ? 'rgba(255,244,196,0.6)' : 'rgba(255,170,70,0.5)');
+    glow.addColorStop(0.28, pale ? 'rgba(255,244,196,0.6)' : 'rgba(255,170,70,0.5)');
     glow.addColorStop(1, 'rgba(255,140,40,0)');
     ctx.fillStyle = glow;
     ctx.beginPath();
@@ -144,23 +177,29 @@ export function drawSky(ctx, viewport, biome) {
   }
 
   if (biome.id !== 'transylvania') {
-    for (let i = 0; i < 8; i++) {
+    const n = biome.id === 'fen' ? 12 : 8;
+    for (let i = 0; i < n; i++) {
       const hx = uhash(i + biome.id.charCodeAt(0));
       const cx = viewport.w * (0.04 + hx * 0.78);
-      const cy = viewport.h * (0.08 + uhash(i + 4) * 0.16);
+      const cy = viewport.h * (0.08 + uhash(i + 4) * (biome.id === 'fen' ? 0.22 : 0.16));
       const rw = 62 + hx * 58;
       const rh = 15 + hx * 9;
-      ctx.fillStyle = biome.id === 'desert' ? 'rgba(40, 28, 16, 0.08)' : 'rgba(12, 8, 16, 0.16)';
+      const dusty = biome.id === 'desert' || biome.id === 'quarry';
+      ctx.fillStyle = dusty ? 'rgba(40, 28, 16, 0.08)' : 'rgba(12, 8, 16, 0.16)';
       ctx.beginPath();
       ctx.ellipse(cx - 4, cy + 5, rw, rh, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = biome.id === 'desert' ? 'rgba(255,255,255,0.2)' : 'rgba(48, 32, 52, 0.18)';
+      ctx.fillStyle = dusty
+        ? 'rgba(255,255,255,0.2)'
+        : biome.id === 'fen'
+          ? 'rgba(48, 62, 52, 0.28)'
+          : 'rgba(48, 32, 52, 0.18)';
       ctx.beginPath();
       ctx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI * 2);
       ctx.ellipse(cx - rw * 0.35, cy + 4, rw * 0.55, rh * 0.78, 0, 0, Math.PI * 2);
       ctx.ellipse(cx + rw * 0.3, cy + 3, rw * 0.45, rh * 0.72, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = biome.id === 'desert' ? 'rgba(255,255,255,0.12)' : 'rgba(80, 60, 90, 0.1)';
+      ctx.fillStyle = dusty ? 'rgba(255,255,255,0.12)' : 'rgba(80, 60, 90, 0.1)';
       ctx.beginPath();
       ctx.ellipse(cx + rw * 0.12, cy - 4, rw * 0.42, rh * 0.4, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -171,7 +210,7 @@ export function drawSky(ctx, viewport, biome) {
 export function drawHills(ctx, viewport, run) {
   const biome = run.biome;
   const left = worldLeft(run.player.worldX, viewport);
-  const jagged = biome.id !== 'desert';
+  const jagged = biome.id !== 'desert' && biome.id !== 'quarry';
   drawRidge(ctx, viewport, left, biome.hillFar, viewport.h * 0.46, 38, 0.0007, jagged, biome, 1);
   drawRidge(ctx, viewport, left, biome.hillNear, viewport.h * 0.54, 26, 0.0012, jagged, biome, 2);
 }
@@ -186,7 +225,12 @@ function drawRidge(ctx, viewport, left, color, yBase, amp, freq, jagged, biome, 
     if (jagged) {
       const a = Math.abs(Math.sin(wx * 0.018 + layer * 1.7));
       const b = Math.abs(Math.sin(wx * 0.041 + layer));
-      y -= biome.id === 'transylvania' ? 8 + a * a * 30 + b * 12 : 5 + a * 16 + b * 7;
+      y -=
+        biome.id === 'transylvania'
+          ? 8 + a * a * 30 + b * 12
+          : biome.id === 'fen'
+            ? 3 + a * 10 + b * 5
+            : 5 + a * 16 + b * 7;
     }
     ys.push(y);
   }
@@ -212,64 +256,100 @@ function drawRidge(ctx, viewport, left, color, yBase, amp, freq, jagged, biome, 
 
 export function drawFarScenery(ctx, viewport, run) {
   const biome = run.biome;
+  const viewW = viewport.w;
   const left = worldLeft(run.player.worldX, viewport);
-  const spacing = biome.id === 'desert' ? 150 : biome.id === 'transylvania' ? 52 : 64;
-  const start = Math.floor((left - 90) / spacing) * spacing;
+  const spacing =
+    biome.id === 'desert' ? 150 : biome.id === 'transylvania' ? 52 : biome.id === 'fen' ? 42 : biome.id === 'quarry' ? 92 : 64;
+  const maxHalf = biome.id === 'desert' || biome.id === 'fen' || biome.id === 'quarry' ? 48 : 112;
+  const { start, end } = tilesInView(left, viewW, spacing, maxHalf);
   ctx.save();
   ctx.globalAlpha = biome.id === 'desert' ? 0.78 : 0.68;
-  for (let wx = start; wx < left + viewport.w + 90; wx += spacing) {
+  for (let wx = start; wx < end; wx += spacing) {
+    const sx = toScreen(wx, run.player.worldX, viewport);
+    if (!inViewX(sx, maxHalf, viewW)) continue;
     const id = Math.floor(wx / spacing) + 40 + biome.id.charCodeAt(0);
     const h = uhash(id);
-    const sx = toScreen(wx, run.player.worldX, viewport);
     const ground = run.terrain.height(wx) - 36 - h * 18;
-    if (biome.id === 'desert') drawDuneBush(ctx, sx, ground, h, biome);
-    else if (biome.id === 'transylvania') drawPine(ctx, sx, ground, 90 + h * 60, biome, 0.9, id);
-    else drawTree(ctx, sx, ground, 78 + h * 48, biome, 0.78, id);
+    if (biome.id === 'desert') {
+      if (inViewX(sx, 28, viewW)) drawDuneBush(ctx, sx, ground, h, biome);
+    } else if (biome.id === 'transylvania') {
+      if (inViewX(sx, pineHalf(0.9), viewW)) drawPine(ctx, sx, ground, 90 + h * 60, biome, 0.9, id);
+    } else if (biome.id === 'fen') {
+      if (inViewX(sx, 14, viewW)) drawReed(ctx, sx, ground + 8, 28 + h * 22, biome, id);
+    } else if (biome.id === 'quarry') {
+      if (inViewX(sx, 40, viewW)) drawSpoil(ctx, sx, ground + 12, 34 + h * 28, biome);
+    } else {
+      const th = 78 + h * 48;
+      if (inViewX(sx, treeHalf(th), viewW)) drawTree(ctx, sx, ground, th, biome, 0.78, id);
+    }
   }
   ctx.restore();
   if (biome.id === 'transylvania') drawCastle(ctx, viewport, run);
+  if (biome.id === 'quarry') drawGantry(ctx, viewport, run);
 }
 
 export function drawNearScenery(ctx, viewport, run) {
   const biome = run.biome;
+  const viewW = viewport.w;
   const left = worldLeft(run.player.worldX, viewport);
-  const spacing = biome.id === 'desert' ? 96 : 50;
-  const start = Math.floor((left - 40) / spacing) * spacing;
-  for (let wx = start; wx < left + viewport.w + 40; wx += spacing) {
+  const spacing = biome.id === 'desert' ? 96 : biome.id === 'fen' ? 36 : biome.id === 'quarry' ? 70 : 50;
+  const maxHalf = biome.id === 'desert' || biome.id === 'fen' || biome.id === 'quarry' ? 48 : 160;
+  const { start, end } = tilesInView(left, viewW, spacing, maxHalf);
+  for (let wx = start; wx < end; wx += spacing) {
     const id = Math.floor(wx / spacing);
     const h = uhash(id + 9);
     const plantX = wx + (h - 0.5) * 14;
     const sx = toScreen(plantX, run.player.worldX, viewport);
+    if (!inViewX(sx, maxHalf, viewW)) continue;
     const verge = run.terrain.height(plantX) - 10;
     if (biome.id === 'desert') {
-      if (h > 0.62) drawCactus(ctx, sx, verge, 36 + h * 40, biome, id);
-      else if (h > 0.38) drawRock(ctx, sx, verge + 8, 12 + h * 14, biome, id);
+      if (h > 0.62 && inViewX(sx, 22, viewW)) drawCactus(ctx, sx, verge, 36 + h * 40, biome, id);
+      else if (h > 0.38 && inViewX(sx, 18, viewW)) drawRock(ctx, sx, verge + 8, 12 + h * 14, biome, id);
     } else if (biome.id === 'transylvania') {
-      if (h > 0.42) drawPine(ctx, sx, verge, 120 + h * 80, biome, 1, id);
-      if (h > 0.7) drawFence(ctx, sx, verge + 8);
+      if (h > 0.42 && inViewX(sx, pineHalf(1), viewW)) drawPine(ctx, sx, verge, 120 + h * 80, biome, 1, id);
+      if (h > 0.7 && inViewX(sx, 18, viewW)) drawFence(ctx, sx, verge + 8);
+    } else if (biome.id === 'fen') {
+      if (h > 0.22 && inViewX(sx, 16, viewW)) drawReed(ctx, sx, verge + 6, 46 + h * 50, biome, id);
+      if (h > 0.72 && inViewX(sx, 20, viewW)) drawSnag(ctx, sx + 8, verge + 4, 28 + h * 22, biome, id);
+    } else if (biome.id === 'quarry') {
+      if (h > 0.55 && inViewX(sx, 22, viewW)) drawRock(ctx, sx, verge + 8, 14 + h * 16, biome, id);
+      else if (h > 0.28 && inViewX(sx, 28, viewW)) drawRail(ctx, sx, verge + 6, biome);
+      if (h > 0.82 && inViewX(sx, 28, viewW)) drawSpoil(ctx, sx, verge + 4, 22 + h * 16, biome);
     } else {
-      if (h > 0.34) drawTree(ctx, sx, verge, 110 + h * 72, biome, 1, id);
-      if (h > 0.78) drawFence(ctx, sx, verge + 8);
-      if (h < 0.2) drawGrassTuft(ctx, sx, verge + 10, biome);
+      const th = 110 + h * 72;
+      if (h > 0.34 && inViewX(sx, treeHalf(th), viewW)) drawTree(ctx, sx, verge, th, biome, 1, id);
+      if (h > 0.78 && inViewX(sx, 18, viewW)) drawFence(ctx, sx, verge + 8);
+      if (h < 0.2 && inViewX(sx, 12, viewW)) drawGrassTuft(ctx, sx, verge + 10, biome);
     }
   }
 }
 
 export function drawForeground(ctx, viewport, run) {
   const biome = run.biome;
+  const viewW = viewport.w;
   const left = worldLeft(run.player.worldX, viewport);
   const spacing = 120;
-  const start = Math.floor((left - 60) / spacing) * spacing;
-  for (let wx = start; wx < left + viewport.w + 60; wx += spacing) {
+  const maxHalf = biome.id === 'desert' || biome.id === 'quarry' ? 40 : biome.id === 'fen' ? 24 : 165;
+  const { start, end } = tilesInView(left, viewW, spacing, maxHalf);
+  for (let wx = start; wx < end; wx += spacing) {
     const id = Math.floor(wx / spacing) + 200;
     const h = uhash(id);
     if (h < 0.45) continue;
     const sx = toScreen(wx, run.player.worldX, viewport);
-    if (sx < 380 || sx > viewport.w - 190) continue;
+    if (!inViewX(sx, maxHalf, viewW)) continue;
     const y = viewport.h + 8;
-    if (biome.id === 'desert') drawRock(ctx, sx, y - 6, 18 + h * 16, biome, id);
-    else if (biome.id === 'transylvania') drawPine(ctx, sx, y, 160 + h * 50, biome, 1.15, id);
-    else drawTree(ctx, sx, y, 140 + h * 48, biome, 1.2, id);
+    if (biome.id === 'desert') {
+      if (inViewX(sx, 24, viewW)) drawRock(ctx, sx, y - 6, 18 + h * 16, biome, id);
+    } else if (biome.id === 'transylvania') {
+      if (inViewX(sx, pineHalf(1.15), viewW)) drawPine(ctx, sx, y, 160 + h * 50, biome, 1.15, id);
+    } else if (biome.id === 'fen') {
+      if (inViewX(sx, 18, viewW)) drawReed(ctx, sx, y - 4, 90 + h * 40, biome, id);
+    } else if (biome.id === 'quarry') {
+      if (inViewX(sx, 32, viewW)) drawSpoil(ctx, sx, y - 2, 36 + h * 22, biome);
+    } else {
+      const th = 140 + h * 48;
+      if (inViewX(sx, treeHalf(th), viewW)) drawTree(ctx, sx, y, th, biome, 1.2, id);
+    }
   }
 }
 
@@ -327,6 +407,21 @@ export function drawGround(ctx, viewport, run) {
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+
+  if (biome.id === 'fen') {
+    ctx.fillStyle = 'rgba(18, 28, 24, 0.55)';
+    for (let px = 12; px < viewport.w; px += 11) {
+      const worldX = player.worldX - viewport.w * PLAYER_SCREEN_X_RATIO + px;
+      const h = uhash(Math.floor(worldX / 11) + 12);
+      if (h < 0.5) continue;
+      const y = terrain.height(worldX);
+      ctx.globalAlpha = 0.25 + h * 0.35;
+      ctx.beginPath();
+      ctx.ellipse(px, y + 9 + h * 3, 6 + h * 5, 1.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
 
   if (biome.mist) {
     const mist = ctx.createLinearGradient(0, viewport.h * 0.5, 0, viewport.h * 0.72);
@@ -510,7 +605,9 @@ function drawDuneBush(ctx, x, ground, h, biome) {
 
 function drawRock(ctx, x, ground, s, biome, seed = 1) {
   seed >>>= 0;
-  ctx.fillStyle = shadeHex(biome.id === 'desert' ? '#8a6848' : '#3a3228', -0.1);
+  const chalk = biome.id === 'quarry';
+  const desert = biome.id === 'desert';
+  ctx.fillStyle = shadeHex(desert ? '#8a6848' : chalk ? '#9a8e7a' : '#3a3228', -0.1);
   const skew = (uhash(seed + 4) - 0.5) * 0.4;
   ctx.beginPath();
   ctx.moveTo(x - s, ground);
@@ -520,13 +617,77 @@ function drawRock(ctx, x, ground, s, biome, seed = 1) {
   ctx.lineTo(x + s * 0.8, ground);
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = shadeHex(biome.id === 'desert' ? '#c4a070' : '#5a4a3a', 0.05);
+  ctx.fillStyle = shadeHex(desert ? '#c4a070' : chalk ? '#d4c8b0' : '#5a4a3a', 0.05);
   ctx.beginPath();
   ctx.moveTo(x + s * skew, ground - s * (0.85 + uhash(seed + 2) * 0.2));
   ctx.lineTo(x + s * (0.85 + skew * 0.3), ground - s * (0.3 + uhash(seed + 3) * 0.2));
   ctx.lineTo(x + s * 0.35, ground - s * 0.2);
   ctx.closePath();
   ctx.fill();
+}
+
+function drawReed(ctx, x, ground, h, biome, seed) {
+  seed >>>= 0;
+  const n = 5 + (seed % 4);
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    const hx = uhash(seed * 13 + i);
+    const lean = (hx - 0.5) * 12;
+    const hh = h * (0.5 + hx * 0.55);
+    const px = x + (i - n / 2) * 3.4;
+    ctx.strokeStyle = shadeHex(biome.canopy[i % biome.canopy.length], hx > 0.55 ? 0.12 : -0.18);
+    ctx.lineWidth = 1.15 + hx;
+    ctx.beginPath();
+    ctx.moveTo(px, ground);
+    ctx.quadraticCurveTo(px + lean * 0.25, ground - hh * 0.52, px + lean, ground - hh);
+    ctx.stroke();
+    if (hx > 0.42) {
+      ctx.fillStyle = shadeHex(biome.canopy[0], -0.15);
+      ctx.beginPath();
+      ctx.ellipse(px + lean, ground - hh, 3.1, 1.35, lean * 0.06, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function drawSnag(ctx, x, ground, h, biome, seed) {
+  const lean = (uhash(seed) - 0.5) * 0.45 * h;
+  ctx.fillStyle = shadeHex(biome.trunk, -0.08);
+  ctx.beginPath();
+  ctx.moveTo(x - 4, ground);
+  ctx.lineTo(x - 2 + lean, ground - h);
+  ctx.lineTo(x + 3 + lean, ground - h * 0.9);
+  ctx.lineTo(x + 5, ground);
+  ctx.fill();
+  ctx.fillStyle = shadeHex(biome.trunk, 0.14);
+  ctx.fillRect(x + lean - 1, ground - h * 0.62, 9, 2.2);
+}
+
+function drawSpoil(ctx, x, ground, h, biome) {
+  ctx.fillStyle = shadeHex(biome.hillNear, -0.08);
+  ctx.beginPath();
+  ctx.moveTo(x - h * 0.72, ground);
+  ctx.lineTo(x - h * 0.08, ground - h * 0.52);
+  ctx.lineTo(x + h * 0.18, ground - h * 0.74);
+  ctx.lineTo(x + h * 0.78, ground);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = shadeHex(biome.hillFar, 0.14);
+  ctx.beginPath();
+  ctx.moveTo(x - h * 0.12, ground - h * 0.38);
+  ctx.lineTo(x + h * 0.18, ground - h * 0.74);
+  ctx.lineTo(x + h * 0.42, ground - h * 0.34);
+  ctx.fill();
+}
+
+function drawRail(ctx, x, ground, biome) {
+  ctx.fillStyle = shadeHex(biome.trunk, -0.12);
+  ctx.fillRect(x - 24, ground - 3, 48, 2);
+  ctx.fillRect(x - 24, ground - 8, 48, 2);
+  ctx.fillStyle = shadeHex(biome.soil, -0.18);
+  for (let i = -2; i <= 2; i++) ctx.fillRect(x + i * 10 - 3, ground - 1, 7, 4);
 }
 
 function drawGrassTuft(ctx, x, ground, biome) {
@@ -562,7 +723,7 @@ function drawFence(ctx, x, ground) {
 function drawCastle(ctx, viewport, run) {
   const wx = Math.floor(run.player.worldX / 1100) * 1100 + 640;
   const sx = toScreen(wx, run.player.worldX, viewport);
-  if (sx < -100 || sx > viewport.w + 100) return;
+  if (!inViewX(sx + 26, 52, viewport.w)) return;
   const y = viewport.h * 0.38;
   ctx.fillStyle = '#07080e';
   ctx.fillRect(sx, y, 52, 70);
@@ -589,8 +750,30 @@ function drawCastle(ctx, viewport, run) {
   ctx.restore();
 }
 
+function drawGantry(ctx, viewport, run) {
+  const wx = Math.floor(run.player.worldX / 1400) * 1400 + 520;
+  const sx = toScreen(wx, run.player.worldX, viewport);
+  if (!inViewX(sx + 22, 44, viewport.w)) return;
+  const y = run.terrain.height(wx) - 8;
+  const biome = run.biome;
+  ctx.strokeStyle = shadeHex(biome.trunk, 0.04);
+  ctx.lineWidth = 3.2;
+  ctx.beginPath();
+  ctx.moveTo(sx, y);
+  ctx.lineTo(sx, y - 78);
+  ctx.moveTo(sx + 44, y + 6);
+  ctx.lineTo(sx + 44, y - 78);
+  ctx.moveTo(sx, y - 78);
+  ctx.lineTo(sx + 44, y - 78);
+  ctx.moveTo(sx + 22, y - 78);
+  ctx.lineTo(sx + 22, y - 58);
+  ctx.stroke();
+  ctx.fillStyle = shadeHex(biome.accent, -0.18);
+  ctx.fillRect(sx + 19, y - 58, 6, 10);
+}
+
 export function hubTerrain(viewport, biomeIndex = 0) {
-  return createTerrain(1801 + (biomeIndex % 3) * 131, viewport.h);
+  return createTerrain(1801 + (biomeIndex % BIOMES.length) * 131, viewport.h);
 }
 
 export function hubRun(viewport, t, biomeIndex = 0) {

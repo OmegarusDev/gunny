@@ -1,21 +1,17 @@
-import {
-  PLAYER,
-  PX_PER_M,
-  TRACK_METERS,
-  V_RETREAT,
-} from '../config.js';
+import { PERFECT_MAG_MULT, PX_PER_M, TRACK_METERS, V_RETREAT } from '../config.js';
 import { randomSeed, seedForLevel, seedFromUint32 } from '../engine/rng.js';
 import { biomeFor, biomeFromSeed } from '../data/biomes.js';
 import { createTerrain } from '../world/terrain.js';
 import { createWeather } from '../world/weather.js';
-import { createPlayer, screenToWorld } from '../entities/player.js';
+import { createPlayer, screenToWorld, cameraX } from '../entities/player.js';
 import { lethalCircles, isDead, updateLocomotion } from '../entities/enemy.js';
+import { gunWorld, playerCoreFromPose } from '../render/figure.js';
 import { resolveStats } from '../entities/loadout.js';
 import { spawnBullet, stepBullets } from './ballistics.js';
 import { stepSpawner } from './spawner.js';
 import { spawnRagdoll, stepRagdolls } from './ragdoll.js';
 import { spawnBurst, spawnGibs, stepGibs } from './gibs.js';
-import { startReload, tapReload, stepReload } from './activeReload.js';
+import { startReload, tapReload, stepReload, pointerInReloadGauge } from './activeReload.js';
 import { createScore, tickDistance, onHit, onKill, onPerfect, extractBonus } from './scoring.js';
 import { rectCircleOverlap } from './hits.js';
 import { playFlesh, playMuzzle } from '../audio/synth.js';
@@ -87,7 +83,7 @@ function applyHits(run) {
     if (!enemy.alive) continue;
     const crit = run.rng() < stats.critChance;
     const loc = hit.locational;
-    const perfect = weapon.perfectMag ? 1.25 : 1;
+    const perfect = weapon.perfectMag ? PERFECT_MAG_MULT : 1;
     const critMul = crit ? stats.critMult : 1;
     const dmg = stats.damage * loc * critMul * perfect;
     const zone = hit.zone;
@@ -118,7 +114,7 @@ function applyHits(run) {
       if (overkill) {
         run.gibs.push(...spawnGibs(hit.x, hit.y, hit.nx, hit.ny));
       } else {
-        run.ragdolls.push(spawnRagdoll(enemy, hit.nx * 220, hit.ny * 220, run.terrain));
+        run.ragdolls.push(spawnRagdoll(enemy, hit.nx * 220, hit.ny * 220));
       }
     }
   }
@@ -140,9 +136,10 @@ function tryFire(run, firing) {
   const bloomDeg = Math.min(stats.bloomCap, weapon.bloom + weapon.heat * stats.heatBloom);
   const spread = degToRad((run.rng() * 2 - 1) * bloomDeg);
   const angle = player.aimAngle + spread;
+  const gun = gunWorld(player);
   const muzzle = {
-    x: player.worldX + PLAYER.gunX + Math.cos(angle) * PLAYER.muzzle,
-    y: player.y - PLAYER.gunY + Math.sin(angle) * PLAYER.muzzle,
+    x: gun.x + Math.cos(angle) * gun.len,
+    y: gun.y + Math.sin(angle) * gun.len,
   };
   run.bullets.push(spawnBullet(muzzle.x, muzzle.y, angle, stats, weapon.perfectMag));
   weapon.bloom = Math.min(stats.bloomCap, weapon.bloom + stats.bloomPerShot);
@@ -151,12 +148,7 @@ function tryFire(run, firing) {
 }
 
 function playerCore(player) {
-  return {
-    x: player.worldX - PLAYER.coreW / 2,
-    y: player.y - PLAYER.coreH - PLAYER.coreLift,
-    w: PLAYER.coreW,
-    h: PLAYER.coreH,
-  };
+  return playerCoreFromPose(player);
 }
 
 function checkContact(run) {
@@ -179,8 +171,9 @@ export function simulate(run, dt, viewport, input) {
   player.worldX -= V_RETREAT * dt;
   player.y = run.terrain.height(player.worldX);
 
+  const gun = gunWorld(player);
   const aimWorld = screenToWorld(input.pointerX, input.pointerY, player.worldX, viewport);
-  const target = Math.atan2(aimWorld.y - (player.y - PLAYER.gunY), aimWorld.x - (player.worldX + PLAYER.gunX));
+  const target = Math.atan2(aimWorld.y - gun.y, aimWorld.x - gun.x);
   const maxTurn = stats.aimRate * dt;
   let diff = target - player.aimAngle;
   while (diff > Math.PI) diff -= Math.PI * 2;
@@ -199,12 +192,14 @@ export function simulate(run, dt, viewport, input) {
     weapon.heat = Math.max(0, weapon.heat - stats.heatDump * dt);
   }
 
-  const tap = input.pointerTap || input.reloadPressed;
+  const tapReloadIntent =
+    input.reloadPressed ||
+    (input.pointerTap && pointerInReloadGauge(input.pointerX, input.pointerY, viewport));
   if (weapon.reloading) {
-    if (tap) {
+    if (tapReloadIntent) {
       const result = tapReload(weapon, stats);
       if (result === 'perfect') onPerfect(run.score);
-      if (result) weapon.suppressFire = true;
+      if (result === 'perfect' || result === 'jam') weapon.suppressFire = true;
     }
   } else {
     const shot = tryFire(run, holding);
@@ -225,7 +220,8 @@ export function simulate(run, dt, viewport, input) {
   run.pendingHits = [];
   stepBullets(run, dt);
   applyHits(run);
-  run.enemies = run.enemies.filter((e) => e.alive && e.worldX > player.worldX - 80);
+  const left = cameraX(player.worldX, viewport);
+  run.enemies = run.enemies.filter((e) => e.alive && e.worldX > left - 140);
   stepRagdolls(run, dt);
   stepGibs(run, dt);
   tickDistance(run.score, runMeters(run));

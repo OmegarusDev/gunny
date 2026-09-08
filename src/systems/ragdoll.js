@@ -1,34 +1,31 @@
 import { GRAVITY, RAGDOLL_FREEZE_SPEED, MAX_FROZEN } from '../config.js';
-import { limbCircles } from '../entities/enemy.js';
+import { poseEnemy, ragdollLinks, ragdollNodesFromPose } from '../render/figure.js';
 
-function dist(a, b) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-export function spawnRagdoll(enemy, ix, iy, terrain) {
-  const c = limbCircles(enemy);
-  const nodes = [
-    { id: 'head', x: c.head.x, y: c.head.y, ox: c.head.x, oy: c.head.y },
-    { id: 'upper', x: c.upper.x, y: c.upper.y, ox: c.upper.x, oy: c.upper.y },
-    { id: 'lower', x: c.lower.x, y: c.lower.y, ox: c.lower.x, oy: c.lower.y },
-    { id: 'lLeg', x: c.lLeg.x, y: c.lLeg.y, ox: c.lLeg.x, oy: c.lLeg.y },
-    { id: 'rLeg', x: c.rLeg.x, y: c.rLeg.y, ox: c.rLeg.x, oy: c.rLeg.y },
-  ];
-  const links = [
-    [0, 1],
-    [1, 2],
-    [2, 3],
-    [2, 4],
-  ].map(([a, b]) => ({ a, b, len: dist(nodes[a], nodes[b]) }));
+export function spawnRagdoll(enemy, ix, iy) {
+  const pose = poseEnemy(enemy);
+  const nodes = ragdollNodesFromPose(pose);
+  const links = ragdollLinks(nodes);
 
   for (const n of nodes) {
     n.x += ix * 0.04 + (Math.random() - 0.5) * 4;
     n.y += iy * 0.04 - 2;
+    n.ox = n.x;
+    n.oy = n.y;
   }
   if (enemy.severedHead) {
-    nodes[0].x += ix * 0.08;
-    nodes[0].y -= 10;
-    links[0].len += 8;
+    const head = nodes.find((n) => n.id === 'head');
+    if (head) {
+      head.x += ix * 0.08;
+      head.y -= 10;
+      head.ox = head.x;
+      head.oy = head.y;
+    }
+    const neck = links.find((l) => {
+      const a = nodes[l.a];
+      const b = nodes[l.b];
+      return a.id === 'head' || b.id === 'head';
+    });
+    if (neck) neck.len += 8;
   }
 
   return {
@@ -38,6 +35,7 @@ export function spawnRagdoll(enemy, ix, iy, terrain) {
     age: 0,
     friction: 0.88,
     kind: enemy.kind || 'zombie',
+    severedHead: !!enemy.severedHead,
   };
 }
 
@@ -83,7 +81,9 @@ export function stepRagdolls(run, dt) {
     if (grounded >= 3 && maxV < RAGDOLL_FREEZE_SPEED && rag.age > 0.25) {
       rag.frozen = true;
       run.frozenCorpses.push({
-        points: rag.nodes.map((n) => ({ x: n.x, y: n.y })),
+        kind: rag.kind,
+        severedHead: rag.severedHead,
+        nodes: rag.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
       });
       if (run.frozenCorpses.length > MAX_FROZEN) run.frozenCorpses.shift();
     }

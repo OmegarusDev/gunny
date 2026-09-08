@@ -21,13 +21,6 @@ export function segmentHitsCircle(x1, y1, x2, y2, cx, cy, r) {
   return { t, x: x1 + dx * t, y: y1 + dy * t };
 }
 
-export function circlesOverlap(ax, ay, ar, bx, by, br) {
-  const dx = ax - bx;
-  const dy = ay - by;
-  const r = ar + br;
-  return dx * dx + dy * dy <= r * r;
-}
-
 export function rectCircleOverlap(rx, ry, rw, rh, cx, cy, cr) {
   const nx = Math.max(rx, Math.min(cx, rx + rw));
   const ny = Math.max(ry, Math.min(cy, ry + rh));

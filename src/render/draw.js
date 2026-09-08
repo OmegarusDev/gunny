@@ -1,8 +1,9 @@
-import { BODY_SCALE, PLAYER, PLAYER_SCREEN_X_RATIO } from '../config.js';
+import { PLAYER_SCREEN_X_RATIO, TRACK_METERS, PERFECT_MAG_MULT } from '../config.js';
 import { worldToScreen } from '../entities/player.js';
-import { perfectBand, reloadNorm } from '../systems/activeReload.js';
+import { perfectBand, reloadNorm, reloadGaugeBounds } from '../systems/activeReload.js';
 import { runMeters } from '../systems/run.js';
-import { drawCreature, drawRagdollBody, drawSurvivor } from './creatures.js';
+import { drawCreature, drawFrozenCorpse, drawRagdollBody, drawSurvivor } from './creatures.js';
+import { gunWorld } from './figure.js';
 import {
   drawAirHaze,
   drawGrain,
@@ -67,8 +68,9 @@ function drawPlayer(ctx, run, viewport) {
   drawSurvivor(ctx, run.player, sx);
   const p = run.player;
   const w = run.weapon;
-  const mx = sx + PLAYER.gunX + Math.cos(p.aimAngle) * PLAYER.muzzle;
-  const my = p.y - PLAYER.gunY + Math.sin(p.aimAngle) * PLAYER.muzzle;
+  const gun = gunWorld(p);
+  const mx = sx + gun.sx + Math.cos(p.aimAngle) * gun.len;
+  const my = p.y + gun.sy + Math.sin(p.aimAngle) * gun.len;
   const bloom = (w.bloom / Math.max(0.001, run.stats.bloomCap)) * 18;
   ctx.save();
   ctx.strokeStyle = 'rgba(224, 163, 58, 0.28)';
@@ -157,18 +159,7 @@ function drawCorpses(ctx, run, viewport) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   for (const corpse of run.frozenCorpses) {
-    ctx.beginPath();
-    corpse.points.forEach((pt, i) => {
-      const p = w2s(pt.x, pt.y, run, viewport);
-      if (i === 0) ctx.moveTo(p.x, p.y);
-      else ctx.lineTo(p.x, p.y);
-    });
-    ctx.strokeStyle = 'rgba(18, 10, 6, 0.55)';
-    ctx.lineWidth = 6;
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(58, 38, 28, 0.75)';
-    ctx.lineWidth = 3;
-    ctx.stroke();
+    drawFrozenCorpse(ctx, corpse, (x, y) => w2s(x, y, run, viewport));
   }
 }
 
@@ -217,36 +208,39 @@ function drawParticles(ctx, run, viewport) {
 function drawReloadGauge(ctx, run, viewport) {
   const w = run.weapon;
   if (!w.reloading) return;
-  const sx = viewport.w * PLAYER_SCREEN_X_RATIO;
-  const y = run.player.y - 58 * BODY_SCALE - 22;
-  const r = 26;
+  const { barX: x, barY: y, barW, barH } = reloadGaugeBounds(viewport);
   const t = reloadNorm(w);
   const band = perfectBand(run.stats);
   ctx.save();
-  ctx.strokeStyle = 'rgba(12, 6, 4, 0.72)';
-  ctx.lineWidth = 7;
+  ctx.fillStyle = 'rgba(12, 6, 4, 0.72)';
   ctx.beginPath();
-  ctx.arc(sx, y, r, Math.PI, 0);
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(80, 48, 24, 0.9)';
-  ctx.lineWidth = 5;
+  if (ctx.roundRect) ctx.roundRect(x - 6, y - 8, barW + 12, barH + 16, 6);
+  else ctx.rect(x - 6, y - 8, barW + 12, barH + 16);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(80, 48, 24, 0.95)';
   ctx.beginPath();
-  ctx.arc(sx, y, r, Math.PI, 0);
-  ctx.stroke();
-  ctx.strokeStyle = '#e0a33a';
+  if (ctx.roundRect) ctx.roundRect(x, y, barW, barH, 4);
+  else ctx.rect(x, y, barW, barH);
+  ctx.fill();
+  ctx.fillStyle = '#e0a33a';
   ctx.shadowColor = 'rgba(224, 163, 58, 0.55)';
-  ctx.shadowBlur = 8;
-  ctx.beginPath();
-  ctx.arc(sx, y, r, Math.PI + band.a * Math.PI, Math.PI + band.b * Math.PI);
-  ctx.stroke();
+  ctx.shadowBlur = 10;
+  ctx.fillRect(x + band.a * barW, y, (band.b - band.a) * barW, barH);
   ctx.shadowBlur = 0;
-  const ang = Math.PI + t * Math.PI;
+  const nx = x + t * barW;
   ctx.strokeStyle = w.jammed ? '#c44536' : '#f3e6d0';
-  ctx.lineWidth = 2.2;
+  ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(sx, y);
-  ctx.lineTo(sx + Math.cos(ang) * r, y + Math.sin(ang) * r);
+  ctx.moveTo(nx, y - 6);
+  ctx.lineTo(nx, y + barH + 6);
   ctx.stroke();
+  ctx.fillStyle = w.jammed ? '#c44536' : '#f3e6d0';
+  ctx.beginPath();
+  ctx.moveTo(nx, y - 6);
+  ctx.lineTo(nx - 5, y - 14);
+  ctx.lineTo(nx + 5, y - 14);
+  ctx.closePath();
+  ctx.fill();
   ctx.restore();
 }
 
@@ -288,16 +282,17 @@ export function drawHud(ctx, run, viewport, profile) {
   ctx.fillStyle = bone;
   ctx.font = '13px "Segoe UI", system-ui, sans-serif';
   ctx.fillText(`Distance  ${m.toFixed(1)}m`, 22, 60);
-  if (!run.endless) ctx.fillText(`Track  ${Math.min(200, m).toFixed(0)} / 200m`, 22, 78);
+  if (!run.endless) ctx.fillText(`Track  ${Math.min(TRACK_METERS, m).toFixed(0)} / ${TRACK_METERS}m`, 22, 78);
   ctx.fillText(`Cash  $${Math.floor(profile.cash + run.score.cash)}    XP  ${Math.floor(profile.xp + run.score.xp)}`, 22, run.endless ? 78 : 96);
   ctx.fillText(`Kills  ${run.score.kills}    Headshots  ${run.score.headshots}    Perfects  ${run.score.perfects}`, 22, run.endless ? 96 : 114);
 
   const w = run.weapon;
   ctx.fillStyle = bone;
-  ctx.fillText(`Mag  ${w.ammo}/${run.stats.magSize}${w.perfectMag ? '  +25%' : ''}`, 22, viewport.h - 58);
+  const perfectHud = w.perfectMag ? `  DMG×${PERFECT_MAG_MULT}` : '';
+  ctx.fillText(`Mag  ${w.ammo}/${run.stats.magSize}${perfectHud}`, 22, viewport.h - 58);
   ctx.fillText(`Bloom  ${w.bloom.toFixed(1)}° / ${run.stats.bloomCap}°    Heat  ${(w.heat * 100).toFixed(0)}%`, 22, viewport.h - 40);
   ctx.fillStyle = 'rgba(243, 230, 208, 0.72)';
-  ctx.fillText(run.lastCallout || 'Click to fire    Click the bar to reload    P pause', 22, viewport.h - 22);
+  ctx.fillText(run.lastCallout || 'Click to fire    Click the reload bar    P pause', 22, viewport.h - 22);
 
   const magW = 120;
   const bx = viewport.w - 158;
@@ -331,8 +326,8 @@ export function drawHud(ctx, run, viewport, profile) {
   }
 }
 
-export function drawBackdrop(ctx, viewport, t) {
-  const run = hubRun(viewport, t, Math.floor(t / 9) % 3);
+export function drawBackdrop(ctx, viewport, t, biomeIndex = 0) {
+  const run = hubRun(viewport, t, biomeIndex);
   composeScene(ctx, viewport, run, t);
   ctx.save();
   ctx.globalAlpha = 0.92;

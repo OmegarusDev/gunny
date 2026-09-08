@@ -32,7 +32,7 @@ const handlers = {
     startRun('200m', level);
   },
   endless() {
-    startRun('endless', profile.unlockedLevel);
+    startRun('endless', 0);
   },
   hub: showHub,
   gunsmith: showGunsmith,
@@ -96,6 +96,7 @@ function settleRun() {
 function frame(now) {
   const { steps } = loop.tick(now);
   if (mode === 'run' && run) {
+    if (input.consume('forcePause') && !run.ended) run.paused = true;
     if (input.consume('pauseTap') && !run.ended) run.paused = !run.paused;
     const reloadPressed = input.consume('reloadTap');
     const pointerTap = input.consume('pointerTap');
@@ -112,7 +113,7 @@ function frame(now) {
     drawHud(ctx, run, viewport, profile);
     if (run.ended) settleRun();
   } else {
-    drawBackdrop(ctx, viewport, now / 1000);
+    drawBackdrop(ctx, viewport, now / 1000, profile.unlockedLevel);
   }
   requestAnimationFrame(frame);
 }

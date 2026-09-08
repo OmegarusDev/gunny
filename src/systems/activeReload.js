@@ -1,6 +1,30 @@
 import { JAM_PENALTY, RELOAD_FORGIVE } from '../config.js';
 import { playJam, playPerfect, playReloadTone } from '../audio/synth.js';
 
+export function reloadGaugeBounds(viewport) {
+  const barW = Math.min(420, viewport.w * 0.42);
+  const barH = 18;
+  const x = (viewport.w - barW) * 0.5;
+  const y = viewport.h * 0.42;
+  const padX = 10;
+  const padY = 16;
+  return {
+    x: x - 6 - padX,
+    y: y - 14 - padY,
+    w: barW + 12 + padX * 2,
+    h: barH + 22 + padY * 2,
+    barX: x,
+    barY: y,
+    barW,
+    barH,
+  };
+}
+
+export function pointerInReloadGauge(px, py, viewport) {
+  const b = reloadGaugeBounds(viewport);
+  return px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h;
+}
+
 export function startReload(weapon, stats) {
   if (weapon.reloading) return;
   weapon.reloading = true;
@@ -9,6 +33,7 @@ export function startReload(weapon, stats) {
   weapon.jammed = false;
   weapon.tapped = false;
   weapon.toneAcc = 0;
+  weapon.perfectMag = false;
 }
 
 export function tapReload(weapon, stats) {
@@ -27,6 +52,7 @@ export function tapReload(weapon, stats) {
     return 'perfect';
   }
   weapon.jammed = true;
+  weapon.perfectMag = false;
   weapon.reloadDur = weapon.reloadT + (weapon.reloadDur - weapon.reloadT) + JAM_PENALTY;
   playJam();
   return 'jam';
@@ -44,7 +70,7 @@ export function stepReload(weapon, stats, dt) {
     weapon.reloading = false;
     weapon.reloadT = 0;
     weapon.ammo = stats.magSize;
-    if (!weapon.jammed && !weapon.tapped) weapon.perfectMag = false;
+    weapon.perfectMag = false;
     weapon.jammed = false;
     weapon.tapped = false;
   }

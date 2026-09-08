@@ -6,6 +6,5 @@ export function createWeather(rng) {
   return {
     windX: Math.cos(ang) * mag,
     windY: Math.sin(ang) * mag * 0.35,
-    friction: randRange(rng, 0.82, 0.92),
   };
 }

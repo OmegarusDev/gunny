@@ -1,4 +1,4 @@
-import { FLESH_PEN_COST } from '../config.js';
+import { FLESH_PEN_COST, PERFECT_MAG_MULT } from '../config.js';
 import { limbCircles, locationalOf } from '../entities/enemy.js';
 import { segmentHitsTerrain } from '../world/terrain.js';
 import { segmentHitsCircle } from './hits.js';
@@ -10,8 +10,7 @@ export function spawnBullet(x, y, angle, stats, perfectMag) {
     y,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
-    pen: stats.pen * (perfectMag ? 1.25 : 1),
-    damage: stats.damage,
+    pen: stats.pen * (perfectMag ? PERFECT_MAG_MULT : 1),
     alive: true,
     hitIds: new Set(),
     age: 0,

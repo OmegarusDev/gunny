@@ -45,7 +45,6 @@ export const RECEIVERS = {
       heatDump: 0.16,
       heatBloom: 4.5,
       weight: 1.15,
-      zoom: 1,
     },
   },
   t2_tactical: {
@@ -70,7 +69,6 @@ export const RECEIVERS = {
       heatDump: 0.24,
       heatBloom: 3.2,
       weight: 1,
-      zoom: 1,
     },
   },
   t3_ordnance: {
@@ -95,7 +93,6 @@ export const RECEIVERS = {
       heatDump: 0.3,
       heatBloom: 2.4,
       weight: 0.92,
-      zoom: 1,
     },
   },
 };

@@ -13,6 +13,6 @@ export function stepSpawner(run, dt, viewport) {
   if (run.spawnTimer > 0 || alive >= threat.maxAlive) return;
   run.spawnTimer = threat.spawnInterval * randRange(run.rng, 0.7, 1.15);
   const cam = cameraX(run.player.worldX, viewport);
-  const x = cam + viewport.w + randRange(run.rng, 20, 80);
+  const x = cam + viewport.w + randRange(run.rng, 90, 160);
   run.enemies.push(createEnemy(x, run.terrain, threat.hpMul, threat.speed, run.biome.kind));
 }
