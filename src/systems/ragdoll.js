@@ -1,13 +1,13 @@
 import { GRAVITY, RAGDOLL_FREEZE_SPEED, MAX_FROZEN } from '../config.js';
 import { poseEnemy, ragdollLinks, ragdollNodesFromPose } from '../figure.js';
 
-export function spawnRagdoll(enemy, ix, iy) {
+export function spawnRagdoll(enemy, ix, iy, rng = Math.random) {
   const pose = poseEnemy(enemy);
   const nodes = ragdollNodesFromPose(pose);
   const links = ragdollLinks(nodes);
 
   for (const n of nodes) {
-    n.x += ix * 0.04 + (Math.random() - 0.5) * 4;
+    n.x += ix * 0.04 + (rng() - 0.5) * 4;
     n.y += iy * 0.04 - 2;
     n.ox = n.x;
     n.oy = n.y;

@@ -1,4 +1,6 @@
-export function mountOverlays(root, handlers) {
+const PANEL_KEYS = ['hub', 'gunsmith', 'training', 'end'];
+
+export function mountOverlays(root) {
   root.innerHTML = `
     <div id="panel-hub" class="panel hidden"></div>
     <div id="panel-gunsmith" class="panel hidden"></div>
@@ -10,14 +12,13 @@ export function mountOverlays(root, handlers) {
     gunsmith: root.querySelector('#panel-gunsmith'),
     training: root.querySelector('#panel-training'),
     end: root.querySelector('#panel-end'),
-    handlers,
     show(name) {
-      for (const key of ['hub', 'gunsmith', 'training', 'end']) {
+      for (const key of PANEL_KEYS) {
         this[key].classList.toggle('hidden', key !== name);
       }
     },
     hideAll() {
-      for (const key of ['hub', 'gunsmith', 'training', 'end']) this[key].classList.add('hidden');
+      for (const key of PANEL_KEYS) this[key].classList.add('hidden');
     },
   };
 }

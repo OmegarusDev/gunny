@@ -1,3 +1,4 @@
+import { TRACK_METERS } from '../config.js';
 import { biomeFor } from '../data/biomes.js';
 import { RECEIVERS } from '../data/receivers.js';
 import { PARTS } from '../data/attachments.js';
@@ -33,7 +34,7 @@ export function renderHub(el, profile, handlers) {
       <button class="facility start" data-act="deploy">
         <span class="facility-kicker">Mission</span>
         <span class="facility-title">Start Run</span>
-        <span class="facility-sub">${next.place} · 250m</span>
+        <span class="facility-sub">${next.place} · ${TRACK_METERS}m</span>
       </button>
       <button class="facility" data-act="gunsmith">
         <span class="facility-kicker">Facility</span>

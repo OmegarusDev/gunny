@@ -213,10 +213,6 @@ export function drawCutPaper(ctx, p, pal, opts = {}) {
   poly(ctx, ribPoly(p), cloth);
   oval(ctx, p.pelvis.x, (p.pL.y + p.pR.y) * 0.5, 12 * S, 7 * S, mixTone(hips, gut, 0.5));
   oval(ctx, p.junction.x, p.junction.y, 13 * S, 7.5 * S, mixTone(gut, cloth, 0.45));
-  joint(ctx, p.r.hip, 6.2 * S, mixTone(cloth, ink, 0.22));
-  joint(ctx, p.l.hip, 6.6 * S, hips);
-  joint(ctx, p.armR.shoulder, 5.4 * S, mixTone(cloth, skin, 0.35));
-  joint(ctx, p.armL.shoulder, 5.6 * S, mixTone(cloth, skin, 0.28));
 
   if (kind === 'mummy') {
     poly(

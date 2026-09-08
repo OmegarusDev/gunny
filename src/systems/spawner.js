@@ -1,13 +1,14 @@
-import { PX_PER_M, threatForDistance, TRACK_METERS } from '../config.js';
+import { threatForDistance, TRACK_METERS } from '../config.js';
 import { createEnemy } from '../entities/enemy.js';
 import { cameraX } from '../entities/player.js';
 import { randRange } from '../engine/rng.js';
+import { metersFromWorldX } from '../world/metrics.js';
 
 const MIN_GAP = 130;
 
 export function stepSpawner(run, dt, viewport) {
   run.spawnTimer -= dt;
-  const meters = -run.player.worldX / PX_PER_M;
+  const meters = metersFromWorldX(run.player.worldX);
   if (!run.endless && meters >= TRACK_METERS) return;
   const stage = run.endless ? 0 : Math.floor(run.levelIndex / 5);
   const threat = threatForDistance(meters, stage, run.endless);

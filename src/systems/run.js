@@ -1,8 +1,9 @@
-import { PERFECT_MAG_MULT, PX_PER_M, TRACK_METERS, V_RETREAT } from '../config.js';
+import { PERFECT_MAG_MULT, TRACK_METERS, V_RETREAT } from '../config.js';
 import { randomSeed, seedForLevel, seedFromUint32 } from '../engine/rng.js';
 import { biomeFor, biomeFromSeed } from '../data/biomes.js';
 import { createTerrain } from '../world/terrain.js';
 import { createWeather } from '../world/weather.js';
+import { runMeters } from '../world/metrics.js';
 import { createPlayer, screenToWorld, cameraX } from '../entities/player.js';
 import { lethalCircles, isDead, updateLocomotion } from '../entities/enemy.js';
 import { gunWorld, playerCoreFromPose } from '../figure.js';
@@ -11,7 +12,8 @@ import { spawnBullet, stepBullets } from './ballistics.js';
 import { stepSpawner } from './spawner.js';
 import { spawnRagdoll, stepRagdolls } from './ragdoll.js';
 import { spawnBurst, spawnGibs, stepGibs } from './gibs.js';
-import { startReload, tapReload, stepReload, pointerInReloadGauge } from './activeReload.js';
+import { startReload, tapReload, stepReload } from './activeReload.js';
+import { pointerInReloadGauge } from '../view/reload.js';
 import { createScore, tickDistance, onHit, onKill, onPerfect, extractBonus } from './scoring.js';
 import { rectCircleOverlap } from './hits.js';
 import { playFlesh, playMuzzle } from '../audio/synth.js';
@@ -101,7 +103,7 @@ function applyHits(run) {
     run.lastCallout = label;
 
     if (zone === 'head') {
-      run.particles.push(...spawnBurst(hit.x, hit.y, 10));
+      run.particles.push(...spawnBurst(hit.x, hit.y, 10, run.rng));
     }
 
     updateLocomotion(enemy);
@@ -112,9 +114,9 @@ function applyHits(run) {
       const overkill = dmg > remaining * 2 && remaining > 0;
       onKill(run.score, stats.cashMul);
       if (overkill) {
-        run.gibs.push(...spawnGibs(hit.x, hit.y, hit.nx, hit.ny));
+        run.gibs.push(...spawnGibs(hit.x, hit.y, hit.nx, hit.ny, 10, run.rng));
       } else {
-        run.ragdolls.push(spawnRagdoll(enemy, hit.nx * 220, hit.ny * 220));
+        run.ragdolls.push(spawnRagdoll(enemy, hit.nx * 220, hit.ny * 220, run.rng));
       }
     }
   }
@@ -232,8 +234,4 @@ export function simulate(run, dt, viewport, input) {
     extractBonus(run.score);
     run.ended = 'extract';
   }
-}
-
-export function runMeters(run) {
-  return -run.player.worldX / PX_PER_M;
 }

@@ -1,11 +1,13 @@
-export function spawnGibs(x, y, ix, iy, count = 10) {
+import { GRAVITY } from '../config.js';
+
+export function spawnGibs(x, y, ix, iy, count = 10, rng = Math.random) {
   const gibs = [];
   for (let i = 0; i < count; i++) {
-    const ang = Math.random() * Math.PI * 2;
-    const spd = 80 + Math.random() * 280;
+    const ang = rng() * Math.PI * 2;
+    const spd = 80 + rng() * 280;
     const verts = [];
-    const s = 3 + Math.random() * 6;
-    const n = 3 + Math.floor(Math.random() * 3);
+    const s = 3 + rng() * 6;
+    const n = 3 + Math.floor(rng() * 3);
     for (let v = 0; v < n; v++) {
       const a = (v / n) * Math.PI * 2;
       verts.push({ x: Math.cos(a) * s, y: Math.sin(a) * s * 0.7 });
@@ -15,35 +17,35 @@ export function spawnGibs(x, y, ix, iy, count = 10) {
       y,
       vx: Math.cos(ang) * spd + ix * 40,
       vy: Math.sin(ang) * spd - 80 + iy * 40,
-      rot: Math.random() * Math.PI,
-      vr: (Math.random() - 0.5) * 8,
+      rot: rng() * Math.PI,
+      vr: (rng() - 0.5) * 8,
       verts,
-      life: 0.9 + Math.random() * 0.6,
+      life: 0.9 + rng() * 0.6,
     });
   }
   return gibs;
 }
 
-export function spawnBurst(x, y, count = 12) {
+export function spawnBurst(x, y, count = 12, rng = Math.random) {
   const parts = [];
   for (let i = 0; i < count; i++) {
-    const ang = Math.random() * Math.PI * 2;
-    const spd = 40 + Math.random() * 180;
+    const ang = rng() * Math.PI * 2;
+    const spd = 40 + rng() * 180;
     parts.push({
       x,
       y,
       vx: Math.cos(ang) * spd,
       vy: Math.sin(ang) * spd,
-      life: 0.28 + Math.random() * 0.2,
+      life: 0.28 + rng() * 0.2,
       max: 0.48,
-      r: 1.5 + Math.random() * 2,
+      r: 1.5 + rng() * 2,
     });
   }
   return parts;
 }
 
 export function stepGibs(run, dt) {
-  const g = 980;
+  const g = GRAVITY;
   for (const gib of run.gibs) {
     gib.vy += g * dt;
     gib.x += gib.vx * dt;
@@ -57,7 +59,7 @@ export function stepGibs(run, dt) {
       gib.vx *= 0.7;
     }
   }
-  run.gibs = run.gibs.filter((g) => g.life > 0);
+  run.gibs = run.gibs.filter((gib) => gib.life > 0);
 
   for (const p of run.particles) {
     p.x += p.vx * dt;

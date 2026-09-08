@@ -47,13 +47,13 @@ export function threatForDistance(meters, stage, endless) {
   const d = endless ? meters : Math.min(meters, TRACK_METERS);
   // Early: few, spaced. Late: denser, occasional pairs. packChance = chance to spawn 2.
   if (d < 55) {
-    band = { spawn: 2.6, max: 2, speed: 118, hpMul: 1.15, profile: 'walk', packChance: 0.08 };
+    band = { spawn: 2.6, max: 2, speed: 118, hpMul: 1.15, packChance: 0.08 };
   } else if (d < 120) {
-    band = { spawn: 2.15, max: 3, speed: 132, hpMul: 1.05, profile: 'trot', packChance: 0.18 };
+    band = { spawn: 2.15, max: 3, speed: 132, hpMul: 1.05, packChance: 0.18 };
   } else if (d < 185) {
-    band = { spawn: 1.55, max: 4, speed: 148, hpMul: 0.95, profile: 'trot', packChance: 0.32 };
+    band = { spawn: 1.55, max: 4, speed: 148, hpMul: 0.95, packChance: 0.32 };
   } else {
-    band = { spawn: 1.05, max: 7, speed: 168, hpMul: 0.82, profile: 'sprint', packChance: 0.45 };
+    band = { spawn: 1.05, max: 7, speed: 168, hpMul: 0.82, packChance: 0.45 };
   }
   if (endless && meters > TRACK_METERS) {
     const extra = (meters - TRACK_METERS) / 120;
@@ -68,7 +68,6 @@ export function threatForDistance(meters, stage, endless) {
     maxAlive: endless ? Math.min(14, maxAlive) : maxAlive,
     speed: band.speed * speedTier,
     hpMul: band.hpMul,
-    profile: band.profile,
     packChance: band.packChance,
   };
 }

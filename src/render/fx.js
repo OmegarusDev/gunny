@@ -1,23 +1,9 @@
+import { hexRgb, mixHex, rgbStr, shadeHex } from '../util/color.js';
+import { uhash } from '../util/hash.js';
+
+export { hexRgb, mixHex, rgbStr, shadeHex };
+
 let grainCanvas = null;
-
-export function hexRgb(hex) {
-  const n = parseInt(String(hex).replace('#', ''), 16);
-  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-}
-
-export function rgbStr(r, g, b, a = 1) {
-  return `rgba(${r | 0},${g | 0},${b | 0},${a})`;
-}
-
-export function mixHex(a, b, t) {
-  const A = hexRgb(a);
-  const B = hexRgb(b);
-  return rgbStr(A.r + (B.r - A.r) * t, A.g + (B.g - A.g) * t, A.b + (B.b - A.b) * t);
-}
-
-export function shadeHex(hex, t) {
-  return mixHex(hex, t < 0 ? '#000000' : '#fff6e8', Math.min(1, Math.abs(t)));
-}
 
 export function drawHorizonGlow(ctx, viewport, biome) {
   const y = viewport.h * 0.42;
@@ -143,8 +129,8 @@ export function drawMotes(ctx, viewport, biome, t) {
             : 'rgba(255,236,200,0.14)';
   ctx.fillStyle = color;
   for (let i = 0; i < n; i++) {
-    const hx = hash01(i + 91 + biome.id.charCodeAt(0));
-    const hy = hash01(i + 17);
+    const hx = uhash(i + 91 + biome.id.charCodeAt(0));
+    const hy = uhash(i + 17);
     const drift = t * (6 + hx * 18);
     const x = ((hx * viewport.w + drift) % (viewport.w + 30)) - 15;
     const y = viewport.h * (0.16 + hy * 0.55) + Math.sin(t * 0.4 + i) * 6;
@@ -192,7 +178,7 @@ export function drawGrain(ctx, viewport, t) {
     const g = grainCanvas.getContext('2d');
     const img = g.createImageData(128, 128);
     for (let i = 0; i < img.data.length; i += 4) {
-      const v = 108 + hash01(i * 13 + 7) * 44;
+      const v = 108 + uhash(i * 13 + 7) * 44;
       img.data[i] = v;
       img.data[i + 1] = v;
       img.data[i + 2] = v;
@@ -212,26 +198,18 @@ export function drawGrain(ctx, viewport, t) {
 
 export function drawHudPanel(ctx, x, y, w, h) {
   ctx.save();
-  ctx.fillStyle = 'rgba(10, 6, 3, 0.58)';
+  ctx.fillStyle = 'rgba(10, 6, 3, 0.62)';
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(x, y, w, h, 5);
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, 6);
   else ctx.rect(x, y, w, h);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(212, 176, 122, 0.32)';
+  ctx.strokeStyle = 'rgba(212, 176, 122, 0.28)';
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(255, 230, 190, 0.16)';
+  ctx.strokeStyle = 'rgba(255, 230, 190, 0.14)';
   ctx.beginPath();
-  ctx.moveTo(x + 8, y + 1);
-  ctx.lineTo(x + w - 8, y + 1);
+  ctx.moveTo(x + 10, y + 1);
+  ctx.lineTo(x + w - 10, y + 1);
   ctx.stroke();
   ctx.restore();
-}
-
-function hash01(n) {
-  let x = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b);
-  x ^= x >>> 13;
-  x = Math.imul(x, 0xc2b2ae35);
-  x ^= x >>> 16;
-  return (x >>> 0) / 4294967296;
 }
