@@ -9,6 +9,12 @@ export const RETREAT_MPS = 2;
 export const V_RETREAT = RETREAT_MPS * PX_PER_M;
 export const TERRAIN_AMP = 0.024;
 export const BLOOM_CAP_DEG = 12;
+/** Base aim disc radius (px) from the gun — optics/skills push this out. */
+export const AIM_REACH_BASE = 168;
+export const AIM_REACH_MIN = 120;
+export const AIM_REACH_MAX = 360;
+/** Static cone (degrees) before bloom/heat — first shots are not lasers. */
+export const BASE_SPREAD_DEG = 2.35;
 export const JAM_PENALTY = 0.9;
 export const RELOAD_FORGIVE = 0.32;
 export const PERFECT_MAG_MULT = 1.25;

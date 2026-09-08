@@ -11,13 +11,16 @@ import { renderGunsmith } from './ui/gunsmith.js';
 import { renderHub, renderEnd } from './ui/hub.js';
 import { mountOverlays } from './ui/overlays.js';
 import { renderTraining } from './ui/training.js';
+import { resolveAimPoint } from './view/aim.js';
 import { applyPwaUpdate, hasPwaUpdate, initPwa } from './pwa.js';
+import { mountSoftCursor } from './ui/cursor.js';
 
 const canvas = document.getElementById('gameCanvas');
 const overlayRoot = document.getElementById('overlay-root');
 const updateBtn = document.getElementById('pwa-update');
 const { ctx, viewport } = createCanvas(canvas);
 const input = createInput(canvas);
+const softCursor = mountSoftCursor();
 const loop = createLoop(FIXED_DT, MAX_FRAME_DT);
 const profile = loadProfile();
 const overlays = mountOverlays(overlayRoot);
@@ -75,6 +78,11 @@ const handlers = {
   },
 };
 
+function syncCursor() {
+  if (mode === 'run' && run && !run.ended) softCursor.setMode('hidden');
+  else softCursor.setMode('menu');
+}
+
 function startRun(type, levelIndex, seed) {
   resumeAudio();
   enterImmersive();
@@ -87,6 +95,7 @@ function startRun(type, levelIndex, seed) {
   input.clearFireIntent();
   loop.reset();
   syncUpdateBanner();
+  syncCursor();
 }
 
 function showHub() {
@@ -96,6 +105,7 @@ function showHub() {
   overlays.show('hub');
   renderHub(overlays.hub, profile, handlers);
   offerOrApplyUpdate();
+  syncCursor();
 }
 
 function showGunsmith() {
@@ -104,6 +114,7 @@ function showGunsmith() {
   overlays.show('gunsmith');
   renderGunsmith(overlays.gunsmith, profile, handlers);
   offerOrApplyUpdate();
+  syncCursor();
 }
 
 function showTraining() {
@@ -112,6 +123,7 @@ function showTraining() {
   overlays.show('training');
   renderTraining(overlays.training, profile, handlers);
   offerOrApplyUpdate();
+  syncCursor();
 }
 
 function settleRun() {
@@ -133,6 +145,7 @@ function settleRun() {
   });
   syncUpdateBanner();
   offerOrApplyUpdate();
+  syncCursor();
 }
 
 function frame(now) {
@@ -156,6 +169,7 @@ function frame(now) {
         input.clearFireIntent();
         skipSim = true;
       }
+      syncCursor();
     }
 
     if (!run.paused && !run.ended && !skipSim) {
@@ -168,6 +182,14 @@ function frame(now) {
           pointerTap: i === 0 ? pointerTap : false,
         });
       }
+    } else if (!run.ended) {
+      run.aim = resolveAimPoint(
+        input.state.pointerX,
+        input.state.pointerY,
+        run.player,
+        viewport,
+        run.stats.aimReach,
+      );
     }
     drawWorld(ctx, run, viewport);
     drawHud(ctx, run, viewport, profile);

@@ -3,6 +3,7 @@ import { worldToScreen } from '../entities/player.js';
 import { runMeters } from '../world/metrics.js';
 import { perfectBand, reloadGaugeBounds, reloadNorm } from '../view/reload.js';
 import { fillRoundRect, strokeRoundRect } from '../util/color.js';
+import { shotSpreadDeg } from '../entities/loadout.js';
 import { drawCreature, drawFrozenCorpse, drawRagdollBody, drawSurvivor } from './creatures.js';
 import { gunWorld } from '../figure.js';
 import {
@@ -62,6 +63,7 @@ export function drawWorld(ctx, run, viewport) {
   drawVignette(ctx, viewport, biome);
   drawReloadGauge(ctx, run, viewport);
   drawCallouts(ctx, run, viewport);
+  drawAimCrosshair(ctx, run);
 }
 
 function drawPlayer(ctx, run, viewport) {
@@ -72,7 +74,7 @@ function drawPlayer(ctx, run, viewport) {
   const gun = gunWorld(p);
   const mx = sx + gun.sx + Math.cos(p.aimAngle) * gun.len;
   const my = p.y + gun.sy + Math.sin(p.aimAngle) * gun.len;
-  const bloom = (w.bloom / Math.max(0.001, run.stats.bloomCap)) * 18;
+  const bloom = (shotSpreadDeg(run.stats, w) / Math.max(0.001, run.stats.bloomCap)) * 18;
   ctx.save();
   ctx.strokeStyle = 'rgba(224, 163, 58, 0.28)';
   ctx.lineWidth = 1.2;
@@ -93,6 +95,49 @@ function drawPlayer(ctx, run, viewport) {
     ctx.fillStyle = `rgba(255,250,230,${0.9 * shot})`;
     ctx.beginPath();
     ctx.ellipse(mx, my, 7 + shot * 4, 2.4, p.aimAngle, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawAimCrosshair(ctx, run) {
+  const aim = run.aim;
+  if (!aim || run.ended) return;
+  const { x, y, anchorX, anchorY, reach, clamped } = aim;
+  const spread = shotSpreadDeg(run.stats, run.weapon);
+  const cone = 5 + spread * 1.6;
+
+  ctx.save();
+  ctx.strokeStyle = clamped ? 'rgba(196, 169, 144, 0.22)' : 'rgba(212, 176, 122, 0.18)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 6]);
+  ctx.beginPath();
+  ctx.arc(anchorX, anchorY, reach, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = 'rgba(243, 230, 208, 0.55)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(x - cone - 3, y);
+  ctx.lineTo(x - 4, y);
+  ctx.moveTo(x + 4, y);
+  ctx.lineTo(x + cone + 3, y);
+  ctx.moveTo(x, y - cone - 3);
+  ctx.lineTo(x, y - 4);
+  ctx.moveTo(x, y + 4);
+  ctx.lineTo(x, y + cone + 3);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(224, 163, 58, 0.7)';
+  ctx.beginPath();
+  ctx.arc(x, y, Math.max(3, cone * 0.35), 0, Math.PI * 2);
+  ctx.stroke();
+
+  if (run.weapon.reloading) {
+    ctx.fillStyle = run.weapon.jammed ? 'rgba(196, 69, 54, 0.85)' : 'rgba(243, 230, 208, 0.55)';
+    ctx.beginPath();
+    ctx.arc(x, y, 2.2, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();

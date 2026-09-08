@@ -74,7 +74,7 @@ export const PARTS = {
     name: 'Stub Barrel',
     cost: 0,
     desc: 'Short, snappy, imprecise.',
-    mods: { bulletSpeed: -90, bloomPerShot: 0.35, pen: -0.08, aimRate: 0.4 },
+    mods: { bulletSpeed: -90, bloomPerShot: 0.35, pen: -0.08, aimRate: 0.4, baseSpread: 0.35, aimReach: -12 },
   },
   barrel_carbine: {
     id: 'barrel_carbine',
@@ -84,7 +84,7 @@ export const PARTS = {
     name: 'Carbine Barrel',
     cost: 140,
     desc: 'Balanced velocity and control.',
-    mods: { bulletSpeed: 40, bloomPerShot: -0.15, pen: 0.08 },
+    mods: { bulletSpeed: 40, bloomPerShot: -0.15, pen: 0.08, baseSpread: -0.2, aimReach: 10 },
   },
   barrel_rifle: {
     id: 'barrel_rifle',
@@ -94,7 +94,7 @@ export const PARTS = {
     name: 'Rifle Barrel',
     cost: 280,
     desc: 'Higher velocity and penetration.',
-    mods: { bulletSpeed: 140, bloomPerShot: -0.28, pen: 0.22, aimRate: -0.6, weight: 0.08 },
+    mods: { bulletSpeed: 140, bloomPerShot: -0.28, pen: 0.22, aimRate: -0.6, weight: 0.08, baseSpread: -0.4, aimReach: 22 },
   },
   barrel_long: {
     id: 'barrel_long',
@@ -104,7 +104,7 @@ export const PARTS = {
     name: 'Long Barrel',
     cost: 480,
     desc: 'Max velocity. Slow settle on slopes.',
-    mods: { bulletSpeed: 240, bloomPerShot: -0.4, pen: 0.38, aimRate: -1.2, weight: 0.14 },
+    mods: { bulletSpeed: 240, bloomPerShot: -0.4, pen: 0.38, aimRate: -1.2, weight: 0.14, baseSpread: -0.65, aimReach: 36 },
   },
 
   ...buildMagParts(),
@@ -125,8 +125,8 @@ export const PARTS = {
     requires: 'optic_none',
     name: 'Red Dot',
     cost: 200,
-    desc: 'Cuts bloom growth.',
-    mods: { bloomPerShot: -0.28, aimRate: 0.8 },
+    desc: 'Cuts bloom growth and extends aim reach.',
+    mods: { bloomPerShot: -0.28, aimRate: 0.8, aimReach: 28, baseSpread: -0.25 },
   },
   optic_acog: {
     id: 'optic_acog',
@@ -135,8 +135,8 @@ export const PARTS = {
     requires: 'optic_dot',
     name: 'ACOG',
     cost: 380,
-    desc: 'Tracking and bloom control.',
-    mods: { bloomPerShot: -0.4, aimRate: -0.3, bloomRecover: 0.6 },
+    desc: 'Tracking, bloom control, and longer reach.',
+    mods: { bloomPerShot: -0.4, aimRate: -0.3, bloomRecover: 0.6, aimReach: 48, baseSpread: -0.45 },
   },
   optic_lpvo: {
     id: 'optic_lpvo',
@@ -145,8 +145,8 @@ export const PARTS = {
     requires: 'optic_acog',
     name: 'LPVO',
     cost: 640,
-    desc: 'Excellent bloom control.',
-    mods: { bloomPerShot: -0.55, aimRate: 0.4, bloomRecover: 0.9, weight: 0.06 },
+    desc: 'Excellent bloom control and max aim reach.',
+    mods: { bloomPerShot: -0.55, aimRate: 0.4, bloomRecover: 0.9, weight: 0.06, aimReach: 72, baseSpread: -0.7 },
   },
 
   stock_none: {
@@ -156,7 +156,7 @@ export const PARTS = {
     name: 'No Stock',
     cost: 0,
     desc: 'Muzzle jump lives here.',
-    mods: { bloomRecover: -1.4, aimRate: -0.8, weight: -0.08 },
+    mods: { bloomRecover: -1.4, aimRate: -0.8, weight: -0.08, baseSpread: 0.25, aimReach: -8 },
   },
   stock_wire: {
     id: 'stock_wire',
@@ -166,7 +166,7 @@ export const PARTS = {
     name: 'Wire Stock',
     cost: 160,
     desc: 'Light brace.',
-    mods: { bloomRecover: 0.8, aimRate: 0.5 },
+    mods: { bloomRecover: 0.8, aimRate: 0.5, baseSpread: -0.1, aimReach: 8 },
   },
   stock_combat: {
     id: 'stock_combat',
@@ -176,7 +176,7 @@ export const PARTS = {
     name: 'Combat Stock',
     cost: 320,
     desc: 'Bloom recovery and slope settle.',
-    mods: { bloomRecover: 1.8, aimRate: 1.1, bloomPerShot: -0.12 },
+    mods: { bloomRecover: 1.8, aimRate: 1.1, bloomPerShot: -0.12, baseSpread: -0.25, aimReach: 16 },
   },
   stock_precision: {
     id: 'stock_precision',
@@ -186,7 +186,7 @@ export const PARTS = {
     name: 'Precision Stock',
     cost: 520,
     desc: 'Best recovery. Heavier.',
-    mods: { bloomRecover: 3.0, aimRate: 1.6, bloomPerShot: -0.22, weight: 0.1 },
+    mods: { bloomRecover: 3.0, aimRate: 1.6, bloomPerShot: -0.22, weight: 0.1, baseSpread: -0.4, aimReach: 24 },
   },
 
   muzzle_none: {

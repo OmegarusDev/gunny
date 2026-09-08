@@ -18,10 +18,18 @@ export const SKILLS = {
   elevation: {
     id: 'elevation',
     name: 'Agile Elevation Tracking',
-    desc: 'Faster aim settle across slope changes.',
+    desc: 'Faster aim settle and slightly longer reach across slopes.',
     maxRank: 8,
     baseCost: 35,
-    perRank: { aimRate: 0.5 },
+    perRank: { aimRate: 0.5, aimReach: 6 },
+  },
+  marksman: {
+    id: 'marksman',
+    name: 'Marksmanship',
+    desc: 'Tighter first-shot cone and longer aim reach.',
+    maxRank: 8,
+    baseCost: 40,
+    perRank: { baseSpread: -0.12, aimReach: 10 },
   },
   scavenger: {
     id: 'scavenger',

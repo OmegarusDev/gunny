@@ -7,13 +7,14 @@ import { runMeters } from '../world/metrics.js';
 import { createPlayer, screenToWorld, cameraX } from '../entities/player.js';
 import { lethalCircles, isDead, updateLocomotion } from '../entities/enemy.js';
 import { gunWorld, playerCoreFromPose } from '../figure.js';
-import { resolveStats } from '../entities/loadout.js';
+import { resolveStats, shotSpreadDeg } from '../entities/loadout.js';
 import { spawnBullet, stepBullets } from './ballistics.js';
 import { stepSpawner } from './spawner.js';
 import { spawnRagdoll, stepRagdolls } from './ragdoll.js';
 import { spawnBurst, spawnGibs, stepGibs } from './gibs.js';
 import { startReload, tapReload, stepReload } from './activeReload.js';
 import { pointerInReloadGauge } from '../view/reload.js';
+import { resolveAimPoint } from '../view/aim.js';
 import { createScore, tickDistance, onHit, onKill, onPerfect, extractBonus } from './scoring.js';
 import { rectCircleOverlap } from './hits.js';
 import { playFlesh, playMuzzle } from '../audio/synth.js';
@@ -71,6 +72,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     },
     score: createScore(),
     lastCallout: '',
+    aim: null,
   };
 }
 
@@ -135,7 +137,7 @@ function tryFire(run, firing) {
   weapon.firing = true;
   weapon.cooldown = 1 / stats.rof;
   weapon.ammo -= 1;
-  const bloomDeg = Math.min(stats.bloomCap, weapon.bloom + weapon.heat * stats.heatBloom);
+  const bloomDeg = shotSpreadDeg(stats, weapon);
   const spread = degToRad((run.rng() * 2 - 1) * bloomDeg);
   const angle = player.aimAngle + spread;
   const gun = gunWorld(player);
@@ -174,7 +176,9 @@ export function simulate(run, dt, viewport, input) {
   player.y = run.terrain.height(player.worldX);
 
   const gun = gunWorld(player);
-  const aimWorld = screenToWorld(input.pointerX, input.pointerY, player.worldX, viewport);
+  const aim = resolveAimPoint(input.pointerX, input.pointerY, player, viewport, stats.aimReach);
+  run.aim = aim;
+  const aimWorld = screenToWorld(aim.x, aim.y, player.worldX, viewport);
   const target = Math.atan2(aimWorld.y - gun.y, aimWorld.x - gun.x);
   const maxTurn = stats.aimRate * dt;
   let diff = target - player.aimAngle;

@@ -1,4 +1,4 @@
-import { BLOOM_CAP_DEG, BASE_CRIT_CHANCE, BASE_CRIT_MULT } from '../config.js';
+import { AIM_REACH_MAX, AIM_REACH_MIN, BLOOM_CAP_DEG, BASE_CRIT_CHANCE, BASE_CRIT_MULT } from '../config.js';
 import { RECEIVERS, SLOT_MIN_TIER, SLOTS } from '../data/receivers.js';
 import { PARTS } from '../data/attachments.js';
 import { SKILLS } from '../data/skills.js';
@@ -51,6 +51,8 @@ export function resolveStats(profile) {
   stats.reload = Math.max(0.7, stats.reload);
   stats.perfectWidth = Math.max(0.04, Math.min(0.28, stats.perfectWidth));
   stats.aimRate = Math.max(2.5, stats.aimRate / Math.max(0.75, stats.weight || 1));
+  stats.aimReach = Math.max(AIM_REACH_MIN, Math.min(AIM_REACH_MAX, stats.aimReach || AIM_REACH_MIN));
+  stats.baseSpread = Math.max(0.2, Math.min(4.5, stats.baseSpread ?? 2.35));
   stats.bulletSpeed = Math.max(280, stats.bulletSpeed);
   stats.pen = Math.max(0.4, stats.pen);
   stats.damage = Math.max(6, stats.damage);
@@ -66,4 +68,9 @@ function scaleMods(perRank, rank) {
 export function equippedLabel(profile) {
   const rec = RECEIVERS[profile.loadout.receiver];
   return rec ? rec.name : 'Unknown';
+}
+
+/** Degrees of cone before a shot: static accuracy + bloom + heat. */
+export function shotSpreadDeg(stats, weapon) {
+  return Math.min(stats.bloomCap, stats.baseSpread + weapon.bloom + weapon.heat * stats.heatBloom);
 }

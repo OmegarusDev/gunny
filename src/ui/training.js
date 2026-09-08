@@ -43,6 +43,8 @@ export function renderTraining(el, profile, handlers) {
       <div><span>Crit ×</span>${stats.critMult.toFixed(2)}</div>
       <div><span>Cash from kills</span>×${stats.cashMul.toFixed(2)}</div>
       <div><span>Aim rate</span>${stats.aimRate.toFixed(1)}</div>
+      <div><span>Aim reach</span>${Math.round(stats.aimReach)}px</div>
+      <div><span>Spread</span>${stats.baseSpread.toFixed(2)}°</div>
     </div>
   `;
   el.querySelectorAll('[data-skill]').forEach((btn) => {

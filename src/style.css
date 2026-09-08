@@ -27,6 +27,53 @@ body {
   touch-action: none;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  cursor: none;
+}
+
+*,
+*::before,
+*::after {
+  cursor: none !important;
+}
+
+#soft-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  margin: -2px 0 0 -2px;
+  pointer-events: none;
+  z-index: 10000;
+  transform: translate3d(-100px, -100px, 0);
+  will-change: transform;
+}
+
+#soft-cursor.is-hidden {
+  opacity: 0;
+}
+
+#soft-cursor.is-menu::before {
+  content: "";
+  display: block;
+  width: 0;
+  height: 0;
+  border-left: 11px solid var(--gunny-bone);
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  filter: drop-shadow(0 1px 0 rgba(20, 14, 10, 0.85));
+}
+
+#soft-cursor.is-menu::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 9px;
+  width: 8px;
+  height: 10px;
+  background: linear-gradient(135deg, var(--gunny-gold) 0%, var(--gunny-brass) 100%);
+  clip-path: polygon(0 0, 100% 70%, 45% 70%, 70% 100%, 0 55%);
+  opacity: 0.95;
 }
 
 #canvas-container {
