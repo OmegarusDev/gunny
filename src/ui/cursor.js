@@ -26,9 +26,19 @@ export function mountSoftCursor() {
     if (mode !== 'hidden') el.classList.remove('is-hidden');
   }
 
+  function hide() {
+    visible = false;
+    el.classList.add('is-hidden');
+  }
+
+  function isFinePointer(e) {
+    return e.pointerType === 'mouse' || e.pointerType === 'pen';
+  }
+
   window.addEventListener(
     'pointermove',
     (e) => {
+      if (!isFinePointer(e)) return;
       move(e.clientX, e.clientY);
     },
     { passive: true },
@@ -36,14 +46,29 @@ export function mountSoftCursor() {
   window.addEventListener(
     'pointerdown',
     (e) => {
+      if (!isFinePointer(e)) {
+        hide();
+        return;
+      }
       move(e.clientX, e.clientY);
     },
     { passive: true },
   );
-  window.addEventListener('pointerleave', () => {
-    visible = false;
-    el.classList.add('is-hidden');
-  });
+  window.addEventListener(
+    'pointerup',
+    (e) => {
+      if (!isFinePointer(e)) hide();
+    },
+    { passive: true },
+  );
+  window.addEventListener(
+    'pointercancel',
+    (e) => {
+      if (!isFinePointer(e)) hide();
+    },
+    { passive: true },
+  );
+  window.addEventListener('pointerleave', hide);
 
   setMode('menu');
   return {
