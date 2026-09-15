@@ -19,7 +19,6 @@ export function createEnemy(worldX, terrain, hpMul, speed, kind = 'zombie') {
     max: { ...hp },
     severedHead: false,
     facing: -1,
-    flinchX: 0,
     flinchLean: 0,
     stun: 0,
   };
@@ -27,19 +26,14 @@ export function createEnemy(worldX, terrain, hpMul, speed, kind = 'zombie') {
 
 export function applyFlinch(enemy, hit) {
   const e = hit.energy || 0;
-  enemy.flinchX = (enemy.flinchX || 0) + hit.nx * e * HIT_IMPULSE.flinchX;
   let lean = (enemy.flinchLean || 0) + hit.nx * e * HIT_IMPULSE.flinchLean;
   if (hit.zone === 'head') lean += hit.nx * e * 0.22;
   enemy.flinchLean = Math.max(-0.7, Math.min(0.7, lean));
-  if (hit.zone === 'lLeg' || hit.zone === 'rLeg') {
-    enemy.flinchX += hit.nx * e * 10;
-  }
   enemy.stun = Math.min(HIT_IMPULSE.stunMax, (enemy.stun || 0) + e * HIT_IMPULSE.stunPerEnergy);
 }
 
 export function stepFlinch(enemy, dt) {
   const damp = Math.exp(-dt * HIT_IMPULSE.flinchDamp);
-  enemy.flinchX = (enemy.flinchX || 0) * damp;
   enemy.flinchLean = (enemy.flinchLean || 0) * damp;
   enemy.stun = Math.max(0, (enemy.stun || 0) - dt);
 }

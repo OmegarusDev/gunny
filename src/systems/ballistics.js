@@ -49,6 +49,7 @@ export function stepBullets(run, dt) {
       const nx = Math.cos(Math.atan2(b.vy, b.vx));
       const ny = Math.sin(Math.atan2(b.vy, b.vx));
       b.hitIds.add(best.enemy.id);
+      const penBefore = b.pen;
       b.pen -= FLESH_PEN_COST;
       const stopped = b.pen <= 0;
       run.pendingHits.push({
@@ -60,7 +61,7 @@ export function stepBullets(run, dt) {
         locational: locationalOf(best.zone),
         nx,
         ny,
-        energy: shotEnergy(Math.hypot(b.vx, b.vy), stopped),
+        energy: shotEnergy(Math.hypot(b.vx, b.vy), stopped, penBefore),
       });
       if (stopped) {
         b.alive = false;

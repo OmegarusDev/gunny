@@ -19,6 +19,8 @@ const SLOT_LABEL = {
 export function renderGunsmith(el, profile, handlers) {
   const recId = profile.loadout.receiver;
   const savedScroll = [...el.querySelectorAll('.slot-row .chips')].map((n) => n.scrollLeft);
+  const prevSlot = el.dataset.prevSlot;
+  const prevPart = el.dataset.prevPart;
   const stats = resolveStats(profile);
   handlers.chrome?.(
     statsRail([
@@ -47,6 +49,9 @@ export function renderGunsmith(el, profile, handlers) {
     picked = selectedRow?.items.find((i) => isEquipped(profile, selected, i.id))?.id || selectedRow?.items[0]?.id;
   }
   const item = selectedRow?.items.find((i) => i.id === picked);
+  const selectionChanged = selected !== prevSlot || picked !== prevPart;
+  el.dataset.prevSlot = selected;
+  el.dataset.prevPart = picked || '';
   const have = item ? owns(profile, item.id) : false;
   const equipped = item ? isEquipped(profile, selected, item.id) : false;
   const gate = item ? buyBlockedReason(profile, item.id) : null;
@@ -137,7 +142,7 @@ export function renderGunsmith(el, profile, handlers) {
       if (savedScroll[i] != null) n.scrollLeft = savedScroll[i];
     });
     const on = el.querySelector('.part-chip.selected');
-    on?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    if (selectionChanged) on?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   });
 }
 

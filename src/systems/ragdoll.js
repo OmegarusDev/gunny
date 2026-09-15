@@ -8,7 +8,7 @@ export function spawnRagdoll(enemy, hit, rng = Math.random) {
   const links = ragdollLinks(nodes);
   const nx = hit.nx || 0;
   const ny = hit.ny || 0;
-  const energy = hit.energy || 1;
+  const energy = hit.energy ?? 0;
   const kick = energy * HIT_IMPULSE.ragdollKick;
   const hitId = ZONE_NODE[hit.zone] || 'rib';
   const hitN = nodes.find((n) => n.id === hitId) || nodes.find((n) => n.id === 'rib');

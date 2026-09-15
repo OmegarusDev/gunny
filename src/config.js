@@ -27,7 +27,6 @@ export const HIT_IMPULSE = {
   refSpeed: 820,
   overpen: 0.35,
   ragdollKick: 10,
-  flinchX: 26,
   flinchLean: 0.5,
   stunPerEnergy: 0.16,
   stunMax: 0.28,

@@ -223,7 +223,6 @@ export function simulate(run, dt, viewport, input) {
     stepFlinch(enemy, dt);
     const hitch = enemy.stun > 0 ? HIT_IMPULSE.stunHitch : 1;
     enemy.worldX -= enemy.speed * hitch * dt;
-    enemy.worldX += (enemy.flinchX || 0) * dt;
     enemy.y = run.terrain.height(enemy.worldX);
   }
 

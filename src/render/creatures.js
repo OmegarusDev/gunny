@@ -1,6 +1,7 @@
 import {
   MUZZLE_LEN,
   S,
+  enemyTime,
   mixTone,
   paperPalette,
   poseFromNodes,
@@ -319,8 +320,9 @@ export function drawCreature(ctx, enemy, w2s) {
   const local = poseLocal({
     kind: enemy.kind || 'zombie',
     seed: enemy.id || 1,
-    t: -enemy.worldX * 0.016,
+    t: enemyTime(enemy.worldX),
     crawl: !!enemy.crawling,
+    lean: enemy.flinchLean || 0,
   });
   const pal = paperPalette(enemy.kind || 'zombie');
   ctx.save();

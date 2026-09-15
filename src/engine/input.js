@@ -49,7 +49,9 @@ export function createInput(canvas) {
   }
 
   function onPanel(e) {
-    return !!e.target.closest('#overlay-root .panel:not(.hidden)');
+    return !!e.target.closest(
+      '#overlay-root .panel:not(.hidden), #chrome-ledger:not(.hidden), #sat-stats:not(.hidden)',
+    );
   }
 
   function onDown(e) {

@@ -11,6 +11,8 @@ export function mountSoftCursor() {
 
   let mode = 'menu';
   let visible = false;
+  /** After touch, ignore mouse/pen moves until a real fine pointer down. */
+  let coarseUntilFineDown = false;
 
   function setMode(next) {
     mode = next;
@@ -38,7 +40,7 @@ export function mountSoftCursor() {
   window.addEventListener(
     'pointermove',
     (e) => {
-      if (!isFinePointer(e)) return;
+      if (!isFinePointer(e) || coarseUntilFineDown) return;
       move(e.clientX, e.clientY);
     },
     { passive: true },
@@ -47,9 +49,11 @@ export function mountSoftCursor() {
     'pointerdown',
     (e) => {
       if (!isFinePointer(e)) {
+        coarseUntilFineDown = true;
         hide();
         return;
       }
+      coarseUntilFineDown = false;
       move(e.clientX, e.clientY);
     },
     { passive: true },
@@ -68,7 +72,7 @@ export function mountSoftCursor() {
     },
     { passive: true },
   );
-  window.addEventListener('pointerleave', hide);
+  document.documentElement.addEventListener('pointerleave', hide);
 
   setMode('menu');
   return {

@@ -3,6 +3,7 @@ import {
   AIM_REACH_MAX,
   AIM_REACH_MIN,
   ECONOMY,
+  HIT_IMPULSE,
   TRACK_METERS,
   enemyHp,
   threatForDistance,
@@ -11,6 +12,7 @@ import { PARTS, partsForSlot } from '../src/data/attachments.js';
 import { RECEIVERS } from '../src/data/receivers.js';
 import { SKILLS, emptyRanks, skillCost } from '../src/data/skills.js';
 import { resolveStats, shotSpreadDeg } from '../src/entities/loadout.js';
+import { applyFlinch, createEnemy, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
 import { defaultProfile } from '../src/state/profile.js';
 import { clampAimPoint, resolveAimPoint } from '../src/view/aim.js';
 import { perfectBand, reloadNorm } from '../src/view/reload.js';
@@ -19,6 +21,7 @@ import { mixHex, mixTone } from '../src/util/color.js';
 import { runMeters } from '../src/world/metrics.js';
 import { createTerrain } from '../src/world/terrain.js';
 import { createPlayer } from '../src/entities/player.js';
+import { poseEnemy } from '../src/figure.js';
 import { shotEnergy } from '../src/systems/impulse.js';
 import { spawnRagdoll } from '../src/systems/ragdoll.js';
 
@@ -74,6 +77,7 @@ describe('gunsmith catalog', () => {
     expect(mags.map((p) => p.short)).toEqual(mags.map((p) => String(p.mods.magSize + 1)));
     expect(mags[0].id).toBe('mag_1');
     expect(mags.find((p) => p.id === 'mag_40').requires).toBe('mag_35');
+    expect(mags.find((p) => p.id === 'mag_80').requires).toBe('mag_75');
     expect(RECEIVERS.t1_stock.short).toBe('Stock');
     expect(RECEIVERS.t2_tactical.short).toBe('Tactical');
   });
@@ -185,16 +189,67 @@ describe('util', () => {
 });
 
 describe('hit impulse', () => {
+  const dt = 1 / 60;
+  const terrain = { height: () => 0 };
+
+  function chaseAfterFlinch(enemy, hit) {
+    applyFlinch(enemy, hit);
+    stepFlinch(enemy, dt);
+    const hitch = enemy.stun > 0 ? HIT_IMPULSE.stunHitch : 1;
+    enemy.worldX -= enemy.speed * hitch * dt;
+  }
+
   it('gives stopping hits more energy than overpen at the same speed', () => {
     expect(shotEnergy(820, true)).toBeGreaterThan(shotEnergy(820, false));
     expect(shotEnergy(1640, true)).toBeGreaterThan(shotEnergy(820, true));
+    expect(shotEnergy(820, false)).toBeCloseTo(shotEnergy(820, true) * HIT_IMPULSE.overpen);
+  });
+
+  it('scales stopping energy by remaining pen instead of a full flesh cost', () => {
+    expect(shotEnergy(820, true, 0.05)).toBeCloseTo(shotEnergy(820, true) * 0.05);
+    expect(shotEnergy(820, true, 0.05)).toBeLessThan(shotEnergy(820, true));
   });
 
   it('kicks ragdoll nodes with Verlet velocity instead of a pose shift', () => {
     const enemy = { worldX: 0, y: 0, kind: 'zombie', id: 1, crawling: false, severedHead: false };
     const rag = spawnRagdoll(enemy, { nx: 1, ny: 0, energy: 1, zone: 'upper' }, () => 0.5);
     const rib = rag.nodes.find((n) => n.id === 'rib');
+    const toe = rag.nodes.find((n) => n.id === 'lToe');
     expect(rib.x - rib.ox).toBeGreaterThan(2);
+    expect(rib.ox).not.toBe(rib.x);
     expect(rib.mass).toBeGreaterThan(0);
+    expect(Math.abs(rib.x - rib.ox)).toBeGreaterThan(Math.abs(toe.x - toe.ox));
+    expect(
+      rag.links.some((l) => {
+        const a = rag.nodes[l.a];
+        const b = rag.nodes[l.b];
+        return (a.id === 'head' && b.id === 'junction') || (a.id === 'junction' && b.id === 'head');
+      }),
+    ).toBe(true);
+  });
+
+  it('leans the living pose without reversing crawlers or leg-slowed chasers', () => {
+    const hit = { nx: 1, energy: 1, zone: 'upper' };
+    const crawl = createEnemy(100, terrain, 1, 118);
+    crawl.hp.lLeg = 0;
+    updateLocomotion(crawl);
+    expect(crawl.crawling).toBe(true);
+    const crawlX = crawl.worldX;
+    chaseAfterFlinch(crawl, hit);
+    expect(crawl.worldX).toBeLessThan(crawlX);
+    expect(crawl.flinchLean).not.toBe(0);
+
+    const slowed = createEnemy(100, terrain, 1, 118);
+    slowed.hp.lLeg = slowed.max.lLeg * 0.2;
+    slowed.hp.rLeg = slowed.max.rLeg * 0.2;
+    updateLocomotion(slowed);
+    expect(slowed.speed).toBeCloseTo(118 * 0.6);
+    const slowedX = slowed.worldX;
+    chaseAfterFlinch(slowed, hit);
+    expect(slowed.worldX).toBeLessThan(slowedX);
+
+    const upright = poseEnemy({ worldX: 0, y: 0, kind: 'zombie', id: 1, crawling: false, flinchLean: 0 });
+    const leaned = poseEnemy({ worldX: 0, y: 0, kind: 'zombie', id: 1, crawling: false, flinchLean: 0.5 });
+    expect(leaned.head.x).not.toBe(upright.head.x);
   });
 });

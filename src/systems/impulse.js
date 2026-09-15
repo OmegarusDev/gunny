@@ -36,7 +36,8 @@ export const ZONE_NODE = {
   rLeg: 'rKnee',
 };
 
-export function shotEnergy(speed, stopped) {
-  const penUsed = stopped ? FLESH_PEN_COST : FLESH_PEN_COST * HIT_IMPULSE.overpen;
+export function shotEnergy(speed, stopped, penBefore = FLESH_PEN_COST) {
+  const deposited = Math.min(FLESH_PEN_COST, Math.max(0, penBefore));
+  const penUsed = stopped ? deposited : deposited * HIT_IMPULSE.overpen;
   return penUsed * (speed / HIT_IMPULSE.refSpeed);
 }
