@@ -28,6 +28,8 @@ import { SKILLS, emptyRanks, refundRetiredRanks, skillCost } from '../src/data/s
 import { gunsmithStatRows, resolveStats, shotSpreadDeg, STATS } from '../src/entities/loadout.js';
 import { applyFlinch, createEnemy, limbCircles, stepFlinch } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile } from '../src/state/profile.js';
+import { defaultSettings } from '../src/state/settings.js';
+import { wantsImmersive } from '../src/engine/immersive.js';
 import { clampAimPoint, resolveAimPoint } from '../src/view/aim.js';
 import { perfectBand, reloadNorm } from '../src/view/reload.js';
 import { uhash } from '../src/util/hash.js';
@@ -284,6 +286,15 @@ describe('skills & profile', () => {
   it('prices skill ranks with a mild curve', () => {
     expect(skillCost(SKILLS.marksman, 0)).toBe(40);
     expect(skillCost(SKILLS.marksman, 3)).toBeGreaterThan(skillCost(SKILLS.marksman, 0));
+  });
+
+  it('only auto-fullscreens the Android WebAPK unless the setting is on', () => {
+    expect(defaultSettings().fullscreen).toBe(false);
+    expect(wantsImmersive({ fullscreen: false }, { android: false, installed: false })).toBe(false);
+    expect(wantsImmersive({ fullscreen: false }, { android: true, installed: false })).toBe(false);
+    expect(wantsImmersive({ fullscreen: false }, { android: false, installed: true })).toBe(false);
+    expect(wantsImmersive({ fullscreen: false }, { android: true, installed: true })).toBe(true);
+    expect(wantsImmersive({ fullscreen: true }, { android: false, installed: false })).toBe(true);
   });
 });
 

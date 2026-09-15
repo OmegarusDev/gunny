@@ -1,4 +1,5 @@
 import { resumeAudio, setMasterVolume } from '../audio/synth.js';
+import { enterImmersive, exitImmersive } from '../engine/immersive.js';
 import { effectiveVolume, loadSettings, saveSettings } from '../state/settings.js';
 
 const HOLD_MS = 1600;
@@ -146,6 +147,10 @@ export function mountOptions(root, handlers) {
         </div>
         <input class="opt-slider" type="range" min="0" max="100" step="1" value="${Math.round(s.volume * 100)}" aria-label="Volume" ${s.muted ? 'disabled' : ''} />
       </div>
+      <label class="opt-check">
+        <input type="checkbox" data-act="fullscreen" ${s.fullscreen ? 'checked' : ''} />
+        Fullscreen in all modes
+      </label>
       <button class="opt-danger" type="button" data-act="reset">Reset progress</button>
       <button class="ghost opt-done" type="button">Done</button>
     `;
@@ -163,6 +168,13 @@ export function mountOptions(root, handlers) {
       if (next.volume > 0) next.muted = false;
       saveSettings(next);
       applyAudio();
+    };
+    sheet.querySelector('[data-act="fullscreen"]').onchange = (e) => {
+      const next = loadSettings();
+      next.fullscreen = e.target.checked;
+      saveSettings(next);
+      if (next.fullscreen) enterImmersive();
+      else exitImmersive();
     };
     sheet.querySelector('[data-act="reset"]').onclick = () => {
       view = 'reset';

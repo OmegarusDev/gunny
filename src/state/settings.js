@@ -1,7 +1,7 @@
 const KEY = 'gunny.settings.v1';
 
 export function defaultSettings() {
-  return { volume: 0.8, muted: false };
+  return { volume: 0.8, muted: false, fullscreen: false };
 }
 
 export function loadSettings() {
@@ -13,6 +13,7 @@ export function loadSettings() {
     return {
       volume: Number.isFinite(volume) ? volume : 0.8,
       muted: !!parsed.muted,
+      fullscreen: !!parsed.fullscreen,
     };
   } catch {
     return defaultSettings();

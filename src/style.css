@@ -24,6 +24,9 @@ html,
 body {
   width: 100%;
   height: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
   overflow: hidden;
   background: #1a120c;
   font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
@@ -168,6 +171,10 @@ canvas {
   -webkit-touch-callout: none;
 }
 
+html:fullscreen,
+html:-webkit-full-screen,
+body:fullscreen,
+body:-webkit-full-screen,
 #canvas-container:fullscreen,
 #canvas-container:-webkit-full-screen {
   position: fixed;
@@ -179,6 +186,8 @@ canvas {
   background: #1a120c;
 }
 
+html:fullscreen::backdrop,
+html:-webkit-full-screen::backdrop,
 #canvas-container:fullscreen::backdrop,
 #canvas-container:-webkit-full-screen::backdrop {
   background: #1a120c;
@@ -980,6 +989,25 @@ canvas {
   border-radius: 50%;
   background: var(--gunny-gold);
   border: 1px solid #1a0c08;
+}
+
+#overlay-root .opt-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--gunny-bone);
+  cursor: pointer;
+}
+
+#overlay-root .opt-check input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--gunny-gold);
+  cursor: pointer;
 }
 
 #overlay-root .opt-danger {
