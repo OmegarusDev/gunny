@@ -1,7 +1,9 @@
-import { DESIGN_H } from '../config.js';
+import { DESIGN_H, MAX_DPR } from '../config.js';
+import { capDpr, createQuality } from './quality.js';
 
 export function createCanvas(canvas) {
   const ctx = canvas.getContext('2d');
+  const quality = createQuality();
   const viewport = {
     w: DESIGN_H * (16 / 9),
     h: DESIGN_H,
@@ -9,12 +11,13 @@ export function createCanvas(canvas) {
     cssW: DESIGN_H * (16 / 9),
     cssH: DESIGN_H,
     scale: 1,
+    quality,
   };
 
   function resize() {
     const cssW = Math.max(1, window.innerWidth);
     const cssH = Math.max(1, window.innerHeight);
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = capDpr(window.devicePixelRatio, MAX_DPR);
     const scale = cssH / DESIGN_H;
     canvas.width = Math.max(1, Math.floor(cssW * dpr));
     canvas.height = Math.max(1, Math.floor(cssH * dpr));
@@ -22,7 +25,7 @@ export function createCanvas(canvas) {
     canvas.style.height = '100%';
     ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = quality.smoothing;
     viewport.w = cssW / scale;
     viewport.h = DESIGN_H;
     viewport.cssW = cssW;

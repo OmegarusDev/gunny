@@ -76,12 +76,6 @@ const handlers = {
   retry() {
     startRun(lastType, lastLevel, lastSeed);
   },
-  chrome(_stats, opts = {}) {
-    overlays.setChrome(profile, {
-      back: opts.back ?? mode !== 'hub',
-      onBack: showHub,
-    });
-  },
 };
 
 function syncCursor() {
@@ -155,7 +149,10 @@ function settleRun() {
 }
 
 function frame(now) {
-  const { steps } = loop.tick(now);
+  const { steps, frame: frameDt } = loop.tick(now);
+  const q = viewport.quality;
+  q?.noteFrame(frameDt);
+  if (q && ctx.imageSmoothingQuality !== q.smoothing) ctx.imageSmoothingQuality = q.smoothing;
   if (mode === 'run' && run) {
     const forcePause = input.consume('forcePause');
     const pauseTap = input.consume('pauseTap');

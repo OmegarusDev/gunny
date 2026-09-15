@@ -1,6 +1,8 @@
 export const DESIGN_H = 720;
 export const FIXED_DT = 1 / 60;
 export const MAX_FRAME_DT = 0.1;
+/** Backing-store cap. 3× phones pay fill cost without extra sharpness at 720 design. */
+export const MAX_DPR = 2;
 /** Longer metre so gait / scenery match the counter (visual scroll stays ~70px/s). */
 export const PX_PER_M = 35;
 export const PLAYER_SCREEN_X_RATIO = 0.25;

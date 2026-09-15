@@ -4,6 +4,7 @@ import {
   AIM_REACH_MIN,
   ECONOMY,
   HIT_IMPULSE,
+  MAX_DPR,
   PX_PER_M,
   THREAT,
   TRACK_METERS,
@@ -29,6 +30,7 @@ import { poseEnemyLocal } from '../src/figure.js';
 import { shotEnergy } from '../src/systems/impulse.js';
 import { spawnRagdoll } from '../src/systems/ragdoll.js';
 import { createRun, simulate } from '../src/systems/run.js';
+import { capDpr, createQuality } from '../src/engine/quality.js';
 
 describe('threat pacing', () => {
   it('keeps the next-road start shift smaller than the within-road span', () => {
@@ -336,5 +338,23 @@ describe('simulate loop', () => {
     run2.enemies.push(foe);
     simulate(run2, dt, viewport, idle);
     expect(run2.ended).toBe('death');
+  });
+});
+
+describe('render budget', () => {
+  it('caps backing-store dpr', () => {
+    expect(MAX_DPR).toBe(2);
+    expect(capDpr(3, MAX_DPR)).toBe(2);
+    expect(capDpr(1.25, MAX_DPR)).toBe(1.25);
+    expect(capDpr(0, MAX_DPR)).toBe(1);
+  });
+
+  it('drops scenery fx after sustained long frames', () => {
+    const q = createQuality();
+    for (let i = 0; i < 12; i++) q.noteFrame(0.04);
+    expect(q.cheap).toBe(true);
+    expect(q.fx).toBe(false);
+    expect(q.hillStep).toBeGreaterThan(6);
+    expect(q.propMul).toBeGreaterThan(1);
   });
 });

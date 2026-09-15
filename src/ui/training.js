@@ -1,11 +1,10 @@
 import { SKILLS, skillCost } from '../data/skills.js';
 import { resolveStats } from '../entities/loadout.js';
 import { saveProfile } from '../state/profile.js';
-import { statsGrid } from './overlays.js';
+import { ledgerBlock, statsGrid } from './overlays.js';
 
 export function renderTraining(el, profile, handlers) {
   const stats = resolveStats(profile);
-  handlers.chrome?.(null, { back: true });
 
   const skills = Object.values(SKILLS);
   let picked = el.dataset.skill || skills[0]?.id;
@@ -14,7 +13,11 @@ export function renderTraining(el, profile, handlers) {
 
   el.innerHTML = `
     <div class="panel-stack training-stack">
-      <header class="camp-brand">
+      <div class="page-head">
+        <button class="ghost" type="button" data-act="hub">Camp</button>
+        ${ledgerBlock(profile)}
+      </div>
+      <header class="camp-brand workshop-brand">
         <p class="kicker">Facility</p>
         <h2>Training</h2>
       </header>
@@ -57,6 +60,7 @@ export function renderTraining(el, profile, handlers) {
       </div>
     </div>
   `;
+  el.querySelector('[data-act="hub"]').onclick = () => handlers.hub();
   el.querySelectorAll('[data-pick]').forEach((row) => {
     row.onclick = (e) => {
       if (e.target.closest('[data-skill]')) return;

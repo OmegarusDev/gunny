@@ -4,6 +4,11 @@ import { uhash } from '../util/hash.js';
 export { hexRgb, mixHex, rgbStr, shadeHex };
 
 let grainCanvas = null;
+let grainPat = null;
+
+function sceneFx(viewport) {
+  return viewport?.quality?.fx !== false;
+}
 
 export function drawHorizonGlow(ctx, viewport, biome) {
   const y = viewport.h * 0.42;
@@ -45,6 +50,7 @@ export function drawAirHaze(ctx, viewport, biome) {
 }
 
 export function drawHeatHaze(ctx, viewport, biome, t) {
+  if (!sceneFx(viewport)) return;
   if (biome.id === 'desert') {
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
@@ -86,6 +92,7 @@ export function drawHeatHaze(ctx, viewport, biome, t) {
 }
 
 export function drawKeyLight(ctx, viewport, biome) {
+  if (!sceneFx(viewport)) return;
   ctx.save();
   ctx.globalCompositeOperation = 'soft-light';
   const g = ctx.createLinearGradient(0, 0, viewport.w, 0);
@@ -116,6 +123,7 @@ export function drawKeyLight(ctx, viewport, biome) {
 }
 
 export function drawMotes(ctx, viewport, biome, t) {
+  if (!sceneFx(viewport)) return;
   const n = biome.id === 'desert' ? 42 : biome.id === 'transylvania' ? 16 : biome.id === 'fen' ? 22 : biome.id === 'quarry' ? 36 : 28;
   const color =
     biome.id === 'desert'
@@ -171,6 +179,7 @@ export function drawVignette(ctx, viewport, biome) {
 }
 
 export function drawGrain(ctx, viewport, t) {
+  if (!sceneFx(viewport)) return;
   if (!grainCanvas) {
     grainCanvas = document.createElement('canvas');
     grainCanvas.width = 128;
@@ -189,9 +198,9 @@ export function drawGrain(ctx, viewport, t) {
   ctx.save();
   ctx.globalAlpha = 0.07;
   ctx.globalCompositeOperation = 'overlay';
-  const pat = ctx.createPattern(grainCanvas, 'repeat');
+  if (!grainPat) grainPat = ctx.createPattern(grainCanvas, 'repeat');
   ctx.translate((t * 13) % 128, (t * 9) % 128);
-  ctx.fillStyle = pat;
+  ctx.fillStyle = grainPat;
   ctx.fillRect(-128, -128, viewport.w + 256, viewport.h + 256);
   ctx.restore();
 }

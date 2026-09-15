@@ -3,7 +3,7 @@ import { biomeFor } from '../data/biomes.js';
 import { RECEIVERS } from '../data/receivers.js';
 import { PARTS } from '../data/attachments.js';
 import { equippedLabel, resolveStats } from '../entities/loadout.js';
-import { statsGrid } from './overlays.js';
+import { ledgerBlock, statsGrid } from './overlays.js';
 
 export function renderHub(el, profile, handlers) {
   const stats = resolveStats(profile);
@@ -11,9 +11,9 @@ export function renderHub(el, profile, handlers) {
   const next = biomeFor(profile.unlockedLevel);
   const mag = PARTS[profile.loadout.magazine]?.name ?? '—';
   const barrel = PARTS[profile.loadout.barrel]?.name ?? '—';
-  handlers.chrome?.(null, { back: false });
   el.innerHTML = `
     <div class="panel-stack camp-stack">
+      ${ledgerBlock(profile)}
       <header class="camp-brand">
         <h1>GUNNY</h1>
         <p class="lede">They’re faster than you. Shoot over your shoulder and don’t let them touch you.</p>
@@ -61,9 +61,9 @@ export function renderHub(el, profile, handlers) {
 
 export function renderEnd(el, { title, run, profile, handlers, extract }) {
   const biome = run.biome;
-  handlers.chrome?.(null, { back: true });
   el.innerHTML = `
     <div class="panel-stack camp-stack">
+      ${ledgerBlock(profile)}
       <header class="camp-brand">
         <p class="kicker">${biome ? biome.place : 'The road'}</p>
         <h2>${title}</h2>

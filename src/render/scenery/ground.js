@@ -13,8 +13,9 @@ export function drawHills(ctx, viewport, run) {
 function drawRidge(ctx, viewport, left, color, yBase, amp, freq, jagged, biome, layer) {
   const faded = layer === 1 ? mixHex(color, biome.sky[1], 0.34) : mixHex(color, biome.sky[1], 0.08);
   const parallax = 0.22 + layer * 0.12;
+  const step = viewport.quality?.hillStep || 6;
   const ys = [];
-  for (let px = 0; px <= viewport.w; px += 6) {
+  for (let px = 0; px <= viewport.w; px += step) {
     const wx = left * parallax + px;
     let y = yBase + Math.sin(wx * freq + layer) * amp + Math.cos(wx * freq * 0.45) * amp * 0.4;
     if (jagged) {
@@ -33,7 +34,7 @@ function drawRidge(ctx, viewport, left, color, yBase, amp, freq, jagged, biome, 
   ctx.beginPath();
   ctx.moveTo(0, viewport.h);
   ctx.lineTo(0, ys[0]);
-  ys.forEach((y, i) => ctx.lineTo(i * 6, y));
+  ys.forEach((y, i) => ctx.lineTo(i * step, y));
   ctx.lineTo(viewport.w, viewport.h);
   ctx.closePath();
   ctx.fill();
@@ -45,7 +46,7 @@ function drawRidge(ctx, viewport, left, color, yBase, amp, freq, jagged, biome, 
   ctx.strokeStyle = mixHex(color, biome.sky[0], 0.45);
   ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ys.forEach((y, i) => (i ? ctx.lineTo(i * 6, y) : ctx.moveTo(0, y)));
+  ys.forEach((y, i) => (i ? ctx.lineTo(i * step, y) : ctx.moveTo(0, y)));
   ctx.stroke();
 }
 
@@ -53,7 +54,8 @@ export function drawGround(ctx, viewport, run) {
   const biome = run.biome;
   const { terrain, player } = run;
   const pts = [];
-  for (let px = 0; px <= viewport.w; px += 4) {
+  const gStep = viewport.quality?.groundStep || 4;
+  for (let px = 0; px <= viewport.w; px += gStep) {
     const worldX = player.worldX - viewport.w * PLAYER_SCREEN_X_RATIO + px;
     pts.push({ px, y: terrain.height(worldX) });
   }
@@ -78,12 +80,13 @@ export function drawGround(ctx, viewport, run) {
   strokeAlong(ctx, pts, 8, biome.rut, 1.8);
   strokeAlong(ctx, pts, -5, biome.rut, 1.8);
 
+  const grassStep = viewport.quality?.grassStep || 7;
   ctx.strokeStyle = shadeHex(biome.grass, 0.1);
   ctx.lineWidth = 1.3;
   ctx.beginPath();
-  for (let px = 8; px < viewport.w; px += 7) {
+  for (let px = 8; px < viewport.w; px += grassStep) {
     const worldX = player.worldX - viewport.w * PLAYER_SCREEN_X_RATIO + px;
-    const h = uhash(Math.floor(worldX / 7) + 44);
+    const h = uhash(Math.floor(worldX / grassStep) + 44);
     if (h < 0.55) continue;
     const y = terrain.height(worldX);
     ctx.moveTo(px, y + 2);
@@ -91,10 +94,11 @@ export function drawGround(ctx, viewport, run) {
   }
   ctx.stroke();
 
+  const rutStep = viewport.quality?.rutStep || 9;
   ctx.fillStyle = shadeHex(biome.road, -0.28);
-  for (let px = 10; px < viewport.w; px += 9) {
+  for (let px = 10; px < viewport.w; px += rutStep) {
     const worldX = player.worldX - viewport.w * PLAYER_SCREEN_X_RATIO + px;
-    const h = uhash(Math.floor(worldX / 9) + 90);
+    const h = uhash(Math.floor(worldX / rutStep) + 90);
     if (h < 0.62) continue;
     const y = terrain.height(worldX);
     ctx.globalAlpha = 0.35 + h * 0.25;

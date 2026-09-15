@@ -12,11 +12,17 @@ export function resumeAudio() {
   ac();
 }
 
+const noiseCache = new Map();
+
 function noiseBuffer(audio, duration) {
   const n = Math.floor(audio.sampleRate * duration);
-  const buf = audio.createBuffer(1, n, audio.sampleRate);
+  const key = `${audio.sampleRate}:${n}`;
+  let buf = noiseCache.get(key);
+  if (buf) return buf;
+  buf = audio.createBuffer(1, n, audio.sampleRate);
   const data = buf.getChannelData(0);
   for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
+  noiseCache.set(key, buf);
   return buf;
 }
 

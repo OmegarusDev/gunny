@@ -14,8 +14,10 @@ export function drawFarScenery(ctx, viewport, run) {
   const biome = run.biome;
   const viewW = viewport.w;
   const left = worldLeft(run.player.worldX, viewport);
+  const mul = viewport.quality?.propMul || 1;
   const spacing =
-    biome.id === 'desert' ? 150 : biome.id === 'transylvania' ? 52 : biome.id === 'fen' ? 42 : biome.id === 'quarry' ? 92 : 64;
+    (biome.id === 'desert' ? 150 : biome.id === 'transylvania' ? 52 : biome.id === 'fen' ? 42 : biome.id === 'quarry' ? 92 : 64) *
+    mul;
   const maxHalf = biome.id === 'desert' || biome.id === 'fen' || biome.id === 'quarry' ? 48 : 112;
   const { start, end } = tilesInView(left, viewW, spacing, maxHalf);
   ctx.save();
@@ -48,7 +50,8 @@ export function drawNearScenery(ctx, viewport, run) {
   const biome = run.biome;
   const viewW = viewport.w;
   const left = worldLeft(run.player.worldX, viewport);
-  const spacing = biome.id === 'desert' ? 96 : biome.id === 'fen' ? 36 : biome.id === 'quarry' ? 70 : 50;
+  const mul = viewport.quality?.propMul || 1;
+  const spacing = (biome.id === 'desert' ? 96 : biome.id === 'fen' ? 36 : biome.id === 'quarry' ? 70 : 50) * mul;
   const maxHalf = biome.id === 'desert' || biome.id === 'fen' || biome.id === 'quarry' ? 48 : 160;
   const { start, end } = tilesInView(left, viewW, spacing, maxHalf);
   for (let wx = start; wx < end; wx += spacing) {
@@ -84,7 +87,7 @@ export function drawForeground(ctx, viewport, run) {
   const biome = run.biome;
   const viewW = viewport.w;
   const left = worldLeft(run.player.worldX, viewport);
-  const spacing = 120;
+  const spacing = 120 * (viewport.quality?.propMul || 1);
   const maxHalf = biome.id === 'desert' || biome.id === 'quarry' ? 40 : biome.id === 'fen' ? 24 : 165;
   const { start, end } = tilesInView(left, viewW, spacing, maxHalf);
   for (let wx = start; wx < end; wx += spacing) {
