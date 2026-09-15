@@ -1,4 +1,4 @@
-import { effectiveShotRange, FIXED_DT, MAX_FRAME_DT } from './config.js';
+import { effectiveAimReach, FIXED_DT, MAX_FRAME_DT } from './config.js';
 import { createCanvas } from './engine/canvas.js';
 import { createInput } from './engine/input.js';
 import { enterImmersive } from './engine/immersive.js';
@@ -221,7 +221,7 @@ function frame(now) {
         input.state.pointerY,
         run.player,
         viewport,
-        effectiveShotRange(run.stats, viewport),
+        effectiveAimReach(run.stats, viewport),
       );
     }
     drawWorld(ctx, run, viewport);

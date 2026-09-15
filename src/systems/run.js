@@ -1,4 +1,4 @@
-import { effectiveShotRange, HIT_IMPULSE, PERFECT_MAG_MULT, TRACK_METERS, V_RETREAT } from '../config.js';
+import { effectiveAimReach, effectiveShotRange, HIT_IMPULSE, PERFECT_MAG_MULT, TRACK_METERS, V_RETREAT } from '../config.js';
 import { randomSeed, seedForLevel, seedFromUint32 } from '../engine/rng.js';
 import { biomeFor, biomeFromSeed } from '../data/biomes.js';
 import { createTerrain } from '../world/terrain.js';
@@ -179,7 +179,7 @@ export function simulate(run, dt, viewport, input) {
   player.y = run.terrain.height(player.worldX);
 
   const gun = gunWorld(player);
-  const aim = resolveAimPoint(input.pointerX, input.pointerY, player, viewport, effectiveShotRange(stats, viewport));
+  const aim = resolveAimPoint(input.pointerX, input.pointerY, player, viewport, effectiveAimReach(stats, viewport));
   run.aim = aim;
   const aimWorld = screenToWorld(aim.x, aim.y, player.worldX, viewport);
   const target = Math.atan2(aimWorld.y - gun.y, aimWorld.x - gun.x);

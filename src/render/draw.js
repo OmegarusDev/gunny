@@ -105,39 +105,42 @@ function drawAimCrosshair(ctx, run) {
   if (!aim || run.ended) return;
   const { x, y, anchorX, anchorY, reach, clamped } = aim;
   const spread = shotSpreadDeg(run.stats, run.weapon);
-  const cone = 5 + spread * 1.6;
+  const cone = 7 + spread * 1.85;
+  const gap = 6;
+  const arm = cone + 6;
 
   ctx.save();
-  ctx.strokeStyle = clamped ? 'rgba(196, 169, 144, 0.22)' : 'rgba(212, 176, 122, 0.18)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 6]);
+  ctx.strokeStyle = clamped ? 'rgba(212, 176, 122, 0.4)' : 'rgba(224, 176, 98, 0.46)';
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([5, 7]);
   ctx.beginPath();
   ctx.arc(anchorX, anchorY, reach, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
 
-  ctx.strokeStyle = 'rgba(243, 230, 208, 0.55)';
-  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = 'rgba(243, 230, 208, 0.82)';
+  ctx.lineWidth = 2.15;
   ctx.beginPath();
-  ctx.moveTo(x - cone - 3, y);
-  ctx.lineTo(x - 4, y);
-  ctx.moveTo(x + 4, y);
-  ctx.lineTo(x + cone + 3, y);
-  ctx.moveTo(x, y - cone - 3);
-  ctx.lineTo(x, y - 4);
-  ctx.moveTo(x, y + 4);
-  ctx.lineTo(x, y + cone + 3);
+  ctx.moveTo(x - arm, y);
+  ctx.lineTo(x - gap, y);
+  ctx.moveTo(x + gap, y);
+  ctx.lineTo(x + arm, y);
+  ctx.moveTo(x, y - arm);
+  ctx.lineTo(x, y - gap);
+  ctx.moveTo(x, y + gap);
+  ctx.lineTo(x, y + arm);
   ctx.stroke();
 
-  ctx.strokeStyle = 'rgba(224, 163, 58, 0.7)';
+  ctx.strokeStyle = 'rgba(224, 163, 58, 0.92)';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(x, y, Math.max(3, cone * 0.35), 0, Math.PI * 2);
+  ctx.arc(x, y, Math.max(5.5, cone * 0.48), 0, Math.PI * 2);
   ctx.stroke();
 
   if (run.weapon.reloading) {
     ctx.fillStyle = run.weapon.jammed ? 'rgba(196, 69, 54, 0.85)' : 'rgba(243, 230, 208, 0.55)';
     ctx.beginPath();
-    ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+    ctx.arc(x, y, 2.6, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();

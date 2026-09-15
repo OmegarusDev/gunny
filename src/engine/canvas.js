@@ -15,8 +15,9 @@ export function createCanvas(canvas) {
   };
 
   function resize() {
-    const cssW = Math.max(1, window.innerWidth);
-    const cssH = Math.max(1, window.innerHeight);
+    const host = canvas.parentElement || canvas;
+    const cssW = Math.max(1, host.clientWidth || window.innerWidth);
+    const cssH = Math.max(1, host.clientHeight || window.innerHeight);
     const dpr = capDpr(window.devicePixelRatio, MAX_DPR);
     const scale = cssH / DESIGN_H;
     canvas.width = Math.max(1, Math.floor(cssW * dpr));
@@ -37,6 +38,8 @@ export function createCanvas(canvas) {
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', resize);
   window.visualViewport?.addEventListener('resize', resize);
+  document.addEventListener('fullscreenchange', resize);
+  document.addEventListener('webkitfullscreenchange', resize);
   resize();
 
   return { canvas, ctx, viewport, resize };

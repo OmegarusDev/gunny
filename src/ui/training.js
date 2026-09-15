@@ -22,8 +22,8 @@ export function renderTraining(el, profile, handlers) {
         ['Crit', `${(stats.critChance * 100).toFixed(0)}%`],
         ['Crit ×', stats.critMult.toFixed(2)],
         ['Cash', `×${stats.cashMul.toFixed(2)}`],
-        ['Aim', stats.aimRate.toFixed(1)],
-        ['Range', Math.round(stats.aimReach)],
+        ['Sight', Math.round(stats.aimReach)],
+        ['Range', Math.round(stats.shotRange)],
         ['Spread', `${stats.baseSpread.toFixed(2)}°`],
       ])}
       <div class="train-grid">

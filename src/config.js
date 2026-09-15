@@ -12,27 +12,49 @@ export const V_RETREAT = RETREAT_MPS * PX_PER_M;
 /** Height as a fraction of design height — rolling slopes, not pebbles. */
 export const TERRAIN_AMP = 0.09;
 export const BLOOM_CAP_DEG = 12;
-/** Base aim disc from the gun: two-thirds of the way across the screen. */
-export const AIM_SCREEN_FRAC = 2 / 3;
+/** Irons: sight picture to mid-screen. Optics push this out. */
+export const AIM_SCREEN_FRAC = 0.5;
+/** Bullets: two-thirds across. Barrels extend this, optics do not. */
+export const SHOT_SCREEN_FRAC = 2 / 3;
 export const DESIGN_W = DESIGN_H * (16 / 9);
 export const AIM_REACH_BASE = DESIGN_W * (AIM_SCREEN_FRAC - PLAYER_SCREEN_X_RATIO);
 export const AIM_REACH_MIN = Math.round(AIM_REACH_BASE * 0.72);
 export const AIM_REACH_MAX = 860;
+export const SHOT_REACH_BASE = DESIGN_W * (SHOT_SCREEN_FRAC - PLAYER_SCREEN_X_RATIO);
+export const SHOT_REACH_MIN = Math.round(SHOT_REACH_BASE * 0.72);
+export const SHOT_REACH_MAX = 860;
 /** Keep the last metres of the screen (and off-screen spawns) out of shot range. */
 export const SHOT_EDGE_PAD = 36;
 
-export function baseShotRange(viewport) {
+function visibleFromGun(viewport) {
+  return viewport.w * (1 - PLAYER_SCREEN_X_RATIO) - SHOT_EDGE_PAD;
+}
+
+export function baseAimReach(viewport) {
   return viewport.w * (AIM_SCREEN_FRAC - PLAYER_SCREEN_X_RATIO);
 }
 
-export function clampShotRange(range, viewport) {
-  const visible = viewport.w * (1 - PLAYER_SCREEN_X_RATIO) - SHOT_EDGE_PAD;
-  return Math.max(AIM_REACH_MIN, Math.min(range, visible));
+export function baseShotRange(viewport) {
+  return viewport.w * (SHOT_SCREEN_FRAC - PLAYER_SCREEN_X_RATIO);
 }
 
-/** Viewport-true range: 2/3 across, plus attachment extras, never past the view edge. */
-export function effectiveShotRange(stats, viewport) {
+export function clampAimReach(range, viewport) {
+  return Math.max(AIM_REACH_MIN, Math.min(range, visibleFromGun(viewport)));
+}
+
+export function clampShotRange(range, viewport) {
+  return Math.max(SHOT_REACH_MIN, Math.min(range, visibleFromGun(viewport)));
+}
+
+/** How far the pointer/reticle can be held. Optics and marksman, not barrels. */
+export function effectiveAimReach(stats, viewport) {
   const extra = (stats?.aimReach || 0) - AIM_REACH_BASE;
+  return clampAimReach(baseAimReach(viewport) + extra, viewport);
+}
+
+/** How far a bullet flies. Barrels and receivers, never past the view edge. */
+export function effectiveShotRange(stats, viewport) {
+  const extra = (stats?.shotRange || 0) - SHOT_REACH_BASE;
   return clampShotRange(baseShotRange(viewport) + extra, viewport);
 }
 /** Static cone (degrees) before bloom/heat — first shots are not lasers. */

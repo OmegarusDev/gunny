@@ -87,7 +87,7 @@ export const PARTS = {
     short: 'Carbine',
     cost: 140,
     desc: 'A bit more range and a cleaner cone.',
-    mods: { bulletSpeed: 40, bloomPerShot: -0.15, pen: 0.08, baseSpread: -0.2, aimReach: 48 },
+    mods: { bulletSpeed: 40, bloomPerShot: -0.15, pen: 0.08, baseSpread: -0.2, shotRange: 48 },
   },
   barrel_rifle: {
     id: 'barrel_rifle',
@@ -98,7 +98,7 @@ export const PARTS = {
     short: 'Rifle',
     cost: 280,
     desc: 'Longer effective range and punch.',
-    mods: { bulletSpeed: 140, bloomPerShot: -0.28, pen: 0.22, aimRate: -0.6, weight: 0.08, baseSpread: -0.4, aimReach: 96 },
+    mods: { bulletSpeed: 140, bloomPerShot: -0.28, pen: 0.22, aimRate: -0.6, weight: 0.08, baseSpread: -0.4, shotRange: 96 },
   },
   barrel_long: {
     id: 'barrel_long',
@@ -109,7 +109,7 @@ export const PARTS = {
     short: 'Long',
     cost: 480,
     desc: 'Best on-screen range. Slow settle on slopes.',
-    mods: { bulletSpeed: 240, bloomPerShot: -0.4, pen: 0.38, aimRate: -1.2, weight: 0.14, baseSpread: -0.65, aimReach: 150 },
+    mods: { bulletSpeed: 240, bloomPerShot: -0.4, pen: 0.38, aimRate: -1.2, weight: 0.14, baseSpread: -0.65, shotRange: 150 },
   },
 
   ...buildMagParts(),
@@ -121,7 +121,7 @@ export const PARTS = {
     name: 'Iron Sights',
     short: 'Iron',
     cost: 0,
-    desc: 'No optic.',
+    desc: 'Close sight picture. Fine on touch, tight on mouse.',
     mods: {},
   },
   optic_dot: {
@@ -132,8 +132,8 @@ export const PARTS = {
     name: 'Red Dot',
     short: 'Dot',
     cost: 200,
-    desc: 'Cuts bloom. A little extra range.',
-    mods: { bloomPerShot: -0.28, aimRate: 0.8, aimReach: 8, baseSpread: -0.25 },
+    desc: 'Tighter cone and a farther sight picture. Does not add gun range.',
+    mods: { bloomPerShot: -0.28, aimRate: 0.8, aimReach: 96, baseSpread: -0.25 },
   },
   optic_acog: {
     id: 'optic_acog',
@@ -143,8 +143,8 @@ export const PARTS = {
     name: 'ACOG',
     short: 'ACOG',
     cost: 380,
-    desc: 'Tracking and bloom control.',
-    mods: { bloomPerShot: -0.4, aimRate: -0.3, bloomRecover: 0.6, aimReach: 14, baseSpread: -0.45 },
+    desc: 'Holds aim much farther out with a cleaner first shot.',
+    mods: { bloomPerShot: -0.4, aimRate: -0.3, bloomRecover: 0.6, aimReach: 168, baseSpread: -0.45 },
   },
   optic_lpvo: {
     id: 'optic_lpvo',
@@ -154,8 +154,8 @@ export const PARTS = {
     name: 'LPVO',
     short: 'LPVO',
     cost: 640,
-    desc: 'Best bloom control. Range still stays on-screen.',
-    mods: { bloomPerShot: -0.55, aimRate: 0.4, bloomRecover: 0.9, weight: 0.06, aimReach: 20, baseSpread: -0.7 },
+    desc: 'Best sight picture and bloom control. Bullets still use barrel range.',
+    mods: { bloomPerShot: -0.55, aimRate: 0.4, bloomRecover: 0.9, weight: 0.06, aimReach: 248, baseSpread: -0.7 },
   },
 
   stock_none: {

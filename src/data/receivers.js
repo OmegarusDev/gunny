@@ -1,4 +1,4 @@
-import { AIM_REACH_BASE } from '../config.js';
+import { AIM_REACH_BASE, SHOT_REACH_BASE } from '../config.js';
 
 export const SLOTS = [
   'receiver',
@@ -47,6 +47,7 @@ export const RECEIVERS = {
       bloomRecover: 5.2,
       aimRate: 7.2,
       aimReach: AIM_REACH_BASE,
+      shotRange: SHOT_REACH_BASE,
       baseSpread: 2.35,
       heatBuild: 0.22,
       heatDump: 0.16,
@@ -75,7 +76,8 @@ export const RECEIVERS = {
       bloomPerShot: 1.55,
       bloomRecover: 6.4,
       aimRate: 8.4,
-      aimReach: AIM_REACH_BASE + 18,
+      aimReach: AIM_REACH_BASE,
+      shotRange: SHOT_REACH_BASE + 24,
       baseSpread: 2.05,
       heatBuild: 0.16,
       heatDump: 0.24,
@@ -104,7 +106,8 @@ export const RECEIVERS = {
       bloomPerShot: 1.35,
       bloomRecover: 7.2,
       aimRate: 9.2,
-      aimReach: AIM_REACH_BASE + 36,
+      aimReach: AIM_REACH_BASE,
+      shotRange: SHOT_REACH_BASE + 48,
       baseSpread: 1.75,
       heatBuild: 0.12,
       heatDump: 0.3,

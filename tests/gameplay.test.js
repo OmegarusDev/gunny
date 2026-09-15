@@ -9,10 +9,13 @@ import {
   MAX_DPR,
   PLAYER_SCREEN_X_RATIO,
   PX_PER_M,
+  SHOT_REACH_BASE,
+  SHOT_SCREEN_FRAC,
   TERRAIN_AMP,
   THREAT,
   TRACK_METERS,
   clampShotRange,
+  effectiveAimReach,
   effectiveShotRange,
   enemyHp,
   threatForDistance,
@@ -159,6 +162,7 @@ describe('loadout aim stats', () => {
     expect(stats.magSize).toBe(1);
     expect(stats.aimReach).toBeGreaterThanOrEqual(AIM_REACH_MIN);
     expect(stats.aimReach).toBeCloseTo(AIM_REACH_BASE, 5);
+    expect(stats.shotRange).toBeCloseTo(SHOT_REACH_BASE, 5);
     expect(stats.baseSpread).toBeGreaterThan(1.5);
   });
 
@@ -167,23 +171,54 @@ describe('loadout aim stats', () => {
     const stats = resolveStats(defaultProfile());
     const range = effectiveShotRange(stats, viewport);
     const gunX = viewport.w * PLAYER_SCREEN_X_RATIO;
-    expect(gunX + range).toBeCloseTo(viewport.w * AIM_SCREEN_FRAC, 5);
+    expect(gunX + range).toBeCloseTo(viewport.w * SHOT_SCREEN_FRAC, 5);
   });
 
-  it('extends reach and tightens spread with optic + marksman', () => {
+  it('places iron sights at mid-screen, short of gun range', () => {
+    const viewport = { w: 1280, h: 720 };
+    const stats = resolveStats(defaultProfile());
+    const sight = effectiveAimReach(stats, viewport);
+    const gunX = viewport.w * PLAYER_SCREEN_X_RATIO;
+    expect(gunX + sight).toBeCloseTo(viewport.w * AIM_SCREEN_FRAC, 5);
+    expect(sight).toBeLessThan(effectiveShotRange(stats, viewport));
+  });
+
+  it('lets optics extend the sight picture and tighten spread without adding gun range', () => {
     const profile = defaultProfile();
-    profile.owned.push('t2_tactical', 'optic_dot', 'optic_acog', 'barrel_carbine', 'barrel_rifle');
+    profile.owned.push('t2_tactical', 'optic_dot', 'optic_acog');
     profile.loadout.receiver = 't2_tactical';
+    const irons = resolveStats(profile);
     profile.loadout.optic = 'optic_acog';
+    const scoped = resolveStats(profile);
+    const viewport = { w: 1280, h: 720 };
+    expect(scoped.aimReach).toBeGreaterThan(irons.aimReach);
+    expect(scoped.baseSpread).toBeLessThan(irons.baseSpread);
+    expect(scoped.shotRange).toBeCloseTo(irons.shotRange, 5);
+    expect(effectiveAimReach(scoped, viewport)).toBeGreaterThan(effectiveAimReach(irons, viewport));
+    expect(effectiveShotRange(scoped, viewport)).toBeCloseTo(effectiveShotRange(irons, viewport), 5);
+  });
+
+  it('lets barrels add gun range without stretching the reticle', () => {
+    const profile = defaultProfile();
+    profile.owned.push('barrel_carbine', 'barrel_rifle');
+    const stub = resolveStats(profile);
     profile.loadout.barrel = 'barrel_rifle';
+    const rifle = resolveStats(profile);
+    const viewport = { w: 1280, h: 720 };
+    expect(rifle.shotRange).toBeGreaterThan(stub.shotRange);
+    expect(rifle.aimReach).toBeCloseTo(stub.aimReach, 5);
+    expect(effectiveShotRange(rifle, viewport)).toBeGreaterThan(effectiveShotRange(stub, viewport));
+    expect(effectiveAimReach(rifle, viewport)).toBeCloseTo(effectiveAimReach(stub, viewport), 5);
+  });
+
+  it('extends sight picture with marksman and stays in clamp', () => {
+    const profile = defaultProfile();
     profile.skillRanks.marksman = 5;
     const stats = resolveStats(profile);
     const stock = resolveStats(defaultProfile());
     expect(stats.aimReach).toBeGreaterThan(stock.aimReach);
     expect(stats.baseSpread).toBeLessThan(stock.baseSpread);
     expect(stats.aimReach).toBeLessThanOrEqual(AIM_REACH_MAX);
-    const viewport = { w: 1280, h: 720 };
-    expect(effectiveShotRange(stats, viewport)).toBeGreaterThan(effectiveShotRange(stock, viewport));
   });
 
   it('includes base spread in the shot cone even at zero bloom', () => {
@@ -233,7 +268,7 @@ describe('reload helpers', () => {
 describe('skills & profile', () => {
   it('includes marksman in empty ranks', () => {
     expect(emptyRanks().marksman).toBe(0);
-    expect(SKILLS.marksman.perRank.aimReach).toBe(4);
+    expect(SKILLS.marksman.perRank.aimReach).toBe(10);
     expect(SKILLS.elevation).toBeUndefined();
     expect(Object.keys(SKILLS).length % 2).toBe(0);
   });

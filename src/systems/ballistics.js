@@ -7,7 +7,7 @@ import { shotEnergy } from './impulse.js';
 
 export function spawnBullet(x, y, angle, stats, perfectMag, maxDist) {
   const speed = stats.bulletSpeed;
-  const range = Math.max(1, maxDist ?? stats.aimReach);
+  const range = Math.max(1, maxDist ?? stats.shotRange ?? stats.aimReach);
   return {
     x,
     y,

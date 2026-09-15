@@ -24,10 +24,8 @@ html,
 body {
   width: 100%;
   height: 100%;
-  height: 100dvh;
-  min-height: 100lvh;
   overflow: hidden;
-  background: var(--gunny-ink);
+  background: #1a120c;
   font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
   color: var(--gunny-bone);
   user-select: none;
@@ -36,6 +34,13 @@ body {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   cursor: none;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  height: auto;
 }
 
 *,
@@ -85,24 +90,22 @@ body {
 }
 
 #canvas-container {
-  width: 100%;
-  width: 100dvw;
-  height: 100%;
-  height: 100dvh;
-  min-height: 100lvh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
   padding: 0;
-  box-sizing: border-box;
+  margin: 0;
+  background: #1a120c;
 }
 
 canvas {
-  background: #1a120c;
-  display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
+  background: #1a120c;
   touch-action: none;
   -webkit-touch-callout: none;
 }
@@ -143,8 +146,11 @@ canvas {
 }
 
 @media (display-mode: standalone), (display-mode: fullscreen) {
-  body {
-    background: #0c0806;
+  html,
+  body,
+  #canvas-container,
+  canvas {
+    background: #1a120c;
   }
 }
 
@@ -182,6 +188,22 @@ canvas {
     max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
   touch-action: auto;
   -webkit-touch-callout: none;
+}
+
+#canvas-container:fullscreen,
+#canvas-container:-webkit-full-screen {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  background: #1a120c;
+}
+
+#canvas-container:fullscreen::backdrop,
+#canvas-container:-webkit-full-screen::backdrop {
+  background: #1a120c;
 }
 
 #overlay-root .stage {
@@ -550,7 +572,7 @@ canvas {
 }
 
 #overlay-root .stats.stats-wide {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 #panel-gunsmith .panel-stack,
@@ -1059,7 +1081,7 @@ canvas {
   }
 
   #overlay-root .stats.stats-wide {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-columns: repeat(9, minmax(0, 1fr));
   }
 
   #overlay-root .stats div {
@@ -1082,7 +1104,7 @@ canvas {
 
 @media (min-width: 900px) and (min-height: 520px) {
   #overlay-root .stats.stats-wide {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-columns: repeat(9, minmax(0, 1fr));
   }
 
   #overlay-root .stats.stats-wide div {
