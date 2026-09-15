@@ -2,6 +2,7 @@ import { threatForDistance, TRACK_METERS } from '../config.js';
 import { createEnemy } from '../entities/enemy.js';
 import { cameraX } from '../entities/player.js';
 import { randRange } from '../engine/rng.js';
+import { pickRosterKind } from '../data/kinds.js';
 import { metersFromWorldX } from '../world/metrics.js';
 
 const MIN_GAP = 130;
@@ -10,8 +11,7 @@ export function stepSpawner(run, dt, viewport) {
   run.spawnTimer -= dt;
   const meters = metersFromWorldX(run.player.worldX);
   if (!run.endless && meters >= TRACK_METERS) return;
-  const stage = run.endless ? 0 : Math.floor(run.levelIndex / 5);
-  const threat = threatForDistance(meters, stage, run.endless);
+  const threat = threatForDistance(meters, run.endless ? 0 : run.levelIndex, run.endless);
   run.threat = threat;
   const living = run.enemies.filter((e) => e.alive);
   if (run.spawnTimer > 0 || living.length >= threat.maxAlive) return;
@@ -26,7 +26,8 @@ export function stepSpawner(run, dt, viewport) {
 
   for (let i = 0; i < count; i++) {
     const sx = i === 0 ? x : spaceFromLiving(x + MIN_GAP + randRange(run.rng, 20, 70), living, MIN_GAP);
-    const enemy = createEnemy(sx, run.terrain, threat.hpMul, threat.speed, run.biome.kind);
+    const kind = pickRosterKind(run.biome.roster, run.rng);
+    const enemy = createEnemy(sx, run.terrain, threat.hpMul, threat.speed, kind);
     run.enemies.push(enemy);
     living.push(enemy);
   }

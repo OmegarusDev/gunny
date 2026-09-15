@@ -3,6 +3,32 @@ import { RECEIVERS, SLOT_MIN_TIER, SLOTS } from '../data/receivers.js';
 import { PARTS } from '../data/attachments.js';
 import { SKILLS } from '../data/skills.js';
 
+/** Clamp + gunsmith display. Unknown part keys still stack via applyMods. */
+export const STATS = [
+  { id: 'damage', min: 6, gunsmith: true, gunsmithLabel: 'DMG', format: (v) => v.toFixed(1) },
+  { id: 'rof', min: 1.5, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => v.toFixed(1) },
+  { id: 'magSize', min: 1, round: true, gunsmith: true, gunsmithLabel: 'MAG', format: (v) => String(v) },
+  { id: 'bulletSpeed', min: 280, gunsmith: true, gunsmithLabel: 'VEL', format: (v) => v.toFixed(0) },
+  { id: 'pen', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2) },
+  { id: 'reload', min: 0.7, gunsmith: true, gunsmithLabel: 'Reload', format: (v) => `${v.toFixed(2)}s` },
+  { id: 'aimReach', min: AIM_REACH_MIN, max: AIM_REACH_MAX, gunsmith: true, gunsmithLabel: 'Reach', format: (v) => String(Math.round(v)) },
+  { id: 'baseSpread', min: 0.2, max: 4.5, gunsmith: true, gunsmithLabel: 'Spread', format: (v) => `${v.toFixed(2)}°` },
+  { id: 'perfectWidth', min: 0.04, max: 0.28 },
+];
+
+export function gunsmithStatRows(stats) {
+  return STATS.filter((s) => s.gunsmith).map((s) => [s.gunsmithLabel, s.format(stats[s.id])]);
+}
+
+function clampStat(stats, def) {
+  let v = stats[def.id];
+  if (v == null || Number.isNaN(v)) v = def.min ?? 0;
+  if (def.round) v = Math.round(v);
+  if (def.min != null) v = Math.max(def.min, v);
+  if (def.max != null) v = Math.min(def.max, v);
+  stats[def.id] = v;
+}
+
 function applyMods(stats, mods) {
   if (!mods) return;
   for (const [k, v] of Object.entries(mods)) {
@@ -46,16 +72,8 @@ export function resolveStats(profile) {
 
   stats.bloomPerShot = Math.max(0.25, stats.bloomPerShot * (stats.bloomPerShotMul || 1));
   stats.bloomCap = BLOOM_CAP_DEG;
-  stats.magSize = Math.max(1, Math.round(stats.magSize));
-  stats.rof = Math.max(1.5, stats.rof);
-  stats.reload = Math.max(0.7, stats.reload);
-  stats.perfectWidth = Math.max(0.04, Math.min(0.28, stats.perfectWidth));
   stats.aimRate = Math.max(2.5, stats.aimRate / Math.max(0.75, stats.weight || 1));
-  stats.aimReach = Math.max(AIM_REACH_MIN, Math.min(AIM_REACH_MAX, stats.aimReach || AIM_REACH_MIN));
-  stats.baseSpread = Math.max(0.2, Math.min(4.5, stats.baseSpread ?? 2.35));
-  stats.bulletSpeed = Math.max(280, stats.bulletSpeed);
-  stats.pen = Math.max(0.4, stats.pen);
-  stats.damage = Math.max(6, stats.damage);
+  for (const def of STATS) clampStat(stats, def);
   return stats;
 }
 

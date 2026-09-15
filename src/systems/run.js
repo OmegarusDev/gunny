@@ -108,7 +108,7 @@ function applyHits(run) {
       run.particles.push(...spawnBurst(hit.x, hit.y, 10, run.rng));
     }
 
-    applyFlinch(enemy, hit);
+    applyFlinch(enemy, hit, { crit });
     updateLocomotion(enemy);
 
     if (isDead(enemy)) {

@@ -1,11 +1,10 @@
 import {
   MUZZLE_LEN,
   S,
-  enemyTime,
   mixTone,
   paperPalette,
+  poseEnemyLocal,
   poseFromNodes,
-  poseLocal,
   posePlayerLocal,
 } from '../figure.js';
 
@@ -317,13 +316,7 @@ export function drawSurvivor(ctx, player, sx) {
 
 export function drawCreature(ctx, enemy, w2s) {
   const origin = w2s(enemy.worldX, enemy.y);
-  const local = poseLocal({
-    kind: enemy.kind || 'zombie',
-    seed: enemy.id || 1,
-    t: enemyTime(enemy.worldX),
-    crawl: !!enemy.crawling,
-    lean: enemy.flinchLean || 0,
-  });
+  const local = poseEnemyLocal(enemy);
   const pal = paperPalette(enemy.kind || 'zombie');
   ctx.save();
   ctx.translate(origin.x, origin.y);

@@ -1,5 +1,4 @@
-import { palette } from './data/biomes.js';
-import { NODE_MASS } from './systems/impulse.js';
+import { KINDS, palette } from './data/kinds.js';
 
 export { mixTone } from './util/color.js';
 
@@ -63,7 +62,7 @@ function gaitFromSeed(kind, seed) {
       rStride: 1,
     };
   }
-  const hunch0 = kind === 'ghoul' ? 0.16 : kind === 'vampire' ? 0.02 : 0.08;
+  const hunch0 = KINDS[kind]?.hunch ?? 0.08;
   return {
     cadence: between(seed, 1, 1.85, 2.25),
     stride: between(seed, 2, STRIDE * 0.88, STRIDE * 1.12),
@@ -347,18 +346,18 @@ export function enemyTime(worldX) {
   return -worldX * 0.016;
 }
 
-export function poseEnemy(enemy) {
-  return offsetPose(
-    poseLocal({
-      kind: enemy.kind || 'zombie',
-      seed: enemy.id || 1,
-      t: enemyTime(enemy.worldX),
-      crawl: !!enemy.crawling,
-      lean: enemy.flinchLean || 0,
-    }),
-    enemy.worldX,
-    enemy.y,
-  );
+export function poseEnemyLocal(enemy, { flinch = true } = {}) {
+  return poseLocal({
+    kind: enemy.kind || 'zombie',
+    seed: enemy.id || 1,
+    t: enemyTime(enemy.worldX),
+    crawl: !!enemy.crawling,
+    lean: flinch ? enemy.flinchLean || 0 : 0,
+  });
+}
+
+export function poseEnemy(enemy, opts) {
+  return offsetPose(poseEnemyLocal(enemy, opts), enemy.worldX, enemy.y);
 }
 
 export function posePlayerLocal(player) {
@@ -416,6 +415,34 @@ export function playerCoreFromPose(player) {
   const bot = p.pelvis.y + 8 * S;
   return { x: left, y: top, w: right - left, h: bot - top };
 }
+
+export const NODE_MASS = {
+  head: 0.7,
+  rib: 1.2,
+  junction: 1.15,
+  gut: 1.3,
+  pelvis: 1.45,
+  shL: 0.85,
+  shR: 0.85,
+  lKnee: 0.9,
+  rKnee: 0.9,
+  lAnkle: 0.55,
+  rAnkle: 0.55,
+  lElbow: 0.55,
+  rElbow: 0.55,
+  lHand: 0.4,
+  rHand: 0.4,
+  lHeel: 0.45,
+  rHeel: 0.45,
+  lToe: 0.35,
+  rToe: 0.35,
+  jL: 0.7,
+  jR: 0.7,
+  pL: 0.85,
+  pR: 0.85,
+  hipBL: 1.0,
+  hipBR: 1.0,
+};
 
 export function ragdollNodesFromPose(p) {
   return [

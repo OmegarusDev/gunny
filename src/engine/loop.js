@@ -15,7 +15,7 @@ export function createLoop(fixedDt, maxFrameDt) {
           break;
         }
       }
-      return { steps, dt: fixedDt, alpha: acc / fixedDt, frame };
+      return { steps, dt: fixedDt, frame };
     },
     reset() {
       last = performance.now();

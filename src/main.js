@@ -26,7 +26,7 @@ const profile = loadProfile();
 const overlays = mountOverlays(overlayRoot);
 let mode = 'hub';
 let run = null;
-let lastType = '200m';
+let lastType = 'campaign';
 let lastLevel = 0;
 let lastSeed = null;
 
@@ -65,7 +65,7 @@ updateBtn?.addEventListener('click', () => {
 
 const handlers = {
   deploy(level) {
-    startRun('200m', level);
+    startRun('campaign', level);
   },
   endless() {
     startRun('endless', 0);

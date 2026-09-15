@@ -1,7 +1,9 @@
 let ctx = null;
 
 function ac() {
-  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const Ctor = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
+  if (!Ctor) return null;
+  if (!ctx) ctx = new Ctor();
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
 }
@@ -20,6 +22,7 @@ function noiseBuffer(audio, duration) {
 
 export function playMuzzle() {
   const audio = ac();
+  if (!audio) return;
   const t = audio.currentTime;
   const src = audio.createBufferSource();
   src.buffer = noiseBuffer(audio, 0.08);
@@ -50,6 +53,7 @@ export function playMuzzle() {
 
 export function playReloadTone(norm) {
   const audio = ac();
+  if (!audio) return;
   const t = audio.currentTime;
   const osc = audio.createOscillator();
   const g = audio.createGain();
@@ -65,6 +69,7 @@ export function playReloadTone(norm) {
 
 export function playPerfect() {
   const audio = ac();
+  if (!audio) return;
   const t = audio.currentTime;
   const osc = audio.createOscillator();
   const g = audio.createGain();
@@ -80,6 +85,7 @@ export function playPerfect() {
 
 export function playFlesh(headshot) {
   const audio = ac();
+  if (!audio) return;
   const t = audio.currentTime;
   const src = audio.createBufferSource();
   src.buffer = noiseBuffer(audio, 0.07);
@@ -113,6 +119,7 @@ export function playFlesh(headshot) {
 
 export function playJam() {
   const audio = ac();
+  if (!audio) return;
   const t = audio.currentTime;
   const osc = audio.createOscillator();
   const g = audio.createGain();

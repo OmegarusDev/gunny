@@ -28,12 +28,25 @@ export const HIT_IMPULSE = {
   overpen: 0.35,
   ragdollKick: 10,
   flinchLean: 0.5,
+  critLean: 0.12,
   stunPerEnergy: 0.16,
   stunMax: 0.28,
   stunHitch: 0.3,
-  flinchDamp: 12,
+  flinchDamp: 20,
+  flinchCap: 0.35,
 };
 export const TRACK_METERS = 250;
+
+/** Within-road ramp (SPAN) is larger than per-road start shift (STEP). */
+export const THREAT = {
+  step: 0.35,
+  span: 1,
+  chill: { spawn: 3.4, max: 1, speed: 108, packChance: 0.02, hpMul: 1.15 },
+  hectic: { spawn: 1.05, max: 7, speed: 168, packChance: 0.45, hpMul: 0.82 },
+  spawnFloor: 0.45,
+  maxAliveCap: 14,
+  packCap: 0.55,
+};
 
 export const LOCATIONAL = {
   head: 2.0,
@@ -56,36 +69,35 @@ export const ECONOMY = {
   extractXp: 45,
 };
 
-/** @param {number} stage Campaign stage (floor(level/5)); Endless always 0. */
-export function threatForDistance(meters, stage, endless) {
-  const tier = 1 + stage * 0.15;
-  const speedTier = 1 + stage * 0.08;
-  let band;
-  const d = endless ? meters : Math.min(meters, TRACK_METERS);
-  // Early: few, spaced. Late: denser, occasional pairs. packChance = chance to spawn 2.
-  if (d < 55) {
-    band = { spawn: 2.6, max: 2, speed: 118, hpMul: 1.15, packChance: 0.08 };
-  } else if (d < 120) {
-    band = { spawn: 2.15, max: 3, speed: 132, hpMul: 1.05, packChance: 0.18 };
-  } else if (d < 185) {
-    band = { spawn: 1.55, max: 4, speed: 148, hpMul: 0.95, packChance: 0.32 };
-  } else {
-    band = { spawn: 1.05, max: 7, speed: 168, hpMul: 0.82, packChance: 0.45 };
-  }
+/** @param {number} levelIndex Campaign road (0 = first). Endless always treated as 0 for the 250m curve. */
+export function threatForDistance(meters, levelIndex, endless) {
+  const L = endless ? 0 : Math.max(0, levelIndex || 0);
+  const trackT = Math.max(0, Math.min(1, meters / TRACK_METERS));
+  const pressure = L * THREAT.step + trackT * THREAT.span;
+  const u = THREAT.span > 0 ? pressure / THREAT.span : 0;
+  const { chill, hectic } = THREAT;
+  const lerp = (a, b) => a + (b - a) * u;
+
+  let spawn = Math.max(THREAT.spawnFloor, lerp(chill.spawn, hectic.spawn));
+  let maxAlive = Math.max(1, Math.round(lerp(chill.max, hectic.max)));
+  let speed = lerp(chill.speed, hectic.speed);
+  let packChance = lerp(chill.packChance, hectic.packChance);
+  const hpMul = lerp(chill.hpMul, hectic.hpMul);
+
   if (endless && meters > TRACK_METERS) {
     const extra = (meters - TRACK_METERS) / 120;
-    band.spawn = Math.max(0.4, band.spawn / (1 + extra * 0.3));
-    band.max = Math.min(14, Math.floor(band.max + extra * 1.5));
-    band.speed *= 1 + extra * 0.06;
-    band.packChance = Math.min(0.55, band.packChance + extra * 0.05);
+    spawn = Math.max(THREAT.spawnFloor, spawn / (1 + extra * 0.3));
+    maxAlive = Math.min(THREAT.maxAliveCap, Math.floor(maxAlive + extra * 1.5));
+    speed *= 1 + extra * 0.06;
+    packChance += extra * 0.05;
   }
-  const maxAlive = Math.ceil(band.max * tier);
+
   return {
-    spawnInterval: band.spawn / tier,
-    maxAlive: endless ? Math.min(14, maxAlive) : maxAlive,
-    speed: band.speed * speedTier,
-    hpMul: band.hpMul,
-    packChance: band.packChance,
+    spawnInterval: spawn,
+    maxAlive: Math.min(THREAT.maxAliveCap, maxAlive),
+    speed,
+    hpMul,
+    packChance: Math.max(0, Math.min(THREAT.packCap, packChance)),
   };
 }
 

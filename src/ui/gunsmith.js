@@ -1,6 +1,6 @@
 import { RECEIVERS, SLOTS, SLOT_MIN_TIER } from '../data/receivers.js';
 import { partsForSlot } from '../data/attachments.js';
-import { resolveStats, slotUnlockedFor } from '../entities/loadout.js';
+import { resolveStats, slotUnlockedFor, gunsmithStatRows } from '../entities/loadout.js';
 import { buyBlockedReason, buyPart, equipPart, owns } from '../state/profile.js';
 import { fmtMoney, statsRail } from './overlays.js';
 
@@ -23,16 +23,7 @@ export function renderGunsmith(el, profile, handlers) {
   const prevPart = el.dataset.prevPart;
   const stats = resolveStats(profile);
   handlers.chrome?.(
-    statsRail([
-      ['DMG', stats.damage.toFixed(1)],
-      ['ROF', stats.rof.toFixed(1)],
-      ['MAG', stats.magSize],
-      ['VEL', stats.bulletSpeed.toFixed(0)],
-      ['PEN', stats.pen.toFixed(2)],
-      ['Reload', `${stats.reload.toFixed(2)}s`],
-      ['Reach', Math.round(stats.aimReach)],
-      ['Spread', `${stats.baseSpread.toFixed(2)}°`],
-    ]),
+    statsRail(gunsmithStatRows(stats)),
     { back: true },
   );
 

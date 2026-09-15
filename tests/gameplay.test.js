@@ -4,15 +4,19 @@ import {
   AIM_REACH_MIN,
   ECONOMY,
   HIT_IMPULSE,
+  PX_PER_M,
+  THREAT,
   TRACK_METERS,
   enemyHp,
   threatForDistance,
 } from '../src/config.js';
 import { PARTS, partsForSlot } from '../src/data/attachments.js';
+import { BIOMES } from '../src/data/biomes.js';
+import { KINDS } from '../src/data/kinds.js';
 import { RECEIVERS } from '../src/data/receivers.js';
 import { SKILLS, emptyRanks, skillCost } from '../src/data/skills.js';
-import { resolveStats, shotSpreadDeg } from '../src/entities/loadout.js';
-import { applyFlinch, createEnemy, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
+import { gunsmithStatRows, resolveStats, shotSpreadDeg, STATS } from '../src/entities/loadout.js';
+import { applyFlinch, createEnemy, limbCircles, stepFlinch } from '../src/entities/enemy.js';
 import { defaultProfile } from '../src/state/profile.js';
 import { clampAimPoint, resolveAimPoint } from '../src/view/aim.js';
 import { perfectBand, reloadNorm } from '../src/view/reload.js';
@@ -21,11 +25,16 @@ import { mixHex, mixTone } from '../src/util/color.js';
 import { runMeters } from '../src/world/metrics.js';
 import { createTerrain } from '../src/world/terrain.js';
 import { createPlayer } from '../src/entities/player.js';
-import { poseEnemy } from '../src/figure.js';
+import { poseEnemyLocal } from '../src/figure.js';
 import { shotEnergy } from '../src/systems/impulse.js';
 import { spawnRagdoll } from '../src/systems/ragdoll.js';
+import { createRun, simulate } from '../src/systems/run.js';
 
 describe('threat pacing', () => {
+  it('keeps the next-road start shift smaller than the within-road span', () => {
+    expect(THREAT.step).toBeLessThan(THREAT.span);
+  });
+
   it('steps spawn pressure across the 250m track', () => {
     const early = threatForDistance(20, 0, false);
     const mid = threatForDistance(100, 0, false);
@@ -36,11 +45,24 @@ describe('threat pacing', () => {
     expect(early.hpMul).toBeGreaterThan(late.hpMul);
   });
 
-  it('scales campaign stage harder without changing endless mid-track stage', () => {
+  it('opens the next road harder than this opening but not harder than this finale', () => {
+    const l0s = threatForDistance(0, 0, false);
+    const l0e = threatForDistance(TRACK_METERS, 0, false);
+    const l1s = threatForDistance(0, 1, false);
+    expect(l0s.maxAlive).toBeLessThan(l0e.maxAlive);
+    expect(l0s.spawnInterval).toBeGreaterThan(l0e.spawnInterval);
+    expect(l1s.spawnInterval).toBeLessThan(l0s.spawnInterval);
+    expect(l1s.maxAlive).toBeGreaterThanOrEqual(l0s.maxAlive);
+    expect(l1s.spawnInterval).toBeGreaterThan(l0e.spawnInterval);
+    expect(l1s.maxAlive).toBeLessThanOrEqual(l0e.maxAlive);
+  });
+
+  it('scales later campaign roads at the same metre while endless uses the L0 curve', () => {
     const s0 = threatForDistance(80, 0, false);
     const s2 = threatForDistance(80, 2, false);
     expect(s2.maxAlive).toBeGreaterThanOrEqual(s0.maxAlive);
     expect(s2.speed).toBeGreaterThan(s0.speed);
+    expect(threatForDistance(80, 0, true).spawnInterval).toBe(s0.spawnInterval);
   });
 
   it('ramps endless only past TRACK_METERS', () => {
@@ -191,9 +213,9 @@ describe('util', () => {
 describe('hit impulse', () => {
   const dt = 1 / 60;
   const terrain = { height: () => 0 };
+  const hit = { nx: 1, energy: 1, zone: 'upper' };
 
-  function chaseAfterFlinch(enemy, hit) {
-    applyFlinch(enemy, hit);
+  function chase(enemy) {
     stepFlinch(enemy, dt);
     const hitch = enemy.stun > 0 ? HIT_IMPULSE.stunHitch : 1;
     enemy.worldX -= enemy.speed * hitch * dt;
@@ -228,28 +250,91 @@ describe('hit impulse', () => {
     ).toBe(true);
   });
 
-  it('leans the living pose without reversing crawlers or leg-slowed chasers', () => {
-    const hit = { nx: 1, energy: 1, zone: 'upper' };
-    const crawl = createEnemy(100, terrain, 1, 118);
-    crawl.hp.lLeg = 0;
-    updateLocomotion(crawl);
-    expect(crawl.crawling).toBe(true);
-    const crawlX = crawl.worldX;
-    chaseAfterFlinch(crawl, hit);
-    expect(crawl.worldX).toBeLessThan(crawlX);
-    expect(crawl.flinchLean).not.toBe(0);
+  it('flinches visually without slowing a normal hit, and staggers only on crit', () => {
+    const normal = createEnemy(100, terrain, 1, 118);
+    applyFlinch(normal, hit);
+    expect(normal.stun).toBe(0);
+    expect(normal.flinchLean).not.toBe(0);
+    const unhit = 100 - 118 * dt;
+    chase(normal);
+    expect(normal.worldX).toBeCloseTo(unhit);
 
-    const slowed = createEnemy(100, terrain, 1, 118);
-    slowed.hp.lLeg = slowed.max.lLeg * 0.2;
-    slowed.hp.rLeg = slowed.max.rLeg * 0.2;
-    updateLocomotion(slowed);
-    expect(slowed.speed).toBeCloseTo(118 * 0.6);
-    const slowedX = slowed.worldX;
-    chaseAfterFlinch(slowed, hit);
-    expect(slowed.worldX).toBeLessThan(slowedX);
+    const crit = createEnemy(100, terrain, 1, 118);
+    applyFlinch(crit, hit, { crit: true });
+    expect(crit.stun).toBeGreaterThan(0);
+    chase(crit);
+    expect(crit.worldX).toBeGreaterThan(unhit);
 
-    const upright = poseEnemy({ worldX: 0, y: 0, kind: 'zombie', id: 1, crawling: false, flinchLean: 0 });
-    const leaned = poseEnemy({ worldX: 0, y: 0, kind: 'zombie', id: 1, crawling: false, flinchLean: 0.5 });
-    expect(leaned.head.x).not.toBe(upright.head.x);
+    const pose = { worldX: 0, y: 0, kind: 'zombie', id: 1, crawling: false, flinchLean: 0.35 };
+    const idle = poseEnemyLocal({ ...pose, flinchLean: 0 }, { flinch: true });
+    const combat = poseEnemyLocal(pose, { flinch: false });
+    const drawn = poseEnemyLocal(pose, { flinch: true });
+    expect(combat.head.x).toBe(idle.head.x);
+    expect(drawn.head.x).not.toBe(combat.head.x);
+    const circles = limbCircles(pose);
+    expect(circles.head.x).toBe(combat.head.x);
+  });
+});
+
+describe('kinds & stats schema', () => {
+  it('tables foe palettes and biome rosters', () => {
+    expect(KINDS.ghoul.hunch).toBeGreaterThan(KINDS.vampire.hunch);
+    expect(KINDS.zombie.palette.skin).toMatch(/^#/);
+    for (const biome of BIOMES) {
+      expect(biome.roster.length).toBeGreaterThan(0);
+      expect(biome.kind).toBe(biome.roster[0]);
+      expect(KINDS[biome.roster[0]]).toBeTruthy();
+    }
+  });
+
+  it('exposes gunsmith rails from STATS clamps', () => {
+    const rows = gunsmithStatRows(resolveStats(defaultProfile()));
+    expect(rows.map((r) => r[0])).toEqual(STATS.filter((s) => s.gunsmith).map((s) => s.gunsmithLabel));
+    expect(rows.length).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe('simulate loop', () => {
+  const viewport = { w: 1280, h: 720 };
+  const dt = 1 / 60;
+  const idle = { pointerX: 800, pointerY: 360, firing: false, reloadPressed: false, pointerTap: false };
+
+  function liveRun(type = 'campaign', levelIndex = 0) {
+    const run = createRun({ profile: defaultProfile(), viewport, type, levelIndex, seed: 1 });
+    run.paused = false;
+    return run;
+  }
+
+  it('retreats the player and extracts campaign at TRACK_METERS', () => {
+    const run = liveRun();
+    const x0 = run.player.worldX;
+    simulate(run, dt, viewport, idle);
+    expect(run.player.worldX).toBeLessThan(x0);
+    expect(run.ended).toBeNull();
+
+    run.player.worldX = -TRACK_METERS * PX_PER_M;
+    simulate(run, dt, viewport, idle);
+    expect(run.ended).toBe('extract');
+  });
+
+  it('does not extract endless past TRACK_METERS', () => {
+    const run = liveRun('endless');
+    run.player.worldX = -TRACK_METERS * PX_PER_M - 400;
+    simulate(run, dt, viewport, idle);
+    expect(run.ended).not.toBe('extract');
+  });
+
+  it('starts reload after the last round and dies on torso contact', () => {
+    const run = liveRun();
+    run.weapon.ammo = 1;
+    run.weapon.cooldown = 0;
+    simulate(run, dt, viewport, { ...idle, firing: true });
+    expect(run.weapon.reloading).toBe(true);
+
+    const run2 = liveRun();
+    const foe = createEnemy(run2.player.worldX, run2.terrain, 1, 80, 'zombie');
+    run2.enemies.push(foe);
+    simulate(run2, dt, viewport, idle);
+    expect(run2.ended).toBe('death');
   });
 });

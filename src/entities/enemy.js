@@ -24,12 +24,16 @@ export function createEnemy(worldX, terrain, hpMul, speed, kind = 'zombie') {
   };
 }
 
-export function applyFlinch(enemy, hit) {
+export function applyFlinch(enemy, hit, { crit = false } = {}) {
   const e = hit.energy || 0;
   let lean = (enemy.flinchLean || 0) + hit.nx * e * HIT_IMPULSE.flinchLean;
   if (hit.zone === 'head') lean += hit.nx * e * 0.22;
-  enemy.flinchLean = Math.max(-0.7, Math.min(0.7, lean));
-  enemy.stun = Math.min(HIT_IMPULSE.stunMax, (enemy.stun || 0) + e * HIT_IMPULSE.stunPerEnergy);
+  if (crit) lean += hit.nx * e * HIT_IMPULSE.critLean;
+  const cap = HIT_IMPULSE.flinchCap;
+  enemy.flinchLean = Math.max(-cap, Math.min(cap, lean));
+  if (crit) {
+    enemy.stun = Math.min(HIT_IMPULSE.stunMax, (enemy.stun || 0) + e * HIT_IMPULSE.stunPerEnergy);
+  }
 }
 
 export function stepFlinch(enemy, dt) {
@@ -39,7 +43,7 @@ export function stepFlinch(enemy, dt) {
 }
 
 export function limbCircles(enemy) {
-  return limbCirclesFromPose(poseEnemy(enemy));
+  return limbCirclesFromPose(poseEnemy(enemy, { flinch: false }));
 }
 
 export function lethalCircles(enemy) {

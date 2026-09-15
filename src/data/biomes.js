@@ -1,6 +1,7 @@
 export const BIOMES = [
   {
     id: 'forest',
+    roster: ['zombie'],
     kind: 'zombie',
     place: 'Forest Road',
     foe: 'Zombies',
@@ -23,6 +24,7 @@ export const BIOMES = [
   },
   {
     id: 'fen',
+    roster: ['drowned'],
     kind: 'drowned',
     place: 'Fen Causeway',
     foe: 'Drowned',
@@ -45,6 +47,7 @@ export const BIOMES = [
   },
   {
     id: 'transylvania',
+    roster: ['vampire'],
     kind: 'vampire',
     place: 'Transylvanian Lane',
     foe: 'Vampires',
@@ -67,6 +70,7 @@ export const BIOMES = [
   },
   {
     id: 'desert',
+    roster: ['mummy'],
     kind: 'mummy',
     place: 'Desert Wadi',
     foe: 'Mummies',
@@ -89,6 +93,7 @@ export const BIOMES = [
   },
   {
     id: 'quarry',
+    roster: ['ghoul'],
     kind: 'ghoul',
     place: 'Bone Quarry',
     foe: 'Ghouls',
@@ -120,69 +125,4 @@ export function biomeFromSeed(seed) {
   return BIOMES[(seed >>> 0) % BIOMES.length];
 }
 
-export function palette(kind) {
-  if (kind === 'mummy') {
-    return {
-      skin: '#efe4c4',
-      wrap: '#d4c08a',
-      wrapHi: '#efe4c4',
-      gap: '#5a4030',
-      cloth: '#c4b07a',
-      accent: '#5a4030',
-      gold: '#e0b84a',
-      eye: '#1a100c',
-      ink: '#2a1c10',
-    };
-  }
-  if (kind === 'vampire') {
-    return {
-      skin: '#f0e4e0',
-      hair: '#140c0c',
-      cloth: '#1a1214',
-      cape: '#5a1424',
-      lining: '#3a0810',
-      shirt: '#efe6dc',
-      accent: '#5a1424',
-      lip: '#8a2830',
-      eye: '#c44536',
-      ink: '#080406',
-    };
-  }
-  if (kind === 'drowned') {
-    return {
-      skin: '#6a7a68',
-      cloth: '#24342c',
-      rot: '#3a4a38',
-      bone: '#a8b090',
-      gum: '#4a3030',
-      accent: '#3a4a40',
-      pant: '#1e2820',
-      eye: '#c8d4a0',
-      ink: '#0c100e',
-    };
-  }
-  if (kind === 'ghoul') {
-    return {
-      skin: '#e8dcc8',
-      cloth: '#6a4030',
-      rot: '#c4b8a4',
-      bone: '#f0e8d8',
-      gum: '#6a3030',
-      accent: '#a05030',
-      pant: '#4a3028',
-      eye: '#2a1810',
-      ink: '#1c1410',
-    };
-  }
-  return {
-    skin: '#8a9a62',
-    cloth: '#4a3a32',
-    rot: '#5a6a40',
-    bone: '#cfc3a4',
-    gum: '#7a3030',
-    accent: '#3a342c',
-    pant: '#3a342c',
-    eye: '#c8d45a',
-    ink: '#16140e',
-  };
-}
+export { palette } from './kinds.js';

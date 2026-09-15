@@ -16,7 +16,6 @@ export function mountSoftCursor() {
 
   function setMode(next) {
     mode = next;
-    el.classList.toggle('is-crosshair', mode === 'crosshair');
     el.classList.toggle('is-menu', mode === 'menu');
     el.classList.toggle('is-hidden', mode === 'hidden' || !visible);
     document.documentElement.dataset.cursorMode = mode;
