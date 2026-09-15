@@ -1,6 +1,5 @@
 import { TRACK_METERS } from '../config.js';
 import { beatenRoadIndexes, biomeFor } from '../data/biomes.js';
-import { RECEIVERS } from '../data/receivers.js';
 import { PARTS } from '../data/attachments.js';
 import { equippedLabel, resolveStats } from '../entities/loadout.js';
 import { ledgerBlock, statsGrid } from './overlays.js';
@@ -8,7 +7,6 @@ import { facilityButton } from './icons.js';
 
 export function renderHub(el, profile, handlers) {
   const stats = resolveStats(profile);
-  const rec = RECEIVERS[profile.loadout.receiver];
   const next = biomeFor(profile.unlockedLevel);
   const roads = beatenRoadIndexes(profile.unlockedLevel);
   const endlessPick = roads.includes(handlers.endlessBiome)
@@ -29,13 +27,13 @@ export function renderHub(el, profile, handlers) {
           act: 'gunsmith',
           icon: 'gunsmith',
           title: 'Gunsmith',
-          sub: rec?.short ?? rec?.name ?? 'Receiver',
+          sub: 'Upgrade your gun',
         })}
         ${facilityButton({
           act: 'training',
           icon: 'training',
           title: 'Training',
-          sub: 'Spend XP',
+          sub: 'Upgrade your skills',
         })}
       </div>
       <div class="sheet-foot camp-foot">
@@ -108,13 +106,13 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
           act: 'gunsmith',
           icon: 'gunsmith',
           title: 'Gunsmith',
-          sub: 'Spend cash',
+          sub: 'Upgrade your gun',
         })}
         ${facilityButton({
           act: 'training',
           icon: 'training',
           title: 'Training',
-          sub: 'Spend XP',
+          sub: 'Upgrade your skills',
         })}
       </div>
       <div class="sheet-foot camp-foot">

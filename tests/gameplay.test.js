@@ -318,10 +318,18 @@ describe('world helpers', () => {
   it('uses rolling hills instead of tiny bumps', () => {
     expect(TERRAIN_AMP).toBeGreaterThanOrEqual(0.14);
     const terrain = createTerrain(1, 720);
-    const a = terrain.height(0);
-    const b = terrain.height(400);
-    const c = terrain.height(900);
-    expect(Math.abs(a - b) + Math.abs(b - c)).toBeGreaterThan(70);
+    let min = Infinity;
+    let max = -Infinity;
+    let steep = 0;
+    for (let x = 0; x < 12000; x += 40) {
+      const y = terrain.height(x);
+      min = Math.min(min, y);
+      max = Math.max(max, y);
+      steep = Math.max(steep, Math.abs(terrain.slope(x)));
+    }
+    expect(max - min).toBeGreaterThan(50);
+    expect(max - min).toBeLessThan(terrain.amp * 2.15);
+    expect(steep).toBeLessThan(0.32);
   });
 
   it('scales enemy pools by hpMul', () => {
