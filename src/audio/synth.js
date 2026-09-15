@@ -1,4 +1,6 @@
 let ctx = null;
+let master = null;
+let masterVol = 0.8;
 
 function ac() {
   const Ctor = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
@@ -6,6 +8,20 @@ function ac() {
   if (!ctx) ctx = new Ctor();
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
+}
+
+function sink(audio) {
+  if (!master || master.context !== audio) {
+    master = audio.createGain();
+    master.gain.value = masterVol;
+    master.connect(audio.destination);
+  }
+  return master;
+}
+
+export function setMasterVolume(value) {
+  masterVol = Math.max(0, Math.min(1, Number(value) || 0));
+  if (master) master.gain.value = masterVol;
 }
 
 export function resumeAudio() {
@@ -40,7 +56,7 @@ export function playMuzzle() {
   ng.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
   src.connect(hp);
   hp.connect(ng);
-  ng.connect(audio.destination);
+  ng.connect(sink(audio));
   src.start(t);
   src.stop(t + 0.08);
 
@@ -52,7 +68,7 @@ export function playMuzzle() {
   og.gain.setValueAtTime(0.16, t);
   og.gain.exponentialRampToValueAtTime(0.01, t + 0.09);
   osc.connect(og);
-  og.connect(audio.destination);
+  og.connect(sink(audio));
   osc.start(t);
   osc.stop(t + 0.09);
 }
@@ -68,7 +84,7 @@ export function playReloadTone(norm) {
   g.gain.setValueAtTime(0.03, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
   osc.connect(g);
-  g.connect(audio.destination);
+  g.connect(sink(audio));
   osc.start(t);
   osc.stop(t + 0.05);
 }
@@ -84,7 +100,7 @@ export function playPerfect() {
   g.gain.setValueAtTime(0.07, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
   osc.connect(g);
-  g.connect(audio.destination);
+  g.connect(sink(audio));
   osc.start(t);
   osc.stop(t + 0.08);
 }
@@ -103,7 +119,7 @@ export function playFlesh(headshot) {
   g.gain.exponentialRampToValueAtTime(0.01, t + 0.07);
   src.connect(lp);
   lp.connect(g);
-  g.connect(audio.destination);
+  g.connect(sink(audio));
   src.start(t);
   src.stop(t + 0.07);
 
@@ -116,7 +132,7 @@ export function playFlesh(headshot) {
       og.gain.setValueAtTime(0.05, t);
       og.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
       osc.connect(og);
-      og.connect(audio.destination);
+      og.connect(sink(audio));
       osc.start(t);
       osc.stop(t + 0.09);
     }
@@ -135,7 +151,7 @@ export function playJam() {
   g.gain.setValueAtTime(0.08, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
   osc.connect(g);
-  g.connect(audio.destination);
+  g.connect(sink(audio));
   osc.start(t);
   osc.stop(t + 0.16);
 }

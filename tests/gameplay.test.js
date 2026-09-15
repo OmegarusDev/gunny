@@ -11,14 +11,14 @@ import {
   enemyHp,
   threatForDistance,
 } from '../src/config.js';
-import { PARTS, partsForSlot } from '../src/data/attachments.js';
+import { PARTS, catalogWindow, partsForSlot } from '../src/data/attachments.js';
 import { BIOMES } from '../src/data/biomes.js';
 import { KINDS } from '../src/data/kinds.js';
 import { RECEIVERS } from '../src/data/receivers.js';
 import { SKILLS, emptyRanks, skillCost } from '../src/data/skills.js';
 import { gunsmithStatRows, resolveStats, shotSpreadDeg, STATS } from '../src/entities/loadout.js';
 import { applyFlinch, createEnemy, limbCircles, stepFlinch } from '../src/entities/enemy.js';
-import { defaultProfile } from '../src/state/profile.js';
+import { defaultProfile, resetProfile } from '../src/state/profile.js';
 import { clampAimPoint, resolveAimPoint } from '../src/view/aim.js';
 import { perfectBand, reloadNorm } from '../src/view/reload.js';
 import { uhash } from '../src/util/hash.js';
@@ -93,6 +93,15 @@ describe('economy & ladders', () => {
     expect(RECEIVERS.t2_tactical.requires).toBe('t1_stock');
     expect(RECEIVERS.t3_ordnance.tier).toBe(3);
   });
+
+  it('wipes a live profile back to camp defaults', () => {
+    const profile = defaultProfile();
+    profile.cash = 500;
+    profile.xp = 80;
+    profile.unlockedLevel = 2;
+    resetProfile(profile);
+    expect(profile).toEqual(defaultProfile());
+  });
 });
 
 describe('gunsmith catalog', () => {
@@ -104,6 +113,25 @@ describe('gunsmith catalog', () => {
     expect(mags.find((p) => p.id === 'mag_80').requires).toBe('mag_75');
     expect(RECEIVERS.t1_stock.short).toBe('Stock');
     expect(RECEIVERS.t2_tactical.short).toBe('Tactical');
+  });
+
+  it('windows long catalogs to four visible rungs', () => {
+    const mags = partsForSlot('magazine');
+    const first = catalogWindow(mags, { focusId: 'mag_1' });
+    expect(first.items).toHaveLength(4);
+    expect(first.items.map((p) => p.id)).toEqual(['mag_1', 'mag_2', 'mag_3', 'mag_4']);
+    const later = catalogWindow(mags, { focusId: 'mag_40' });
+    expect(later.items.map((p) => p.id)).toContain('mag_40');
+    expect(later.items).toHaveLength(4);
+    const paged = catalogWindow(mags, { focusId: 'mag_1', start: 8, keepStart: true });
+    expect(paged.start).toBe(8);
+    expect(paged.items[0].id).not.toBe('mag_1');
+  });
+
+  it('keeps at least four rungs on every attachment slot', () => {
+    for (const slot of ['barrel', 'magazine', 'springs', 'optic', 'stock', 'muzzle', 'trigger', 'gasBlock']) {
+      expect(partsForSlot(slot).length).toBeGreaterThanOrEqual(4);
+    }
   });
 });
 

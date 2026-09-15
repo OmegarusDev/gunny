@@ -177,8 +177,8 @@ canvas {
   align-items: center;
   justify-content: center;
   z-index: 20;
-  padding: max(10px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
-    max(10px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(52px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
   touch-action: auto;
 }
 
@@ -209,9 +209,9 @@ canvas {
 }
 
 #overlay-root .panel-hero {
+  aspect-ratio: 4 / 3;
   height: 100%;
   width: auto;
-  aspect-ratio: 1 / 1;
   max-width: 100%;
   max-height: 100%;
 }
@@ -225,13 +225,28 @@ canvas {
 #overlay-root .panel-stack {
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 2vmin, 18px);
+  gap: clamp(4px, 1.1vmin, 8px);
   flex: 1 1 auto;
   min-height: 0;
 }
 
 #overlay-root .camp-stack {
-  justify-content: space-between;
+  justify-content: flex-start;
+}
+
+#overlay-root .camp-stack .facilities,
+#overlay-root .camp-stack .camp-foot {
+  flex: 1 1 auto;
+  min-height: auto;
+  align-items: stretch;
+}
+
+#overlay-root .camp-stack .facility {
+  height: 100%;
+}
+
+#overlay-root .camp-stack .stats {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 #overlay-root .page-head {
@@ -273,13 +288,13 @@ canvas {
   color: var(--gunny-bone);
   letter-spacing: 0.04em;
   font-weight: 700;
-  margin-bottom: 6px;
-  line-height: 1.05;
+  margin-bottom: 0;
+  line-height: 0.92;
 }
 
 #overlay-root h1 {
   color: var(--gunny-blood);
-  font-size: clamp(42px, 16vmin, 96px);
+  font-size: clamp(34px, 11vmin, 72px);
   letter-spacing: 0.08em;
   text-shadow: 0 2px 0 #1a0c08;
 }
@@ -287,28 +302,34 @@ canvas {
 #overlay-root h2 {
   color: var(--gunny-gold);
   font-size: clamp(22px, 6vmin, 36px);
+  line-height: 1.05;
 }
 
 #overlay-root .camp-brand {
   text-align: center;
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 0;
+  flex: 0 0 auto;
 }
 
 #overlay-root .workshop-brand {
-  flex: 0 0 auto;
   text-align: left;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(212, 176, 122, 0.22);
+}
+
+#overlay-root .workshop-brand .kicker {
+  margin-bottom: 0;
+}
+
+#overlay-root .workshop-brand h2 {
+  font-size: clamp(20px, 5.2vmin, 30px);
 }
 
 #overlay-root .lede {
   color: var(--gunny-muted);
-  font-size: clamp(12px, 2.4vmin, 16px);
-  line-height: 1.45;
+  font-size: clamp(11px, 2vmin, 14px);
+  line-height: 1.25;
   max-width: 28em;
-  margin: 0.35em auto 0;
+  margin: 0.08em auto 0;
 }
 
 #overlay-root .muted {
@@ -421,8 +442,8 @@ canvas {
   gap: 2px;
   width: 100%;
   text-align: left;
-  padding: clamp(8px, 2vmin, 16px) clamp(10px, 2.2vmin, 16px);
-  min-height: clamp(52px, 14vmin, 88px);
+  padding: clamp(10px, 2.2vmin, 18px) clamp(12px, 2.4vmin, 18px);
+  min-height: clamp(64px, 18vmin, 112px);
   background: #2e1c14;
 }
 
@@ -433,7 +454,7 @@ canvas {
 }
 
 #overlay-root button.facility.start {
-  min-height: clamp(52px, 14vmin, 88px);
+  min-height: clamp(64px, 18vmin, 112px);
   background: var(--gunny-blood);
   border-color: #e8a090;
   color: #fff6ea;
@@ -444,7 +465,7 @@ canvas {
 }
 
 #overlay-root button.facility.side {
-  min-height: clamp(52px, 14vmin, 88px);
+  min-height: clamp(64px, 18vmin, 112px);
   min-width: 0;
   padding: 8px 10px;
 }
@@ -513,36 +534,39 @@ canvas {
 }
 
 #overlay-root .chips {
-  display: flex;
-  gap: 5px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  display: grid;
+  grid-template-columns: repeat(var(--chip-cols, 4), minmax(0, 1fr));
+  gap: 6px;
+  overflow: hidden;
   padding: 0;
   margin: 0;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
   min-width: 0;
-  scrollbar-width: thin;
+  align-items: stretch;
+}
+
+#overlay-root .chips.chips-window {
+  grid-template-columns: 1.7rem repeat(4, minmax(0, 1fr)) 1.7rem;
 }
 
 #overlay-root .chip {
-  flex: 0 0 auto;
-  scroll-snap-align: start;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-width: 4.4rem;
-  min-height: 34px;
-  padding: 4px 8px;
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding: 6px 8px;
   background: #2a1c14;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.1;
   text-align: center;
+  letter-spacing: 0.02em;
 }
 
 #overlay-root .part-chip {
-  min-width: 4.4rem;
+  min-width: 0;
 }
 
 #overlay-root .chip.selected,
@@ -554,10 +578,12 @@ canvas {
 
 #overlay-root .chip.equipped-chip {
   border-color: var(--gunny-blood);
+  box-shadow: inset 0 -2px 0 var(--gunny-blood);
 }
 
 #overlay-root .chip.unowned {
-  opacity: 0.55;
+  opacity: 0.62;
+  border-style: dashed;
 }
 
 #overlay-root .chip.locked {
@@ -582,21 +608,28 @@ canvas {
 #overlay-root .slot-matrix {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
 }
 
 #overlay-root .slot-row {
   display: grid;
-  grid-template-columns: 3.7rem minmax(0, 1fr);
+  grid-template-columns: 5.6rem minmax(0, 1fr);
   gap: 8px;
   align-items: center;
-  min-height: 32px;
+  min-height: 38px;
   flex-shrink: 0;
+  padding: 2px 4px 2px 0;
+  border-radius: 6px;
+}
+
+#overlay-root .slot-row.is-active {
+  background: rgba(224, 163, 58, 0.08);
 }
 
 #overlay-root .slot-row.is-active .slot-label {
@@ -607,28 +640,56 @@ canvas {
   opacity: 0.45;
 }
 
+#overlay-root .slot-meta {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+#overlay-root .pager {
+  min-height: 36px;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  background: #2a1c14;
+}
+
 #overlay-root .slot-label {
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--gunny-muted);
   font-weight: 600;
+  cursor: pointer;
+}
+
+#overlay-root .pager:disabled {
+  opacity: 0.28;
 }
 
 #overlay-root .slot-lock {
   padding: 0 4px;
   font-size: 11px;
+  grid-column: 1 / -1;
+  align-self: center;
 }
 
 #overlay-root .train-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
   margin: 0;
   flex: 1 1 auto;
   min-height: 0;
-  align-content: start;
+  align-content: stretch;
+  grid-auto-rows: 1fr;
   overflow: auto;
+}
+
+#overlay-root .train-grid .skill-row:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 #overlay-root .skill-row {
@@ -636,16 +697,21 @@ canvas {
   grid-template-columns: 1fr auto;
   gap: 8px;
   align-items: center;
-  padding: 8px 10px;
+  padding: 10px 12px;
   background: rgba(0, 0, 0, 0.18);
   border: 1px solid #6a5038;
   border-radius: 6px;
   min-width: 0;
+  min-height: 0;
 }
 
 #overlay-root .skill-row.selected {
   border-color: var(--gunny-gold);
   background: rgba(224, 163, 58, 0.1);
+}
+
+#overlay-root .skill-row:hover {
+  border-color: var(--gunny-gold);
 }
 
 #overlay-root .skill-row strong {
@@ -721,7 +787,7 @@ canvas {
 
 #overlay-root .camp-foot .facility.start,
 #overlay-root .camp-foot .facility.side {
-  min-height: clamp(52px, 14vmin, 88px);
+  min-height: clamp(64px, 18vmin, 112px);
 }
 
 #overlay-root .foot-hint {
@@ -737,30 +803,203 @@ canvas {
   display: none !important;
 }
 
+#overlay-root .opt-fab {
+  pointer-events: auto;
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+  z-index: 30;
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(36, 22, 14, 0.94);
+  border: 1px solid var(--gunny-brass);
+  color: var(--gunny-gold);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 230, 190, 0.16);
+}
+
+#overlay-root .opt-fab svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+#overlay-root .opt-fab:hover,
+#overlay-root .opt-fab[aria-expanded='true'] {
+  background: var(--gunny-blood);
+  border-color: #e8c4a0;
+  color: #fff6ea;
+}
+
+#overlay-root .opt-layer {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(8, 5, 3, 0.55);
+}
+
+#overlay-root .opt-sheet {
+  width: min(100%, 340px);
+  background: var(--panel-wood);
+  border: 1px solid var(--gunny-brass);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 230, 190, 0.14);
+  border-radius: 10px;
+  padding: 18px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#overlay-root .opt-sheet h2 {
+  margin: 0;
+}
+
+#overlay-root .opt-copy {
+  margin: 0;
+  text-align: left;
+  max-width: none;
+}
+
+#overlay-root .opt-volume {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#overlay-root .opt-volume-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+#overlay-root .opt-mute,
+#overlay-root .opt-done,
+#overlay-root .opt-cancel {
+  min-height: 38px;
+}
+
+#overlay-root .opt-mute.is-muted {
+  background: var(--gunny-blood);
+  border-color: #e8a090;
+  color: #fff6ea;
+}
+
+#overlay-root .opt-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 99px;
+  background: #2a1c14;
+  border: 1px solid #6a5038;
+  cursor: pointer;
+}
+
+#overlay-root .opt-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gunny-gold);
+  border: 1px solid #1a0c08;
+}
+
+#overlay-root .opt-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gunny-gold);
+  border: 1px solid #1a0c08;
+}
+
+#overlay-root .opt-danger {
+  background: rgba(196, 69, 54, 0.16);
+  border-color: #a05040;
+  color: #f0c8bc;
+}
+
+#overlay-root .opt-danger:hover {
+  background: var(--gunny-blood);
+  color: #fff6ea;
+}
+
+#overlay-root .hold-reset {
+  position: relative;
+  overflow: hidden;
+  min-height: 48px;
+  background: #3a1814;
+  border-color: #e8a090;
+  color: #fff6ea;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#overlay-root .hold-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--gunny-blood);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+#overlay-root .hold-label {
+  position: relative;
+  z-index: 1;
+}
+
 @media (max-width: 720px) {
   #overlay-root .slot-row {
-    grid-template-columns: 3.2rem minmax(0, 1fr);
+    grid-template-columns: 4.6rem minmax(0, 1fr);
   }
 }
 
 @media (max-height: 420px) {
   #overlay-root {
-    padding: max(6px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px))
-      max(6px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+    padding: max(10px, env(safe-area-inset-top, 0px)) max(48px, env(safe-area-inset-right, 0px))
+      max(10px, env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
   }
 
   #overlay-root .panel {
     padding: 10px 12px 8px;
   }
 
-  #overlay-root .panel-stack {
-    gap: 8px;
-  }
-
   #overlay-root .lede,
   #overlay-root .kit-line,
-  #overlay-root .facility-kicker {
+  #overlay-root .facility-kicker,
+  #overlay-root .workshop-brand .kicker {
     display: none;
+  }
+
+  #overlay-root .workshop-brand {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  #overlay-root .panel-stack {
+    gap: 4px;
+  }
+
+  #overlay-root .slot-row {
+    min-height: 28px;
+    padding: 0;
+  }
+
+  #overlay-root .slot-matrix {
+    gap: 3px;
   }
 
   #overlay-root h1 {
@@ -797,8 +1036,8 @@ canvas {
   }
 
   #overlay-root .chip {
-    min-height: 30px;
-    min-width: 3.8rem;
+    min-height: 32px;
+    min-width: 0;
   }
 }
 

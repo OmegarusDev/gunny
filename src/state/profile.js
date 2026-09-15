@@ -49,7 +49,16 @@ export function loadProfile() {
 }
 
 export function saveProfile(profile) {
+  if (typeof localStorage === 'undefined') return;
   localStorage.setItem(KEY, JSON.stringify(profile));
+}
+
+export function resetProfile(profile) {
+  const fresh = defaultProfile();
+  for (const key of Object.keys(profile)) delete profile[key];
+  Object.assign(profile, fresh);
+  saveProfile(profile);
+  return profile;
 }
 
 export function owns(profile, id) {

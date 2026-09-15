@@ -50,7 +50,7 @@ export function createInput(canvas) {
 
   function onPanel(e) {
     return !!e.target.closest(
-      '#overlay-root .panel:not(.hidden)',
+      '#overlay-root .panel:not(.hidden), #overlay-root .opt-fab, #overlay-root .opt-layer:not(.hidden)',
     );
   }
 

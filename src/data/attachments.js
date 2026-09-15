@@ -278,6 +278,17 @@ export const PARTS = {
     desc: 'RoF ceiling. Bloom hungry.',
     mods: { rof: 2.4, bloomPerShot: 0.2, heatBuild: 0.06 },
   },
+  trigger_volt: {
+    id: 'trigger_volt',
+    slot: 'trigger',
+    rank: 3,
+    requires: 'trigger_binary',
+    name: 'Lightning Trigger',
+    short: 'Volt',
+    cost: 1100,
+    desc: 'Hair-split cycle. Heat soars.',
+    mods: { rof: 3.5, bloomPerShot: 0.38, heatBuild: 0.12 },
+  },
 
   gas_factory: {
     id: 'gas_factory',
@@ -295,7 +306,7 @@ export const PARTS = {
     rank: 1,
     requires: 'gas_factory',
     name: 'Adjustable Gas',
-    short: 'Adj',
+    short: 'Adjust',
     cost: 320,
     desc: 'Dumps heat faster.',
     mods: { heatDump: 0.12, heatBuild: -0.04, bloomRecover: 0.4 },
@@ -310,6 +321,17 @@ export const PARTS = {
     cost: 480,
     desc: 'Faster cycle, more heat and bloom.',
     mods: { rof: 1.1, heatBuild: 0.08, bloomPerShot: 0.15 },
+  },
+  gas_piston: {
+    id: 'gas_piston',
+    slot: 'gasBlock',
+    rank: 3,
+    requires: 'gas_over',
+    name: 'Piston Drive',
+    short: 'Piston',
+    cost: 760,
+    desc: 'Cleaner impulse. Heavier, cooler.',
+    mods: { heatDump: 0.2, heatBuild: -0.07, weight: 0.08, bloomRecover: 0.55 },
   },
 
   // Springs = reload speed ladder (available on T1). Perfect window is a gunner skill.
@@ -382,10 +404,28 @@ export const STARTER_LOADOUT = {
   springs: 'spring_factory',
 };
 
+export const CATALOG_WINDOW = 4;
+
 export function partsForSlot(slot) {
   return Object.values(PARTS)
     .filter((p) => p.slot === slot)
     .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
+}
+
+export function catalogWindow(items, { focusId, start = 0, size = CATALOG_WINDOW, keepStart = false } = {}) {
+  if (!items.length) return { items: [], start: 0, total: 0 };
+  if (items.length <= size) return { items, start: 0, total: items.length };
+  let s = Number.isFinite(start) ? start : 0;
+  s = Math.max(0, Math.min(s, items.length - size));
+  if (!keepStart) {
+    const focus = items.findIndex((i) => i.id === focusId);
+    if (focus >= 0) {
+      if (focus < s) s = focus;
+      if (focus >= s + size) s = focus - size + 1;
+    }
+    s = Math.max(0, Math.min(s, items.length - size));
+  }
+  return { items: items.slice(s, s + size), start: s, total: items.length };
 }
 
 export function partRequirement(id) {

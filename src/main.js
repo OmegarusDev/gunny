@@ -5,7 +5,7 @@ import { enterImmersive, exitImmersive } from './engine/immersive.js';
 import { createLoop } from './engine/loop.js';
 import { resumeAudio } from './audio/synth.js';
 import { drawBackdrop, drawHud, drawWorld } from './render/draw.js';
-import { addRewards, loadProfile, saveProfile, unlockLevel } from './state/profile.js';
+import { addRewards, loadProfile, resetProfile, saveProfile, unlockLevel } from './state/profile.js';
 import { createRun, simulate } from './systems/run.js';
 import { renderGunsmith } from './ui/gunsmith.js';
 import { renderHub, renderEnd } from './ui/hub.js';
@@ -23,7 +23,12 @@ const input = createInput(canvas);
 const softCursor = mountSoftCursor();
 const loop = createLoop(FIXED_DT, MAX_FRAME_DT);
 const profile = loadProfile();
-const overlays = mountOverlays(overlayRoot);
+const overlays = mountOverlays(overlayRoot, {
+  resetProgress() {
+    resetProfile(profile);
+    showHub();
+  },
+});
 let mode = 'hub';
 let run = null;
 let lastType = 'campaign';

@@ -1,26 +1,23 @@
 import { RECEIVERS, SLOTS, SLOT_MIN_TIER } from '../data/receivers.js';
-import { partsForSlot } from '../data/attachments.js';
+import { CATALOG_WINDOW, catalogWindow, partsForSlot } from '../data/attachments.js';
 import { resolveStats, slotUnlockedFor, gunsmithStatRows } from '../entities/loadout.js';
 import { buyBlockedReason, buyPart, equipPart, owns } from '../state/profile.js';
 import { fmtMoney, ledgerBlock, statsGrid } from './overlays.js';
 
 const SLOT_LABEL = {
-  receiver: 'Rec',
+  receiver: 'Receiver',
   barrel: 'Barrel',
   magazine: 'Mag',
   springs: 'Spring',
   optic: 'Optic',
   stock: 'Stock',
   muzzle: 'Muzzle',
-  trigger: 'Trig',
+  trigger: 'Trigger',
   gasBlock: 'Gas',
 };
 
 export function renderGunsmith(el, profile, handlers) {
   const recId = profile.loadout.receiver;
-  const savedScroll = [...el.querySelectorAll('.slot-row .chips')].map((n) => n.scrollLeft);
-  const prevSlot = el.dataset.prevSlot;
-  const prevPart = el.dataset.prevPart;
   const stats = resolveStats(profile);
 
   const selected = el.dataset.slot || 'receiver';
@@ -36,7 +33,6 @@ export function renderGunsmith(el, profile, handlers) {
     picked = selectedRow?.items.find((i) => isEquipped(profile, selected, i.id))?.id || selectedRow?.items[0]?.id;
   }
   const item = selectedRow?.items.find((i) => i.id === picked);
-  const selectionChanged = selected !== prevSlot || picked !== prevPart;
   el.dataset.prevSlot = selected;
   el.dataset.prevPart = picked || '';
   const have = item ? owns(profile, item.id) : false;
@@ -56,27 +52,7 @@ export function renderGunsmith(el, profile, handlers) {
       </header>
       ${statsGrid(gunsmithStatRows(stats), 'stats-wide')}
       <div class="slot-matrix">
-        ${rows
-          .map(({ slot, locked, items }) => {
-            return `<div class="slot-row ${locked ? 'locked' : ''} ${slot === selected ? 'is-active' : ''}">
-              <span class="slot-label">${SLOT_LABEL[slot]}</span>
-              <div class="chips" role="listbox">
-                ${
-                  locked
-                    ? `<span class="muted slot-lock">T${SLOT_MIN_TIER[slot]}</span>`
-                    : items
-                        .map((it) => {
-                          const on = slot === selected && it.id === picked;
-                          const eq = isEquipped(profile, slot, it.id);
-                          const own = owns(profile, it.id);
-                          return `<button class="chip part-chip ${on ? 'selected' : ''} ${eq ? 'equipped-chip' : ''} ${own ? '' : 'unowned'}" data-slot="${slot}" data-id="${it.id}">${it.short || it.name}</button>`;
-                        })
-                        .join('')
-                }
-              </div>
-            </div>`;
-          })
-          .join('')}
+        ${rows.map(({ slot, locked, items }) => slotRow(el, profile, slot, locked, items, selected, picked)).join('')}
       </div>
       <div class="sheet-foot" id="gs-actions"></div>
     </div>
@@ -87,16 +63,35 @@ export function renderGunsmith(el, profile, handlers) {
     n.onclick = () => {
       el.dataset.slot = n.dataset.slot;
       el.dataset.part = n.dataset.id;
+      if (el.dataset.winKeep !== n.dataset.slot) el.dataset.winKeep = '';
       renderGunsmith(el, profile, handlers);
     };
   });
-  el.querySelectorAll('.slot-row').forEach((row, i) => {
-    const slot = SLOTS[i];
-    row.querySelector('.slot-label')?.addEventListener('click', () => {
-      el.dataset.slot = slot;
+  el.querySelectorAll('.slot-label').forEach((label) => {
+    label.addEventListener('click', () => {
+      el.dataset.slot = label.dataset.slot;
       el.dataset.part = '';
+      el.dataset.winKeep = '';
       renderGunsmith(el, profile, handlers);
     });
+  });
+  el.querySelectorAll('.pager').forEach((btn) => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const slot = btn.dataset.slot;
+      const dir = Number(btn.dataset.dir);
+      const key = winKey(slot);
+      const row = rows.find((r) => r.slot === slot);
+      const win = catalogWindow(row?.items || [], {
+        start: Number(el.dataset[key] || 0) + dir,
+        keepStart: true,
+      });
+      el.dataset[key] = String(win.start);
+      el.dataset.slot = slot;
+      el.dataset.winKeep = slot;
+      el.dataset.part = win.items[0]?.id || '';
+      renderGunsmith(el, profile, handlers);
+    };
   });
 
   const actions = el.querySelector('#gs-actions');
@@ -129,14 +124,51 @@ export function renderGunsmith(el, profile, handlers) {
     }
     actions.appendChild(b);
   }
+}
 
-  requestAnimationFrame(() => {
-    el.querySelectorAll('.slot-row .chips').forEach((n, i) => {
-      if (savedScroll[i] != null) n.scrollLeft = savedScroll[i];
-    });
-    const on = el.querySelector('.part-chip.selected');
-    if (selectionChanged) on?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+function winKey(slot) {
+  return `win${slot[0].toUpperCase()}${slot.slice(1)}`;
+}
+
+function slotRow(el, profile, slot, locked, items, selected, picked) {
+  const focusId = slot === selected && picked ? picked : profile.loadout[slot];
+  const win = catalogWindow(items, {
+    focusId,
+    start: Number(el.dataset[winKey(slot)] || 0),
+    size: CATALOG_WINDOW,
+    keepStart: el.dataset.winKeep === slot,
   });
+  el.dataset[winKey(slot)] = String(win.start);
+  const paged = win.total > CATALOG_WINDOW;
+  return `<div class="slot-row ${locked ? 'locked' : ''} ${slot === selected ? 'is-active' : ''}">
+    <div class="slot-meta">
+      <span class="slot-label" data-slot="${slot}">${SLOT_LABEL[slot]}</span>
+    </div>
+    <div class="chips ${paged ? 'chips-window' : ''}" role="listbox" style="--chip-cols: ${Math.max(win.items.length, 1)}">
+      ${
+        paged
+          ? `<button class="pager" type="button" data-slot="${slot}" data-dir="-1" ${win.start <= 0 ? 'disabled' : ''} aria-label="Previous ${SLOT_LABEL[slot]}">‹</button>`
+          : ''
+      }
+      ${
+        locked
+          ? `<span class="muted slot-lock">T${SLOT_MIN_TIER[slot]} receiver</span>`
+          : win.items
+              .map((it) => {
+                const on = slot === selected && it.id === picked;
+                const eq = isEquipped(profile, slot, it.id);
+                const own = owns(profile, it.id);
+                return `<button class="chip part-chip ${on ? 'selected' : ''} ${eq ? 'equipped-chip' : ''} ${own ? '' : 'unowned'}" data-slot="${slot}" data-id="${it.id}">${it.short || it.name}</button>`;
+              })
+              .join('')
+      }
+      ${
+        paged
+          ? `<button class="pager" type="button" data-slot="${slot}" data-dir="1" ${win.start + CATALOG_WINDOW >= win.total ? 'disabled' : ''} aria-label="Next ${SLOT_LABEL[slot]}">›</button>`
+          : ''
+      }
+    </div>
+  </div>`;
 }
 
 function catalog(slot, recId) {
