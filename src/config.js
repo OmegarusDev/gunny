@@ -16,14 +16,15 @@ export const TERRAIN_HEADROOM = 0.18;
 /** Typical half-span; real min/max come from floor pad + headroom. */
 export const TERRAIN_AMP = 0.18;
 export const BLOOM_CAP_DEG = 12;
-/** Irons: sight picture to mid-screen. Optics push this out. */
-export const AIM_SCREEN_FRAC = 0.5;
+/** Irons: sight picture to ~35% of the screen. Optics push this out. LPVO is viewport-wide. */
+export const AIM_SCREEN_FRAC = 0.35;
 /** Bullets: two-thirds across. Barrels extend this, optics do not. */
 export const SHOT_SCREEN_FRAC = 2 / 3;
 export const DESIGN_W = DESIGN_H * (16 / 9);
 export const AIM_REACH_BASE = DESIGN_W * (AIM_SCREEN_FRAC - PLAYER_SCREEN_X_RATIO);
 export const AIM_REACH_MIN = Math.round(AIM_REACH_BASE * 0.72);
-export const AIM_REACH_MAX = 860;
+/** Last disc optic (ACOG). LPVO ignores this and clamps to the viewport. */
+export const AIM_REACH_MAX = 520;
 export const SHOT_REACH_BASE = DESIGN_W * (SHOT_SCREEN_FRAC - PLAYER_SCREEN_X_RATIO);
 export const SHOT_REACH_MIN = Math.round(SHOT_REACH_BASE * 0.72);
 export const SHOT_REACH_MAX = 860;
@@ -50,13 +51,18 @@ export function clampShotRange(range, viewport) {
   return Math.max(SHOT_REACH_MIN, Math.min(range, visibleFromGun(viewport)));
 }
 
-/** How far the pointer/reticle can be held. Optics and marksman, not barrels. */
+/** How far the pointer/reticle can be held. Optics only — not barrels, stocks, or marksman. */
 export function effectiveAimReach(stats, viewport) {
+  if (usesFullScreenAim(stats)) return Math.hypot(viewport.w, viewport.h);
   const extra = (stats?.aimReach || 0) - AIM_REACH_BASE;
   return clampAimReach(baseAimReach(viewport) + extra, viewport);
 }
 
-/** How far a bullet flies. Barrels and receivers, never past the view edge. */
+export function usesFullScreenAim(stats) {
+  return (stats?.fullScreenAim || 0) > 0;
+}
+
+/** How far a round keeps full energy. Past this, damage drops hard; tracers still fly. */
 export function effectiveShotRange(stats, viewport) {
   const extra = (stats?.shotRange || 0) - SHOT_REACH_BASE;
   return clampShotRange(baseShotRange(viewport) + extra, viewport);
@@ -89,8 +95,17 @@ export const TRACK_METERS = 250;
 export const THREAT = {
   step: 0.35,
   span: 1,
-  chill: { spawn: 3.4, max: 1, speed: 108, packChance: 0.02, hpMul: 1.15 },
-  hectic: { spawn: 1.05, max: 7, speed: 168, packChance: 0.45, hpMul: 0.82 },
+  chill: { spawn: 3.4, max: 1, speed: 124, packChance: 0.02, hpMul: 1.15 },
+  hectic: { spawn: 1.05, max: 7, speed: 186, packChance: 0.45, hpMul: 0.82 },
+  /** Determined chase. Below a sprint for almost the whole game. */
+  speedCap: 204,
+  /** Late-campaign / deep-endless only — urgent, not a blur. */
+  speedSprint: 236,
+  speedOver: 0.1,
+  /** Campaign `over` before the sprint band. ~road 13 finale. */
+  sprintOver: 4.5,
+  /** Endless extra units ((m-250)/120) before the sprint band. ~1.9km. */
+  sprintEndless: 14,
   spawnFloor: 0.45,
   maxAliveCap: 14,
   packCap: 0.55,
@@ -137,16 +152,25 @@ export function threatForDistance(meters, levelIndex, endless) {
   if (over > 0) {
     spawn = Math.max(THREAT.spawnFloor, spawn / (1 + over * 0.18));
     maxAlive = Math.min(THREAT.maxAliveCap, Math.floor(maxAlive + over * 1.2));
-    speed *= 1 + over * 0.05;
+    speed *= 1 + over * THREAT.speedOver;
     packChance += over * 0.04;
   }
 
+  let extra = 0;
   if (endless && meters > TRACK_METERS) {
-    const extra = (meters - TRACK_METERS) / 120;
+    extra = (meters - TRACK_METERS) / 120;
     spawn = Math.max(THREAT.spawnFloor, spawn / (1 + extra * 0.3));
     maxAlive = Math.min(THREAT.maxAliveCap, Math.floor(maxAlive + extra * 1.5));
-    speed *= 1 + extra * 0.06;
     packChance += extra * 0.05;
+  }
+
+  speed = Math.min(speed, THREAT.speedCap);
+  const sprintT = endless
+    ? Math.max(0, extra - THREAT.sprintEndless) / 10
+    : Math.max(0, over - THREAT.sprintOver) / 8;
+  if (sprintT > 0) {
+    const t = Math.min(1, sprintT);
+    speed = THREAT.speedCap + (THREAT.speedSprint - THREAT.speedCap) * t;
   }
 
   return {

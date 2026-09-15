@@ -5,6 +5,13 @@ import { segmentHitsTerrain } from '../world/terrain.js';
 import { segmentHitsCircle } from './hits.js';
 import { shotEnergy } from './impulse.js';
 
+/** Full energy to maxDist, then inverse-square from the muzzle. */
+export function rangeDamageMul(travelled, maxDist) {
+  const r = Math.max(1, maxDist);
+  if (travelled <= r) return 1;
+  return (r / travelled) ** 2;
+}
+
 export function spawnBullet(x, y, angle, stats, perfectMag, maxDist) {
   const speed = stats.bulletSpeed;
   const range = Math.max(1, maxDist ?? stats.shotRange ?? stats.aimReach);
@@ -53,28 +60,33 @@ export function stepBullets(run, dt, viewport) {
     }
 
     if (best) {
-      const nx = Math.cos(Math.atan2(b.vy, b.vx));
-      const ny = Math.sin(Math.atan2(b.vy, b.vx));
+      const nxDir = Math.cos(Math.atan2(b.vy, b.vx));
+      const nyDir = Math.sin(Math.atan2(b.vy, b.vx));
+      const travelled = Math.hypot(best.hit.x - b.ox, best.hit.y - b.oy);
+      const rangeMul = rangeDamageMul(travelled, b.maxDist);
       b.hitIds.add(best.enemy.id);
-      const penBefore = b.pen;
-      b.pen -= FLESH_PEN_COST;
-      const stopped = b.pen <= 0;
-      run.pendingHits.push({
-        bullet: b,
-        enemy: best.enemy,
-        zone: best.zone,
-        x: best.hit.x,
-        y: best.hit.y,
-        locational: locationalOf(best.zone),
-        nx,
-        ny,
-        energy: shotEnergy(Math.hypot(b.vx, b.vy), stopped, penBefore),
-      });
-      if (stopped) {
-        b.alive = false;
-        b.x = best.hit.x;
-        b.y = best.hit.y;
-        continue;
+      if (rangeMul > 0.05) {
+        const penBefore = b.pen;
+        b.pen -= FLESH_PEN_COST;
+        const stopped = b.pen <= 0;
+        run.pendingHits.push({
+          bullet: b,
+          enemy: best.enemy,
+          zone: best.zone,
+          x: best.hit.x,
+          y: best.hit.y,
+          locational: locationalOf(best.zone),
+          nx: nxDir,
+          ny: nyDir,
+          rangeMul,
+          energy: shotEnergy(Math.hypot(b.vx, b.vy), stopped, penBefore) * rangeMul,
+        });
+        if (stopped) {
+          b.alive = false;
+          b.x = best.hit.x;
+          b.y = best.hit.y;
+          continue;
+        }
       }
       b.x = best.hit.x;
       b.y = best.hit.y;
@@ -91,8 +103,7 @@ export function stepBullets(run, dt, viewport) {
 
     b.x = nx;
     b.y = ny;
-    const travelled = Math.hypot(nx - b.ox, ny - b.oy);
-    if (b.age > 1.6 || b.pen <= 0 || travelled >= b.maxDist || nx > viewRight) b.alive = false;
+    if (b.age > 1.6 || b.pen <= 0 || nx > viewRight) b.alive = false;
   }
   run.bullets = bullets.filter((b) => b.alive);
 }

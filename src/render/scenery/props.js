@@ -1,6 +1,9 @@
+import { PLAYER_SCREEN_X_RATIO } from '../../config.js';
 import { shadeHex } from '../fx.js';
 import {
+  deciduousH,
   inViewX,
+  pineH,
   pineHalf,
   tilesInView,
   toScreen,
@@ -16,9 +19,14 @@ export function drawFarScenery(ctx, viewport, run) {
   const left = worldLeft(run.player.worldX, viewport);
   const mul = viewport.quality?.propMul || 1;
   const spacing =
-    (biome.id === 'desert' ? 150 : biome.id === 'transylvania' ? 52 : biome.id === 'fen' ? 42 : biome.id === 'quarry' ? 92 : 64) *
+    (biome.id === 'desert' ? 170 : biome.id === 'transylvania' ? 118 : biome.id === 'fen' ? 42 : biome.id === 'quarry' ? 92 : 148) *
     mul;
-  const maxHalf = biome.id === 'desert' || biome.id === 'fen' || biome.id === 'quarry' ? 48 : 112;
+  const maxHalf =
+    biome.id === 'desert' || biome.id === 'fen' || biome.id === 'quarry'
+      ? 48
+      : biome.id === 'transylvania'
+        ? pineHalf(pineH('far', 1))
+        : treeHalf(deciduousH('far', 1));
   const { start, end } = tilesInView(left, viewW, spacing, maxHalf);
   ctx.save();
   ctx.globalAlpha = biome.id === 'desert' ? 0.78 : 0.68;
@@ -31,13 +39,14 @@ export function drawFarScenery(ctx, viewport, run) {
     if (biome.id === 'desert') {
       if (inViewX(sx, 28, viewW)) drawDuneBush(ctx, sx, ground, h, biome);
     } else if (biome.id === 'transylvania') {
-      if (inViewX(sx, pineHalf(0.9), viewW)) drawPine(ctx, sx, ground, 90 + h * 60, biome, 0.9, id);
+      const ph = pineH('far', h);
+      if (inViewX(sx, pineHalf(ph), viewW)) drawPine(ctx, sx, ground, ph, biome, 0.9, id);
     } else if (biome.id === 'fen') {
       if (inViewX(sx, 14, viewW)) drawReed(ctx, sx, ground + 8, 28 + h * 22, biome, id);
     } else if (biome.id === 'quarry') {
       if (inViewX(sx, 40, viewW)) drawSpoil(ctx, sx, ground + 12, 34 + h * 28, biome);
     } else {
-      const th = 78 + h * 48;
+      const th = deciduousH('far', h);
       if (inViewX(sx, treeHalf(th), viewW)) drawTree(ctx, sx, ground, th, biome, 0.78, id);
     }
   }
@@ -51,31 +60,39 @@ export function drawNearScenery(ctx, viewport, run) {
   const viewW = viewport.w;
   const left = worldLeft(run.player.worldX, viewport);
   const mul = viewport.quality?.propMul || 1;
-  const spacing = (biome.id === 'desert' ? 96 : biome.id === 'fen' ? 36 : biome.id === 'quarry' ? 70 : 50) * mul;
-  const maxHalf = biome.id === 'desert' || biome.id === 'fen' || biome.id === 'quarry' ? 48 : 160;
+  const spacing = (biome.id === 'desert' ? 140 : biome.id === 'fen' ? 36 : biome.id === 'quarry' ? 70 : 128) * mul;
+  const maxHalf =
+    biome.id === 'desert'
+      ? 48
+      : biome.id === 'fen' || biome.id === 'quarry'
+        ? 48
+        : biome.id === 'transylvania'
+          ? pineHalf(pineH('near', 1))
+          : treeHalf(deciduousH('near', 1));
   const { start, end } = tilesInView(left, viewW, spacing, maxHalf);
   for (let wx = start; wx < end; wx += spacing) {
     const id = Math.floor(wx / spacing);
     const h = uhash(id + 9);
-    const plantX = wx + (h - 0.5) * 14;
+    const plantX = wx + (h - 0.5) * 22;
     const sx = toScreen(plantX, run.player.worldX, viewport);
     if (!inViewX(sx, maxHalf, viewW)) continue;
-    const verge = run.terrain.height(plantX) - 10;
+    const verge = run.terrain.height(plantX) - 22;
     if (biome.id === 'desert') {
-      if (h > 0.62 && inViewX(sx, 22, viewW)) drawCactus(ctx, sx, verge, 36 + h * 40, biome, id);
+      if (h > 0.62 && inViewX(sx, 36, viewW)) drawCactus(ctx, sx, verge, 170 + h * 150, biome, id);
       else if (h > 0.38 && inViewX(sx, 18, viewW)) drawRock(ctx, sx, verge + 8, 12 + h * 14, biome, id);
     } else if (biome.id === 'transylvania') {
-      if (h > 0.42 && inViewX(sx, pineHalf(1), viewW)) drawPine(ctx, sx, verge, 120 + h * 80, biome, 1, id);
+      const ph = pineH('near', h);
+      if (h > 0.42 && inViewX(sx, pineHalf(ph), viewW)) drawPine(ctx, sx, verge, ph, biome, 1, id);
       if (h > 0.7 && inViewX(sx, 18, viewW)) drawFence(ctx, sx, verge + 8);
     } else if (biome.id === 'fen') {
       if (h > 0.22 && inViewX(sx, 16, viewW)) drawReed(ctx, sx, verge + 6, 46 + h * 50, biome, id);
-      if (h > 0.72 && inViewX(sx, 20, viewW)) drawSnag(ctx, sx + 8, verge + 4, 28 + h * 22, biome, id);
+      if (h > 0.72 && inViewX(sx, 20, viewW)) drawSnag(ctx, sx + 8, verge + 4, 90 + h * 70, biome, id);
     } else if (biome.id === 'quarry') {
       if (h > 0.55 && inViewX(sx, 22, viewW)) drawRock(ctx, sx, verge + 8, 14 + h * 16, biome, id);
       else if (h > 0.28 && inViewX(sx, 28, viewW)) drawRail(ctx, sx, verge + 6, biome);
       if (h > 0.82 && inViewX(sx, 28, viewW)) drawSpoil(ctx, sx, verge + 4, 22 + h * 16, biome);
     } else {
-      const th = 110 + h * 72;
+      const th = deciduousH('near', h);
       if (h > 0.34 && inViewX(sx, treeHalf(th), viewW)) drawTree(ctx, sx, verge, th, biome, 1, id);
       if (h > 0.78 && inViewX(sx, 18, viewW)) drawFence(ctx, sx, verge + 8);
       if (h < 0.2 && inViewX(sx, 12, viewW)) drawGrassTuft(ctx, sx, verge + 10, biome);
@@ -87,8 +104,15 @@ export function drawForeground(ctx, viewport, run) {
   const biome = run.biome;
   const viewW = viewport.w;
   const left = worldLeft(run.player.worldX, viewport);
-  const spacing = 120 * (viewport.quality?.propMul || 1);
-  const maxHalf = biome.id === 'desert' || biome.id === 'quarry' ? 40 : biome.id === 'fen' ? 24 : 165;
+  const spacing = 210 * (viewport.quality?.propMul || 1);
+  const maxHalf =
+    biome.id === 'desert' || biome.id === 'quarry'
+      ? 40
+      : biome.id === 'fen'
+        ? 24
+        : biome.id === 'transylvania'
+          ? pineHalf(pineH('fg', 1))
+          : treeHalf(deciduousH('fg', 1));
   const { start, end } = tilesInView(left, viewW, spacing, maxHalf);
   for (let wx = start; wx < end; wx += spacing) {
     const id = Math.floor(wx / spacing) + 200;
@@ -96,17 +120,20 @@ export function drawForeground(ctx, viewport, run) {
     if (h < 0.45) continue;
     const sx = toScreen(wx, run.player.worldX, viewport);
     if (!inViewX(sx, maxHalf, viewW)) continue;
+    const gunnerX = viewW * PLAYER_SCREEN_X_RATIO;
+    if (Math.abs(sx - gunnerX) < maxHalf * 0.55) continue;
     const y = viewport.h + 8;
     if (biome.id === 'desert') {
       if (inViewX(sx, 24, viewW)) drawRock(ctx, sx, y - 6, 18 + h * 16, biome, id);
     } else if (biome.id === 'transylvania') {
-      if (inViewX(sx, pineHalf(1.15), viewW)) drawPine(ctx, sx, y, 160 + h * 50, biome, 1.15, id);
+      const ph = pineH('fg', h);
+      if (inViewX(sx, pineHalf(ph), viewW)) drawPine(ctx, sx, y, ph, biome, 1.15, id);
     } else if (biome.id === 'fen') {
       if (inViewX(sx, 18, viewW)) drawReed(ctx, sx, y - 4, 90 + h * 40, biome, id);
     } else if (biome.id === 'quarry') {
       if (inViewX(sx, 32, viewW)) drawSpoil(ctx, sx, y - 2, 36 + h * 22, biome);
     } else {
-      const th = 140 + h * 48;
+      const th = deciduousH('fg', h);
       if (inViewX(sx, treeHalf(th), viewW)) drawTree(ctx, sx, y, th, biome, 1.2, id);
     }
   }
@@ -116,7 +143,7 @@ function drawTree(ctx, x, ground, h, biome, scale, seed) {
   seed >>>= 0;
   const type = TREE_TYPES[seed % TREE_TYPES.length];
   const lean = (uhash(seed + 11) - 0.5) * 0.14 * h;
-  const trunkW = (4.5 + uhash(seed + 2) * 4) * scale;
+  const trunkW = h * (0.055 + uhash(seed + 2) * 0.04) * scale;
   const trunkH = h * (0.46 + uhash(seed + 7) * 0.1);
   ctx.fillStyle = shadeHex(biome.trunk, -0.25);
   ctx.beginPath();
@@ -137,7 +164,7 @@ function drawTree(ctx, x, ground, h, biome, scale, seed) {
 
   ctx.fillStyle = 'rgba(8,4,2,0.22)';
   ctx.beginPath();
-  ctx.ellipse(x - 10 * scale, ground + 3, 16 * scale + h * 0.08, 4.5 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(x - trunkW * 0.6, ground + 3, trunkW * 1.8 + h * 0.04, Math.max(4, trunkW * 0.22), 0, 0, Math.PI * 2);
   ctx.fill();
 
   const shade = biome.canopy[(seed + 3) % biome.canopy.length];
@@ -180,19 +207,20 @@ function drawTree(ctx, x, ground, h, biome, scale, seed) {
 function drawPine(ctx, x, ground, h, biome, scale, seed) {
   seed >>>= 0;
   const tiers = 3 + (seed % 3);
-  const lean = (uhash(seed + 8) - 0.5) * 10 * scale;
+  const lean = (uhash(seed + 8) - 0.5) * 0.04 * h;
+  const trunkW = h * 0.028 * scale;
   ctx.fillStyle = shadeHex(biome.trunk, -0.2);
-  ctx.fillRect(x - 2.5 * scale + lean * 0.2, ground - h * 0.22, 3 * scale, h * 0.22);
+  ctx.fillRect(x - trunkW * 0.55 + lean * 0.2, ground - h * 0.22, trunkW * 0.6, h * 0.22);
   ctx.fillStyle = shadeHex(biome.trunk, 0.15);
-  ctx.fillRect(x + 0.5 * scale + lean * 0.2, ground - h * 0.22, 2.2 * scale, h * 0.22);
+  ctx.fillRect(x + trunkW * 0.05 + lean * 0.2, ground - h * 0.22, trunkW * 0.45, h * 0.22);
   ctx.fillStyle = 'rgba(8,4,2,0.2)';
   ctx.beginPath();
-  ctx.ellipse(x - 8 * scale, ground + 2, 14 * scale, 3.6 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(x - trunkW, ground + 2, trunkW * 2.4, Math.max(4, trunkW * 0.4), 0, 0, Math.PI * 2);
   ctx.fill();
   for (let i = 0; i < tiers; i++) {
     const t = i / Math.max(1, tiers - 1);
     const top = ground - h + i * (h / (tiers + 0.4));
-    const w = (9 + t * 22 + uhash(seed + 20 + i) * 6) * scale;
+    const w = h * (0.1 + t * 0.16 + uhash(seed + 20 + i) * 0.035);
     const drop = h * (0.26 + uhash(seed + 40 + i) * 0.08);
     const ox = lean * (1 - t * 0.5);
     ctx.fillStyle = shadeHex(biome.canopy[(seed + i) % biome.canopy.length], -0.12);
@@ -218,41 +246,45 @@ function drawCactus(ctx, x, ground, h, biome, seed) {
   const base = biome.canopy[seed % biome.canopy.length];
   const dark = shadeHex(base, -0.18);
   const lit = shadeHex(base, 0.2);
+  const stemW = Math.max(10, h * 0.085);
+  const cap = stemW * 0.5;
   ctx.fillStyle = 'rgba(8,4,2,0.22)';
   ctx.beginPath();
-  ctx.ellipse(x - 6, ground + 2, 12, 3.4, 0, 0, Math.PI * 2);
+  ctx.ellipse(x - stemW * 0.4, ground + 2, stemW * 1.3, stemW * 0.28, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = dark;
-  ctx.fillRect(x - 5, ground - h + 5, 10, h - 5);
+  ctx.fillRect(x - stemW * 0.5, ground - h + cap, stemW, h - cap);
   ctx.fillStyle = lit;
-  ctx.fillRect(x - 1, ground - h + 5, 4, h - 5);
+  ctx.fillRect(x - stemW * 0.1, ground - h + cap, stemW * 0.4, h - cap);
   ctx.beginPath();
-  ctx.arc(x, ground - h + 5, 5, 0, Math.PI * 2);
+  ctx.arc(x, ground - h + cap, cap, 0, Math.PI * 2);
   ctx.fill();
   const left = uhash(seed + 1) > 0.28;
   const right = uhash(seed + 2) > 0.32;
   if (left) {
     const ly = 0.45 + uhash(seed + 3) * 0.22;
     const lh = h * (0.18 + uhash(seed + 4) * 0.16);
+    const arm = stemW * 0.55;
     ctx.fillStyle = dark;
-    ctx.fillRect(x - 16, ground - h * ly, 14, 6);
-    ctx.fillRect(x - 16, ground - h * ly, 6, lh);
+    ctx.fillRect(x - stemW * 1.55, ground - h * ly, stemW * 1.15, arm);
+    ctx.fillRect(x - stemW * 1.55, ground - h * ly, arm, lh);
     ctx.fillStyle = lit;
-    ctx.fillRect(x - 14, ground - h * ly, 3, lh);
+    ctx.fillRect(x - stemW * 1.35, ground - h * ly, arm * 0.45, lh);
     ctx.beginPath();
-    ctx.arc(x - 13, ground - h * ly, 3, 0, Math.PI * 2);
+    ctx.arc(x - stemW * 1.28, ground - h * ly, arm * 0.5, 0, Math.PI * 2);
     ctx.fill();
   }
   if (right) {
     const ry = 0.38 + uhash(seed + 5) * 0.2;
     const rh = h * (0.14 + uhash(seed + 6) * 0.14);
+    const arm = stemW * 0.55;
     ctx.fillStyle = dark;
-    ctx.fillRect(x + 5, ground - h * ry, 12, 6);
-    ctx.fillRect(x + 11, ground - h * ry, 6, rh);
+    ctx.fillRect(x + stemW * 0.45, ground - h * ry, stemW * 1.05, arm);
+    ctx.fillRect(x + stemW * 1.05, ground - h * ry, arm, rh);
     ctx.fillStyle = lit;
-    ctx.fillRect(x + 14, ground - h * ry, 3, rh);
+    ctx.fillRect(x + stemW * 1.28, ground - h * ry, arm * 0.45, rh);
     ctx.beginPath();
-    ctx.arc(x + 14, ground - h * ry, 3, 0, Math.PI * 2);
+    ctx.arc(x + stemW * 1.32, ground - h * ry, arm * 0.5, 0, Math.PI * 2);
     ctx.fill();
   }
 }

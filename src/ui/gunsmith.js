@@ -3,6 +3,7 @@ import { CATALOG_WINDOW, catalogWindow, partsForSlot } from '../data/attachments
 import { resolveStats, slotUnlockedFor, gunsmithStatRows } from '../entities/loadout.js';
 import { buyBlockedReason, buyPart, equipPart, owns } from '../state/profile.js';
 import { fmtMoney, backButton, ledgerBlock, statsGrid } from './overlays.js';
+import { bindGameScroll } from './scroll.js';
 
 const SLOT_LABEL = {
   receiver: 'Receiver',
@@ -51,8 +52,13 @@ export function renderGunsmith(el, profile, handlers) {
         <h2>Gunsmith</h2>
       </header>
       ${statsGrid(gunsmithStatRows(stats), 'stats-wide')}
-      <div class="slot-matrix">
-        ${rows.map(({ slot, locked, items }) => slotRow(el, profile, slot, locked, items, selected, picked)).join('')}
+      <div class="gs-scroll-wrap">
+        <div class="slot-matrix">
+          ${rows.map(({ slot, locked, items }) => slotRow(el, profile, slot, locked, items, selected, picked)).join('')}
+        </div>
+        <div class="gs-scroll" role="scrollbar" aria-label="Gunsmith parts">
+          <div class="scroll-thumb"></div>
+        </div>
       </div>
       <div class="sheet-foot" id="gs-actions"></div>
     </div>
@@ -123,6 +129,20 @@ export function renderGunsmith(el, profile, handlers) {
       };
     }
     actions.appendChild(b);
+  }
+
+  const matrix = el.querySelector('.slot-matrix');
+  const track = el.querySelector('.gs-scroll');
+  if (matrix && track) {
+    matrix.scrollTop = Number(el.dataset.gsScroll || 0);
+    bindGameScroll(matrix, track, { persist: el.dataset });
+    matrix.addEventListener(
+      'scroll',
+      () => {
+        el.dataset.gsScroll = String(matrix.scrollTop);
+      },
+      { passive: true },
+    );
   }
 }
 

@@ -71,6 +71,14 @@ export function locationalOf(zone) {
   return LOCATIONAL[zone] ?? 1;
 }
 
+/** Head + torso remaining. Legs are mobility, not the kill bar. */
+export function lethalHpRatio(enemy) {
+  const max = (enemy.max?.head || 0) + (enemy.max?.torso || 0);
+  if (max <= 0) return 0;
+  const cur = Math.max(0, enemy.hp.head) + Math.max(0, enemy.hp.torso);
+  return Math.max(0, Math.min(1, cur / max));
+}
+
 export function isDead(enemy) {
   return enemy.hp.head <= 0 || enemy.hp.torso <= 0;
 }

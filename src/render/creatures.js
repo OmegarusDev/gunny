@@ -7,6 +7,7 @@ import {
   poseFromNodes,
   posePlayerLocal,
 } from '../figure.js';
+import { lethalHpRatio } from '../entities/enemy.js';
 
 function oval(ctx, x, y, rx, ry, fill) {
   ctx.fillStyle = fill;
@@ -323,6 +324,27 @@ export function drawCreature(ctx, enemy, w2s) {
   footShadow(ctx, local.l, 0);
   footShadow(ctx, local.r, 0);
   drawCutPaper(ctx, local, pal, { skipHead: !!enemy.severedHead && !enemy.alive });
+  ctx.restore();
+}
+
+export function drawEnemyVitals(ctx, enemy, w2s) {
+  const origin = w2s(enemy.worldX, enemy.y);
+  const local = poseEnemyLocal(enemy, { flinch: false });
+  const fill = lethalHpRatio(enemy);
+  const w = 40;
+  const h = 5;
+  const x = origin.x - w * 0.5;
+  const y = origin.y + local.head.y - 15 * S;
+  ctx.save();
+  ctx.fillStyle = 'rgba(8,4,2,0.72)';
+  ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+  if (fill > 0) {
+    ctx.fillStyle = fill > 0.34 ? '#c44536' : '#6a1818';
+    ctx.fillRect(x, y, w * fill, h);
+  }
+  ctx.strokeStyle = 'rgba(224, 163, 58, 0.55)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
   ctx.restore();
 }
 

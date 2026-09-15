@@ -4,8 +4,9 @@ import { runMeters } from '../world/metrics.js';
 import { perfectBand, reloadGaugeBounds, reloadNorm } from '../view/reload.js';
 import { fillRoundRect, strokeRoundRect } from '../util/color.js';
 import { shotSpreadDeg } from '../entities/loadout.js';
-import { drawCreature, drawFrozenCorpse, drawRagdollBody, drawSurvivor } from './creatures.js';
+import { drawCreature, drawEnemyVitals, drawFrozenCorpse, drawRagdollBody, drawSurvivor } from './creatures.js';
 import { gunWorld } from '../figure.js';
+import { rangeDamageMul } from '../systems/ballistics.js';
 import {
   drawAirHaze,
   drawGrain,
@@ -103,22 +104,26 @@ function drawPlayer(ctx, run, viewport) {
 function drawAimCrosshair(ctx, run) {
   const aim = run.aim;
   if (!aim || run.ended) return;
-  const { x, y, anchorX, anchorY, reach, clamped } = aim;
+  const { x, y, anchorX, anchorY, reach, clamped, fullScreen } = aim;
   const spread = shotSpreadDeg(run.stats, run.weapon);
   const cone = 7 + spread * 1.85;
   const gap = 6;
   const arm = cone + 6;
+  const hair = clamped ? 'rgba(224, 150, 98, 0.95)' : 'rgba(243, 230, 208, 0.82)';
+  const pip = clamped ? 'rgba(196, 69, 54, 0.95)' : 'rgba(224, 163, 58, 0.92)';
 
   ctx.save();
-  ctx.strokeStyle = clamped ? 'rgba(212, 176, 122, 0.4)' : 'rgba(224, 176, 98, 0.46)';
-  ctx.lineWidth = 1.8;
-  ctx.setLineDash([5, 7]);
-  ctx.beginPath();
-  ctx.arc(anchorX, anchorY, reach, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  if (clamped && !fullScreen) {
+    const ang = Math.atan2(y - anchorY, x - anchorX);
+    const tick = 0.2;
+    ctx.strokeStyle = 'rgba(196, 69, 54, 0.72)';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.arc(anchorX, anchorY, reach, ang - tick, ang + tick);
+    ctx.stroke();
+  }
 
-  ctx.strokeStyle = 'rgba(243, 230, 208, 0.82)';
+  ctx.strokeStyle = hair;
   ctx.lineWidth = 2.15;
   ctx.beginPath();
   ctx.moveTo(x - arm, y);
@@ -131,7 +136,7 @@ function drawAimCrosshair(ctx, run) {
   ctx.lineTo(x, y + arm);
   ctx.stroke();
 
-  ctx.strokeStyle = 'rgba(224, 163, 58, 0.92)';
+  ctx.strokeStyle = pip;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(x, y, Math.max(5.5, cone * 0.48), 0, Math.PI * 2);
@@ -147,9 +152,9 @@ function drawAimCrosshair(ctx, run) {
 }
 
 function drawEnemies(ctx, run, viewport) {
-  for (const e of run.enemies) {
-    drawCreature(ctx, e, (x, y) => w2s(x, y, run, viewport));
-  }
+  const toScreen = (x, y) => w2s(x, y, run, viewport);
+  for (const e of run.enemies) drawCreature(ctx, e, toScreen);
+  for (const e of run.enemies) drawEnemyVitals(ctx, e, toScreen);
 }
 
 function drawBullets(ctx, run, viewport) {
@@ -159,6 +164,9 @@ function drawBullets(ctx, run, viewport) {
   for (const b of run.bullets) {
     const p = w2s(b.x, b.y, run, viewport);
     const p2 = w2s(b.x - b.vx * 0.045, b.y - b.vy * 0.045, run, viewport);
+    const spent = rangeDamageMul(Math.hypot(b.x - b.ox, b.y - b.oy), b.maxDist);
+    const a = 0.22 + 0.78 * Math.max(0.12, spent);
+    ctx.globalAlpha = a;
     ctx.strokeStyle = 'rgba(255, 170, 60, 0.28)';
     ctx.lineWidth = 6;
     ctx.beginPath();
@@ -178,6 +186,7 @@ function drawBullets(ctx, run, viewport) {
     ctx.beginPath();
     ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalAlpha = 1;
   }
   ctx.restore();
   for (const im of run.impacts) {
@@ -293,17 +302,24 @@ function drawReloadGauge(ctx, run, viewport) {
 }
 
 function drawCallouts(ctx, run, viewport) {
-  ctx.font = '700 12px Georgia, serif';
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'bottom';
+  ctx.textBaseline = 'middle';
   for (const c of run.callouts) {
     const p = w2s(c.x, c.y, run, viewport);
+    const max = c.maxLife || 0.7;
+    const u = Math.max(0, Math.min(1, c.life / max));
+    const fade = u < 0.38 ? u / 0.38 : 1;
+    const born = 1 - u;
+    const pop = 1 + 0.32 * Math.exp(-born * 9);
     ctx.save();
-    ctx.globalAlpha = Math.max(0, Math.min(1, c.life / 0.7));
-    ctx.shadowColor = 'rgba(8,4,2,0.85)';
-    ctx.shadowBlur = 5;
+    ctx.translate(p.x, p.y);
+    ctx.scale(pop, pop);
+    ctx.globalAlpha = fade;
+    ctx.font = `700 ${c.crit || c.head ? 18 : 16}px Georgia, "Iowan Old Style", serif`;
+    ctx.shadowColor = 'rgba(8,4,2,0.9)';
+    ctx.shadowBlur = 6;
     ctx.fillStyle = c.head ? '#ffe08a' : c.crit ? '#ff8aa0' : '#f3e6d0';
-    ctx.fillText(c.text, p.x, p.y);
+    ctx.fillText(c.text, 0, 0);
     ctx.restore();
   }
   ctx.textAlign = 'left';

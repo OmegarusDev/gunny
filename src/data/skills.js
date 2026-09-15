@@ -21,10 +21,10 @@ export const SKILLS = {
     id: 'marksman',
     name: 'Marksmanship',
     short: 'Marksman',
-    desc: 'Tighter first-shot cone, a farther sight picture, and faster aim settle.',
+    desc: 'Tighter first-shot cone and faster aim settle.',
     maxRank: 8,
     baseCost: 40,
-    perRank: { baseSpread: -0.12, aimReach: 10, aimRate: 0.35 },
+    perRank: { baseSpread: -0.12, aimRate: 0.35 },
   },
   scavenger: {
     id: 'scavenger',

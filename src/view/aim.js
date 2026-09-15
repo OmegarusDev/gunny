@@ -22,9 +22,19 @@ export function clampAimPoint(rawX, rawY, anchorX, anchorY, reach) {
   return { x: anchorX + dx * s, y: anchorY + dy * s, clamped: true };
 }
 
-export function resolveAimPoint(rawX, rawY, player, viewport, aimReach) {
+/** LPVO: hold anywhere on the canvas. */
+export function clampToViewport(rawX, rawY, viewW, viewH) {
+  const x = Math.max(0, Math.min(rawX, viewW));
+  const y = Math.max(0, Math.min(rawY, viewH));
+  return { x, y, clamped: x !== rawX || y !== rawY };
+}
+
+export function resolveAimPoint(rawX, rawY, player, viewport, aimReach, opts = {}) {
   const anchor = gunScreenAnchor(player, viewport);
-  const point = clampAimPoint(rawX, rawY, anchor.x, anchor.y, aimReach);
+  const fullScreen = !!opts.fullScreen;
+  const point = fullScreen
+    ? clampToViewport(rawX, rawY, viewport.w, viewport.h)
+    : clampAimPoint(rawX, rawY, anchor.x, anchor.y, aimReach);
   return {
     x: point.x,
     y: point.y,
@@ -32,5 +42,6 @@ export function resolveAimPoint(rawX, rawY, player, viewport, aimReach) {
     anchorX: anchor.x,
     anchorY: anchor.y,
     reach: Math.max(1, aimReach),
+    fullScreen,
   };
 }

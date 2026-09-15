@@ -1,4 +1,4 @@
-import { effectiveAimReach, FIXED_DT, MAX_FRAME_DT } from './config.js';
+import { effectiveAimReach, FIXED_DT, MAX_FRAME_DT, usesFullScreenAim } from './config.js';
 import { createCanvas } from './engine/canvas.js';
 import { createInput } from './engine/input.js';
 import { enterImmersive } from './engine/immersive.js';
@@ -193,6 +193,7 @@ function frame(now) {
         run.player,
         viewport,
         effectiveAimReach(run.stats, viewport),
+        { fullScreen: usesFullScreenAim(run.stats) },
       );
     }
     drawWorld(ctx, run, viewport);

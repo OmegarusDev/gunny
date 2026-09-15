@@ -1,4 +1,4 @@
-import { effectiveAimReach, effectiveShotRange, HIT_IMPULSE, PERFECT_MAG_MULT, TRACK_METERS, V_RETREAT } from '../config.js';
+import { effectiveAimReach, effectiveShotRange, HIT_IMPULSE, PERFECT_MAG_MULT, TRACK_METERS, usesFullScreenAim, V_RETREAT } from '../config.js';
 import { randomSeed, seedForLevel, seedFromUint32 } from '../engine/rng.js';
 import { biomeFor } from '../data/biomes.js';
 import { createTerrain } from '../world/terrain.js';
@@ -89,7 +89,8 @@ function applyHits(run) {
     const loc = hit.locational;
     const perfect = hit.bullet?.perfect ? PERFECT_MAG_MULT : 1;
     const critMul = crit ? stats.critMult : 1;
-    const dmg = stats.damage * loc * critMul * perfect;
+    const rangeMul = hit.rangeMul ?? 1;
+    const dmg = stats.damage * loc * critMul * perfect * rangeMul;
     const zone = hit.zone;
     const pool = zone === 'head' ? 'head' : zone === 'lLeg' || zone === 'rLeg' ? zone : 'torso';
     const remaining = Math.max(0, enemy.hp[pool]);
@@ -98,11 +99,20 @@ function applyHits(run) {
     onHit(run.score, zone, crit);
     playFlesh(zone === 'head');
 
-    let label = zone === 'head' ? 'HEAD' : zone === 'upper' ? 'UPPER' : zone === 'lower' ? 'LOWER' : 'LEG';
-    if (zone === 'head' && crit) label = 'HEAD CRIT';
-    else if (crit) label = `${label} CRIT`;
-    run.callouts.push({ x: hit.x, y: hit.y - 10, text: label, life: 0.7, crit, head: zone === 'head' });
-    run.lastCallout = label;
+    const applied = Math.max(0, dmg);
+    const n = applied >= 9.5 ? String(Math.round(applied)) : applied.toFixed(1);
+    run.callouts.push({
+      x: hit.x + (run.rng() - 0.5) * 16,
+      y: hit.y - 12,
+      vx: (run.rng() - 0.5) * 70,
+      vy: -260,
+      text: n,
+      life: 0.92,
+      maxLife: 0.92,
+      crit,
+      head: zone === 'head',
+    });
+    run.lastCallout = crit ? `${n} crit` : n;
 
     if (zone === 'head') {
       run.particles.push(...spawnBurst(hit.x, hit.y, 10, run.rng));
@@ -179,7 +189,14 @@ export function simulate(run, dt, viewport, input) {
   player.y = run.terrain.height(player.worldX);
 
   const gun = gunWorld(player);
-  const aim = resolveAimPoint(input.pointerX, input.pointerY, player, viewport, effectiveAimReach(stats, viewport));
+  const aim = resolveAimPoint(
+    input.pointerX,
+    input.pointerY,
+    player,
+    viewport,
+    effectiveAimReach(stats, viewport),
+    { fullScreen: usesFullScreenAim(stats) },
+  );
   run.aim = aim;
   const aimWorld = screenToWorld(aim.x, aim.y, player.worldX, viewport);
   const target = Math.atan2(aimWorld.y - gun.y, aimWorld.x - gun.x);

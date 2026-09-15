@@ -8,7 +8,7 @@ export const STATS = [
   { id: 'damage', min: 6, gunsmith: true, gunsmithLabel: 'DMG', format: (v) => v.toFixed(1) },
   { id: 'rof', min: 1.5, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => v.toFixed(1) },
   { id: 'magSize', min: 1, round: true, gunsmith: true, gunsmithLabel: 'MAG', format: (v) => String(v) },
-  { id: 'bulletSpeed', min: 280, gunsmith: true, gunsmithLabel: 'VEL', format: (v) => v.toFixed(0) },
+  { id: 'bulletSpeed', min: 280, gunsmith: true, gunsmithLabel: 'MV', format: (v) => v.toFixed(0) },
   { id: 'pen', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2) },
   { id: 'reload', min: 0.7, gunsmith: true, gunsmithLabel: 'Reload', format: (v) => `${v.toFixed(2)}s` },
   { id: 'shotRange', min: SHOT_REACH_MIN, max: SHOT_REACH_MAX, gunsmith: true, gunsmithLabel: 'Range', format: (v) => String(Math.round(v)) },
@@ -18,7 +18,10 @@ export const STATS = [
 ];
 
 export function gunsmithStatRows(stats) {
-  return STATS.filter((s) => s.gunsmith).map((s) => [s.gunsmithLabel, s.format(stats[s.id])]);
+  return STATS.filter((s) => s.gunsmith).map((s) => {
+    if (s.id === 'aimReach' && stats.fullScreenAim) return [s.gunsmithLabel, 'Full'];
+    return [s.gunsmithLabel, s.format(stats[s.id])];
+  });
 }
 
 function clampStat(stats, def) {

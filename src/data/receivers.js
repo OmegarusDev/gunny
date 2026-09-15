@@ -62,7 +62,7 @@ export const RECEIVERS = {
     tier: 2,
     rank: 1,
     requires: 't1_stock',
-    cost: 450,
+    cost: 550,
     desc: 'Opens optic, stock, and muzzle. Better heat path.',
     base: {
       damage: 14,
@@ -92,7 +92,7 @@ export const RECEIVERS = {
     tier: 3,
     rank: 2,
     requires: 't2_tactical',
-    cost: 1100,
+    cost: 1350,
     desc: 'Full internals: trigger and gas. High RoF ceiling.',
     base: {
       damage: 15,

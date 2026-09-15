@@ -121,7 +121,7 @@ export const PARTS = {
     name: 'Iron Sights',
     short: 'Iron',
     cost: 0,
-    desc: 'Close sight picture. Fine on touch, tight on mouse.',
+    desc: 'Close sight picture. Zombies have to come onto the road.',
     mods: {},
   },
   optic_dot: {
@@ -132,8 +132,8 @@ export const PARTS = {
     name: 'Red Dot',
     short: 'Dot',
     cost: 200,
-    desc: 'Tighter cone and a farther sight picture. Does not add gun range.',
-    mods: { bloomPerShot: -0.28, aimRate: 0.8, aimReach: 96, baseSpread: -0.25 },
+    desc: 'Tighter cone and a farther hold. Still short of mid-field. Does not add gun range.',
+    mods: { bloomPerShot: -0.28, aimRate: 0.8, aimReach: 141, baseSpread: -0.25 },
   },
   optic_acog: {
     id: 'optic_acog',
@@ -143,8 +143,8 @@ export const PARTS = {
     name: 'ACOG',
     short: 'ACOG',
     cost: 380,
-    desc: 'Holds aim much farther out with a cleaner first shot.',
-    mods: { bloomPerShot: -0.4, aimRate: -0.3, bloomRecover: 0.6, aimReach: 168, baseSpread: -0.45 },
+    desc: 'Holds into the right half of the screen with a cleaner first shot.',
+    mods: { bloomPerShot: -0.4, aimRate: -0.3, bloomRecover: 0.6, aimReach: 294, baseSpread: -0.45 },
   },
   optic_lpvo: {
     id: 'optic_lpvo',
@@ -154,8 +154,8 @@ export const PARTS = {
     name: 'LPVO',
     short: 'LPVO',
     cost: 640,
-    desc: 'Best sight picture and bloom control. Bullets still use barrel range.',
-    mods: { bloomPerShot: -0.55, aimRate: 0.4, bloomRecover: 0.9, weight: 0.06, aimReach: 248, baseSpread: -0.7 },
+    desc: 'Hold anywhere on screen. Barrel still sets how hard the round hits out there.',
+    mods: { bloomPerShot: -0.55, aimRate: 0.4, bloomRecover: 0.9, weight: 0.06, fullScreenAim: 1, baseSpread: -0.7 },
   },
 
   stock_none: {
@@ -166,7 +166,7 @@ export const PARTS = {
     short: 'None',
     cost: 0,
     desc: 'Muzzle jump lives here.',
-    mods: { bloomRecover: -1.4, aimRate: -0.8, weight: -0.08, baseSpread: 0.25, aimReach: -4 },
+    mods: { bloomRecover: -1.4, aimRate: -0.8, weight: -0.08, baseSpread: 0.25 },
   },
   stock_wire: {
     id: 'stock_wire',
@@ -177,7 +177,7 @@ export const PARTS = {
     short: 'Wire',
     cost: 160,
     desc: 'Light brace.',
-    mods: { bloomRecover: 0.8, aimRate: 0.5, baseSpread: -0.1, aimReach: 4 },
+    mods: { bloomRecover: 0.8, aimRate: 0.5, baseSpread: -0.1 },
   },
   stock_combat: {
     id: 'stock_combat',
@@ -188,7 +188,7 @@ export const PARTS = {
     short: 'Combat',
     cost: 320,
     desc: 'Bloom recovery and slope settle.',
-    mods: { bloomRecover: 1.8, aimRate: 1.1, bloomPerShot: -0.12, baseSpread: -0.25, aimReach: 8 },
+    mods: { bloomRecover: 1.8, aimRate: 1.1, bloomPerShot: -0.12, baseSpread: -0.25 },
   },
   stock_precision: {
     id: 'stock_precision',
@@ -199,7 +199,7 @@ export const PARTS = {
     short: 'Precision',
     cost: 520,
     desc: 'Best recovery. Heavier.',
-    mods: { bloomRecover: 3.0, aimRate: 1.6, bloomPerShot: -0.22, weight: 0.1, baseSpread: -0.4, aimReach: 12 },
+    mods: { bloomRecover: 3.0, aimRate: 1.6, bloomPerShot: -0.22, weight: 0.1, baseSpread: -0.4 },
   },
 
   muzzle_none: {

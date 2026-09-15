@@ -22,7 +22,7 @@ export function renderTraining(el, profile, handlers) {
         ['Crit', `${(stats.critChance * 100).toFixed(0)}%`],
         ['Crit ×', stats.critMult.toFixed(2)],
         ['Cash', `×${stats.cashMul.toFixed(2)}`],
-        ['Sight', Math.round(stats.aimReach)],
+        ['Sight', stats.fullScreenAim ? 'Full' : Math.round(stats.aimReach)],
         ['Range', Math.round(stats.shotRange)],
         ['Spread', `${stats.baseSpread.toFixed(2)}°`],
       ])}

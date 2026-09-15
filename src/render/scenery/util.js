@@ -66,12 +66,25 @@ export function inViewX(sx, half, viewW) {
   return sx + half > 0 && sx - half < viewW;
 }
 
+/** Pixel height for a deciduous tree. Near/min already towers over the ~270px gunner. */
+export function deciduousH(layer, n) {
+  if (layer === 'far') return 300 + n * 190;
+  if (layer === 'near') return 520 + n * 340;
+  return 210 + n * 90;
+}
+
+export function pineH(layer, n) {
+  if (layer === 'far') return 340 + n * 210;
+  if (layer === 'near') return 560 + n * 300;
+  return 230 + n * 100;
+}
+
 export function treeHalf(h) {
   return h * 0.82 + 8;
 }
 
-export function pineHalf(scale) {
-  return 42 * scale;
+export function pineHalf(h) {
+  return h * 0.34 + 10;
 }
 
 export function tilesInView(left, viewW, spacing, half) {

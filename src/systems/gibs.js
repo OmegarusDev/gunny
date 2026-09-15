@@ -70,7 +70,14 @@ export function stepGibs(run, dt) {
   run.particles = run.particles.filter((p) => p.life > 0);
 
   for (const c of run.callouts) {
-    c.y -= 28 * dt;
+    if (c.vy == null) {
+      c.y -= 28 * dt;
+    } else {
+      c.vy += 560 * dt;
+      c.x += (c.vx || 0) * dt;
+      c.y += c.vy * dt;
+      c.vx = (c.vx || 0) * Math.exp(-dt * 5.5);
+    }
     c.life -= dt;
   }
   run.callouts = run.callouts.filter((c) => c.life > 0);

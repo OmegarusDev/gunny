@@ -21,6 +21,7 @@ import {
   effectiveShotRange,
   enemyHp,
   threatForDistance,
+  usesFullScreenAim,
 } from '../src/config.js';
 import { PARTS, catalogWindow, partsForSlot } from '../src/data/attachments.js';
 import { BIOMES, beatenRoadIndexes, biomeFor } from '../src/data/biomes.js';
@@ -28,11 +29,11 @@ import { KINDS } from '../src/data/kinds.js';
 import { RECEIVERS } from '../src/data/receivers.js';
 import { SKILLS, emptyRanks, refundRetiredRanks, skillCost } from '../src/data/skills.js';
 import { gunsmithStatRows, resolveStats, shotSpreadDeg, STATS } from '../src/entities/loadout.js';
-import { applyFlinch, createEnemy, limbCircles, stepFlinch } from '../src/entities/enemy.js';
+import { applyFlinch, createEnemy, lethalHpRatio, limbCircles, stepFlinch } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
 import { wantsImmersive, usesHtmlFullscreen } from '../src/engine/immersive.js';
-import { clampAimPoint, resolveAimPoint } from '../src/view/aim.js';
+import { clampAimPoint, clampToViewport, resolveAimPoint } from '../src/view/aim.js';
 import { perfectBand, reloadNorm } from '../src/view/reload.js';
 import { uhash } from '../src/util/hash.js';
 import { mixHex, mixTone } from '../src/util/color.js';
@@ -41,9 +42,11 @@ import { createPlayer } from '../src/entities/player.js';
 import { playerHeadClearance, poseEnemyLocal } from '../src/figure.js';
 import { shotEnergy } from '../src/systems/impulse.js';
 import { spawnRagdoll } from '../src/systems/ragdoll.js';
+import { stepGibs } from '../src/systems/gibs.js';
 import { createRun, simulate } from '../src/systems/run.js';
-import { spawnBullet, stepBullets } from '../src/systems/ballistics.js';
+import { spawnBullet, stepBullets, rangeDamageMul } from '../src/systems/ballistics.js';
 import { capDpr, createQuality } from '../src/engine/quality.js';
+import { deciduousH, pineH } from '../src/render/scenery/util.js';
 
 describe('threat pacing', () => {
   it('keeps the next-road start shift smaller than the within-road span', () => {
@@ -98,6 +101,29 @@ describe('threat pacing', () => {
     expect(enemyHp(l10e.hpMul).torso).toBeGreaterThanOrEqual(1);
     expect(enemyHp(-2).head).toBeGreaterThanOrEqual(1);
   });
+
+  it('chases a bit quicker and only sprints very late', () => {
+    expect(THREAT.chill.speed).toBeGreaterThanOrEqual(118);
+    expect(THREAT.hectic.speed).toBeGreaterThan(THREAT.chill.speed);
+    expect(THREAT.hectic.speed).toBeLessThan(THREAT.speedCap);
+    expect(THREAT.speedCap).toBeLessThan(THREAT.speedSprint);
+
+    const l0s = threatForDistance(0, 0, false);
+    const l0e = threatForDistance(TRACK_METERS, 0, false);
+    const l2e = threatForDistance(TRACK_METERS, 2, false);
+    const l10e = threatForDistance(TRACK_METERS, 10, false);
+    const l20e = threatForDistance(TRACK_METERS, 20, false);
+    expect(l0e.speed).toBeGreaterThan(l0s.speed);
+    expect(l2e.speed).toBeGreaterThan(l0e.speed);
+    expect(l10e.speed).toBeLessThanOrEqual(THREAT.speedCap);
+    expect(l20e.speed).toBeGreaterThan(THREAT.speedCap);
+    expect(l20e.speed).toBeLessThanOrEqual(THREAT.speedSprint);
+
+    const deepEndless = TRACK_METERS + (THREAT.sprintEndless + 6) * 120;
+    expect(threatForDistance(600, 0, true).speed).toBeLessThanOrEqual(THREAT.speedCap);
+    expect(threatForDistance(deepEndless, 0, true).speed).toBeGreaterThan(THREAT.speedCap);
+    expect(threatForDistance(deepEndless, 0, true).speed).toBeLessThanOrEqual(THREAT.speedSprint);
+  });
 });
 
 describe('economy & ladders', () => {
@@ -116,7 +142,10 @@ describe('economy & ladders', () => {
   it('exposes receivers with rising cost and tier', () => {
     expect(RECEIVERS.t1_stock.cost).toBe(0);
     expect(RECEIVERS.t2_tactical.requires).toBe('t1_stock');
+    expect(RECEIVERS.t2_tactical.cost).toBe(550);
     expect(RECEIVERS.t3_ordnance.tier).toBe(3);
+    expect(RECEIVERS.t3_ordnance.cost).toBe(1350);
+    expect(RECEIVERS.t3_ordnance.cost).toBeGreaterThan(RECEIVERS.t2_tactical.cost);
   });
 
   it('wipes a live profile back to camp defaults', () => {
@@ -178,12 +207,13 @@ describe('loadout aim stats', () => {
     expect(gunX + range).toBeCloseTo(viewport.w * SHOT_SCREEN_FRAC, 5);
   });
 
-  it('places iron sights at mid-screen, short of gun range', () => {
+  it('places iron sights at a third of the screen, short of gun range', () => {
     const viewport = { w: 1280, h: 720 };
     const stats = resolveStats(defaultProfile());
     const sight = effectiveAimReach(stats, viewport);
     const gunX = viewport.w * PLAYER_SCREEN_X_RATIO;
     expect(gunX + sight).toBeCloseTo(viewport.w * AIM_SCREEN_FRAC, 5);
+    expect(AIM_SCREEN_FRAC).toBeCloseTo(0.35, 5);
     expect(sight).toBeLessThan(effectiveShotRange(stats, viewport));
   });
 
@@ -192,14 +222,45 @@ describe('loadout aim stats', () => {
     profile.owned.push('t2_tactical', 'optic_dot', 'optic_acog');
     profile.loadout.receiver = 't2_tactical';
     const irons = resolveStats(profile);
+    profile.loadout.optic = 'optic_dot';
+    const dot = resolveStats(profile);
     profile.loadout.optic = 'optic_acog';
     const scoped = resolveStats(profile);
     const viewport = { w: 1280, h: 720 };
-    expect(scoped.aimReach).toBeGreaterThan(irons.aimReach);
+    const gunX = viewport.w * PLAYER_SCREEN_X_RATIO;
+    expect(dot.aimReach).toBeGreaterThan(irons.aimReach);
+    expect(scoped.aimReach).toBeGreaterThan(dot.aimReach);
+    expect(gunX + effectiveAimReach(dot, viewport)).toBeLessThan(viewport.w * 0.5);
+    expect(gunX + effectiveAimReach(scoped, viewport)).toBeGreaterThan(viewport.w * 0.5);
+    expect(gunX + effectiveAimReach(scoped, viewport)).toBeLessThan(viewport.w * 0.7);
     expect(scoped.baseSpread).toBeLessThan(irons.baseSpread);
     expect(scoped.shotRange).toBeCloseTo(irons.shotRange, 5);
-    expect(effectiveAimReach(scoped, viewport)).toBeGreaterThan(effectiveAimReach(irons, viewport));
     expect(effectiveShotRange(scoped, viewport)).toBeCloseTo(effectiveShotRange(irons, viewport), 5);
+    expect(usesFullScreenAim(scoped)).toBe(false);
+  });
+
+  it('lets only LPVO hold the whole screen', () => {
+    const profile = defaultProfile();
+    profile.owned.push('t2_tactical', 't3_ordnance', 'optic_dot', 'optic_acog', 'optic_lpvo');
+    profile.loadout.receiver = 't3_ordnance';
+    profile.loadout.optic = 'optic_acog';
+    const acog = resolveStats(profile);
+    profile.loadout.optic = 'optic_lpvo';
+    const lpvo = resolveStats(profile);
+    const viewport = { w: 1280, h: 720 };
+    expect(usesFullScreenAim(acog)).toBe(false);
+    expect(usesFullScreenAim(lpvo)).toBe(true);
+    const terrain = createTerrain(1, 720, { id: 'forest' });
+    const player = createPlayer(0, terrain);
+    const far = resolveAimPoint(1240, 40, player, viewport, effectiveAimReach(lpvo, viewport), {
+      fullScreen: true,
+    });
+    expect(far.clamped).toBe(false);
+    expect(far.x).toBe(1240);
+    expect(far.y).toBe(40);
+    const disc = resolveAimPoint(1240, 40, player, viewport, effectiveAimReach(acog, viewport));
+    expect(disc.clamped).toBe(true);
+    expect(Math.hypot(disc.x - disc.anchorX, disc.y - disc.anchorY)).toBeLessThan(520);
   });
 
   it('lets barrels add gun range without stretching the reticle', () => {
@@ -215,13 +276,18 @@ describe('loadout aim stats', () => {
     expect(effectiveAimReach(rifle, viewport)).toBeCloseTo(effectiveAimReach(stub, viewport), 5);
   });
 
-  it('extends sight picture with marksman and stays in clamp', () => {
+  it('tightens marksman without unlocking extra sight reach', () => {
     const profile = defaultProfile();
-    profile.skillRanks.marksman = 5;
+    profile.skillRanks.marksman = 8;
+    profile.owned.push('t2_tactical', 'stock_wire', 'stock_combat', 'stock_precision');
+    profile.loadout.receiver = 't2_tactical';
+    profile.loadout.stock = 'stock_precision';
     const stats = resolveStats(profile);
     const stock = resolveStats(defaultProfile());
-    expect(stats.aimReach).toBeGreaterThan(stock.aimReach);
+    expect(stats.aimReach).toBeCloseTo(stock.aimReach, 5);
+    expect(usesFullScreenAim(stats)).toBe(false);
     expect(stats.baseSpread).toBeLessThan(stock.baseSpread);
+    expect(stats.aimRate).toBeGreaterThan(stock.aimRate);
     expect(stats.aimReach).toBeLessThanOrEqual(AIM_REACH_MAX);
   });
 
@@ -242,6 +308,13 @@ describe('aim clamp', () => {
     const p = clampAimPoint(400, 100, 100, 100, 50);
     expect(p.clamped).toBe(true);
     expect(Math.hypot(p.x - 100, p.y - 100)).toBeCloseTo(50, 5);
+  });
+
+  it('clamps LPVO pointers to the viewport instead of a disc', () => {
+    const inside = clampToViewport(100, 80, 1280, 720);
+    expect(inside).toEqual({ x: 100, y: 80, clamped: false });
+    const corner = clampToViewport(1400, -20, 1280, 720);
+    expect(corner).toEqual({ x: 1280, y: 0, clamped: true });
   });
 
   it('resolves against the gun screen anchor', () => {
@@ -272,7 +345,7 @@ describe('reload helpers', () => {
 describe('skills & profile', () => {
   it('includes marksman in empty ranks', () => {
     expect(emptyRanks().marksman).toBe(0);
-    expect(SKILLS.marksman.perRank.aimReach).toBe(10);
+    expect(SKILLS.marksman.perRank.aimReach).toBeUndefined();
     expect(SKILLS.elevation).toBeUndefined();
     expect(Object.keys(SKILLS).length % 2).toBe(0);
   });
@@ -341,6 +414,14 @@ describe('world helpers', () => {
     expect(max - min).toBeGreaterThan((floorY - peakY) * 0.32);
     expect(forestSteep).toBeGreaterThan(desertSteep);
     expect(forestSteep).toBeLessThan(0.38);
+  });
+
+  it('trees tower over the gunner', () => {
+    const stand = playerHeadClearance();
+    expect(deciduousH('near', 0)).toBeGreaterThan(stand * 1.7);
+    expect(pineH('near', 0)).toBeGreaterThan(stand * 1.7);
+    expect(deciduousH('far', 0)).toBeGreaterThan(stand);
+    expect(pineH('far', 0)).toBeGreaterThan(stand);
   });
 
   it('scales enemy pools by hpMul', () => {
@@ -427,6 +508,29 @@ describe('hit impulse', () => {
     expect(drawn.head.x).not.toBe(combat.head.x);
     const circles = limbCircles(pose);
     expect(circles.head.x).toBe(combat.head.x);
+  });
+
+  it('drops lethal hp on the bar and springs damage floaters', () => {
+    const terrain = { height: () => 400 };
+    const foe = createEnemy(0, terrain, 1, 80, 'zombie');
+    expect(lethalHpRatio(foe)).toBe(1);
+    foe.hp.torso -= 20;
+    expect(lethalHpRatio(foe)).toBeLessThan(1);
+    const afterLeg = lethalHpRatio(foe);
+    foe.hp.lLeg = 0;
+    expect(lethalHpRatio(foe)).toBeCloseTo(afterLeg, 5);
+    foe.hp.head = 0;
+    expect(lethalHpRatio(foe)).toBeLessThan(afterLeg);
+
+    const run = {
+      callouts: [{ x: 10, y: 80, vx: 20, vy: -240, life: 0.92, maxLife: 0.92, text: '13' }],
+      particles: [],
+      gibs: [],
+      impacts: [],
+    };
+    stepGibs(run, 0.05);
+    expect(run.callouts[0].y).toBeLessThan(80);
+    expect(run.callouts[0].life).toBeLessThan(0.92);
   });
 });
 
@@ -593,14 +697,18 @@ describe('simulate loop', () => {
     expect(run.weapon.tapped).toBe(true);
   });
 
-  it('drops bullets at gun range so off-screen spawns cannot be shot', () => {
+  it('keeps spent rounds flying past effective range with inverse-square drop', () => {
+    expect(rangeDamageMul(48, 48)).toBe(1);
+    expect(rangeDamageMul(96, 48)).toBeCloseTo(0.25, 5);
+    expect(rangeDamageMul(72, 48)).toBeCloseTo((48 / 72) ** 2, 5);
     const run = liveRun();
     const maxDist = 48;
     const b = spawnBullet(run.player.worldX, run.player.y - 120, 0, run.stats, false, maxDist);
     run.enemies.length = 0;
     run.bullets = [b];
     for (let i = 0; i < 20; i++) stepBullets(run, dt, viewport);
-    expect(run.bullets).toHaveLength(0);
+    expect(run.bullets).toHaveLength(1);
+    expect(Math.hypot(run.bullets[0].x - b.ox, run.bullets[0].y - b.oy)).toBeGreaterThan(maxDist);
     expect(clampShotRange(4000, viewport)).toBeLessThan(viewport.w * (1 - PLAYER_SCREEN_X_RATIO));
     expect(AIM_REACH_MAX).toBeLessThan(clampShotRange(4000, viewport));
   });
