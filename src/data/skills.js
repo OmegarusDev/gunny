@@ -2,6 +2,7 @@ export const SKILLS = {
   recoil: {
     id: 'recoil',
     name: 'Recoil Mitigation',
+    short: 'Recoil',
     desc: 'Reduces bloom expansion per shot.',
     maxRank: 8,
     baseCost: 35,
@@ -10,6 +11,7 @@ export const SKILLS = {
   reload: {
     id: 'reload',
     name: 'Precision Reloading',
+    short: 'Reload',
     desc: 'Faster reloads and a wider perfect active-reload window.',
     maxRank: 8,
     baseCost: 40,
@@ -18,6 +20,7 @@ export const SKILLS = {
   elevation: {
     id: 'elevation',
     name: 'Agile Elevation Tracking',
+    short: 'Elevation',
     desc: 'Faster aim settle and slightly longer reach across slopes.',
     maxRank: 8,
     baseCost: 35,
@@ -26,6 +29,7 @@ export const SKILLS = {
   marksman: {
     id: 'marksman',
     name: 'Marksmanship',
+    short: 'Marksman',
     desc: 'Tighter first-shot cone and longer aim reach.',
     maxRank: 8,
     baseCost: 40,
@@ -34,6 +38,7 @@ export const SKILLS = {
   scavenger: {
     id: 'scavenger',
     name: 'Scavenger Focus',
+    short: 'Scavenger',
     desc: 'More cash from kills. Softens long grinds.',
     maxRank: 8,
     baseCost: 30,
@@ -42,6 +47,7 @@ export const SKILLS = {
   critChance: {
     id: 'critChance',
     name: 'Crit Chance',
+    short: 'Crit %',
     desc: 'Independent RNG crit chance. Not a headshot.',
     maxRank: 10,
     baseCost: 45,
@@ -50,6 +56,7 @@ export const SKILLS = {
   critMult: {
     id: 'critMult',
     name: 'Crit Multiplier',
+    short: 'Crit ×',
     desc: 'Increases crit damage multiplier.',
     maxRank: 8,
     baseCost: 50,

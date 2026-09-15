@@ -11,6 +11,13 @@
   --gunny-brass: #d4b07a;
   --gunny-muted: #c4a990;
   --gunny-ink: #140e0a;
+  --panel-wood:
+    repeating-linear-gradient(
+      90deg,
+      rgba(90, 56, 32, 0.07) 0 1px,
+      transparent 1px 8px
+    ),
+    linear-gradient(180deg, rgba(64, 38, 24, 0.96), rgba(24, 14, 10, 0.97));
 }
 
 html,
@@ -162,166 +169,176 @@ canvas {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(108px, 148px) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "ledger ledger"
+    "sat stage";
+  gap: 8px 10px;
   z-index: 20;
-  padding: 12px;
+  padding: max(8px, env(safe-area-inset-top, 0px)) max(10px, env(safe-area-inset-right, 0px))
+    max(8px, env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
   touch-action: auto;
+}
+
+#overlay-root .chrome-ledger {
+  grid-area: ledger;
+  pointer-events: auto;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+#overlay-root .chrome-ledger .ledger {
+  flex: 1 1 auto;
+  max-width: 420px;
+}
+
+#overlay-root .sat-panel {
+  grid-area: sat;
+  pointer-events: auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--panel-wood);
+  border: 1px solid var(--gunny-brass);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 230, 190, 0.12);
+  border-radius: 8px;
+  padding: 8px 8px 6px;
+}
+
+#overlay-root .stage {
+  grid-area: stage;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  pointer-events: none;
 }
 
 #overlay-root .panel {
   pointer-events: auto;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(90, 56, 32, 0.07) 0 1px,
-      transparent 1px 8px
-    ),
-    linear-gradient(180deg, rgba(64, 38, 24, 0.96), rgba(24, 14, 10, 0.97));
-  border: 1px solid #d4b07a;
+  background: var(--panel-wood);
+  border: 1px solid var(--gunny-brass);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 230, 190, 0.14);
-  color: #f3e6d0;
-  padding: 18px 18px 16px;
-  width: min(560px, 100%);
-  max-height: 92%;
-  overflow: auto;
+  color: var(--gunny-bone);
+  padding: 10px 14px 8px;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
   border-radius: 8px;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  display: flex;
+  flex-direction: column;
+  touch-action: manipulation;
+}
+
+#overlay-root .panel-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 #overlay-root button:focus-visible,
 #overlay-root .chip:focus-visible,
-#overlay-root .card:focus-visible,
 #overlay-root .facility:focus-visible {
-  outline: 2px solid #e0a33a;
+  outline: 2px solid var(--gunny-gold);
   outline-offset: 2px;
-}
-
-#panel-gunsmith,
-#panel-training {
-  width: min(760px, 100%);
 }
 
 #overlay-root .kicker {
   font-family: Georgia, "Iowan Old Style", Palatino, serif;
-  color: #e0a33a;
+  color: var(--gunny-gold);
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  font-size: 11px;
-  margin-bottom: 2px;
+  font-size: 10px;
+  margin-bottom: 0;
 }
 
 #overlay-root h1,
 #overlay-root h2 {
   font-family: Georgia, "Iowan Old Style", Palatino, serif;
-  color: #f3e6d0;
+  color: var(--gunny-bone);
   letter-spacing: 0.04em;
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 0;
+  line-height: 1.05;
 }
 
 #overlay-root h1 {
-  color: #c44536;
-  font-size: clamp(28px, 5vw, 40px);
+  color: var(--gunny-blood);
+  font-size: clamp(28px, 4.6vw, 40px);
   text-shadow: 0 2px 0 #1a0c08;
 }
 
 #overlay-root h2 {
-  color: #e0a33a;
-  font-size: clamp(22px, 4vw, 28px);
+  color: var(--gunny-gold);
+  font-size: clamp(20px, 3.4vw, 28px);
 }
 
-#overlay-root .lede {
-  color: #c4a990;
-  font-size: 14px;
-  line-height: 1.45;
-  max-width: 42em;
+#overlay-root .camp-brand {
+  text-align: center;
+  flex-shrink: 0;
 }
 
 #overlay-root .muted {
-  color: #c4a990;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-#overlay-root .kit-line {
-  margin: 2px 0 10px;
-}
-
-#overlay-root .train-blurb {
-  margin-bottom: 12px;
+  color: var(--gunny-muted);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 #overlay-root .ledger {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 6px;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 #overlay-root .ledger > div {
   background: rgba(12, 8, 4, 0.4);
   border: 1px solid #5a4030;
   border-radius: 6px;
-  padding: 9px 11px;
+  padding: 5px 8px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 1px;
 }
 
 #overlay-root .ledger-label {
-  color: #c4a990;
-  font-size: 10px;
+  color: var(--gunny-muted);
+  font-size: 9px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 #overlay-root .ledger-value {
   font-family: Georgia, "Iowan Old Style", serif;
-  font-size: 18px;
-  color: #f3e6d0;
-}
-
-#overlay-root .page-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-#overlay-root .page-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  color: #e0a33a;
-  font-size: 13px;
+  font-size: 16px;
+  color: var(--gunny-bone);
+  line-height: 1.15;
 }
 
 #overlay-root .facilities {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 16px 0 14px;
-}
-
-#overlay-root .facilities.end-actions {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-#overlay-root .facilities.end-actions:not(:has([data-act="retry"])) {
-  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: center;
 }
 
 #overlay-root button {
   background: #3a2418;
-  color: #f3e6d0;
+  color: var(--gunny-bone);
   border: 1px solid #c4a574;
-  padding: 10px 16px;
-  min-height: 44px;
+  padding: 8px 12px;
+  min-height: 40px;
   font: inherit;
   cursor: pointer;
   border-radius: 6px;
@@ -330,13 +347,13 @@ canvas {
 
 #overlay-root button:hover,
 #overlay-root button.active {
-  background: #c44536;
+  background: var(--gunny-blood);
   border-color: #e8c4a0;
   color: #fff6ea;
 }
 
 #overlay-root button.primary {
-  background: #c44536;
+  background: var(--gunny-blood);
   border-color: #e8a090;
   color: #fff6ea;
   font-weight: 600;
@@ -347,38 +364,23 @@ canvas {
 }
 
 #overlay-root button.ghost {
-  background: transparent;
-  min-height: 40px;
-  padding: 8px 12px;
+  background: rgba(12, 8, 4, 0.35);
+  border-color: #6a5038;
+  min-height: 36px;
+  padding: 6px 12px;
+  flex-shrink: 0;
+  align-self: center;
 }
 
 #overlay-root button.ghost:hover {
   background: rgba(196, 69, 54, 0.2);
 }
 
-#overlay-root button.text-btn {
-  display: block;
-  width: 100%;
-  background: none;
-  border: none;
-  color: #c4a990;
-  min-height: 36px;
-  padding: 4px 0;
-  text-align: left;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-#overlay-root button.text-btn:hover {
-  background: none;
-  color: #e0a33a;
-}
-
 #overlay-root button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
   background: #3a2418;
-  color: #f3e6d0;
+  color: var(--gunny-bone);
 }
 
 #overlay-root button.facility {
@@ -386,24 +388,23 @@ canvas {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   width: 100%;
   text-align: left;
-  padding: 14px 16px;
-  min-height: 78px;
+  padding: 10px 12px;
+  min-height: 64px;
   background: #2e1c14;
 }
 
 #overlay-root button.facility:hover {
   background: #4a2c1c;
-  border-color: #e0a33a;
+  border-color: var(--gunny-gold);
   color: #fff6ea;
 }
 
 #overlay-root button.facility.start {
-  grid-column: 1 / -1;
-  min-height: 92px;
-  background: #c44536;
+  min-height: 72px;
+  background: var(--gunny-blood);
   border-color: #e8a090;
   color: #fff6ea;
 }
@@ -412,8 +413,14 @@ canvas {
   background: #a8362a;
 }
 
+#overlay-root button.facility.side {
+  min-height: 72px;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
 #overlay-root .facility-kicker {
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   opacity: 0.72;
@@ -421,128 +428,105 @@ canvas {
 
 #overlay-root .facility-title {
   font-family: Georgia, "Iowan Old Style", serif;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
+  line-height: 1.1;
+}
+
+#overlay-root button.facility.side .facility-title {
+  font-size: 15px;
 }
 
 #overlay-root .facility-sub {
-  font-size: 12px;
+  font-size: 11px;
   opacity: 0.82;
 }
 
 #overlay-root .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
-  gap: 8px;
-  margin: 4px 0 12px;
-  font-size: 14px;
+  gap: 5px;
+  margin: 0;
+  font-size: 13px;
+}
+
+#overlay-root .stats-rail {
+  grid-template-columns: 1fr;
+  height: 100%;
+  align-content: start;
+  overflow: auto;
 }
 
 #overlay-root .stats div {
   background: rgba(12, 8, 4, 0.28);
   border: 1px solid #5a4030;
-  padding: 8px 10px;
+  padding: 5px 7px;
   border-radius: 6px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #overlay-root .stats div span {
-  color: #c4a990;
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  color: var(--gunny-muted);
+  font-size: 9px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 #overlay-root .chips {
   display: flex;
-  gap: 8px;
+  gap: 5px;
   overflow-x: auto;
-  padding: 2px 0 12px;
-  margin: 0 -4px 4px;
+  overflow-y: hidden;
+  padding: 0;
+  margin: 0;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  min-width: 0;
+  scrollbar-width: thin;
 }
 
 #overlay-root .chip {
   flex: 0 0 auto;
   scroll-snap-align: start;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  min-width: 96px;
-  min-height: 52px;
-  padding: 8px 12px;
+  justify-content: center;
+  align-items: center;
+  min-width: 4.4rem;
+  min-height: 34px;
+  padding: 4px 8px;
   background: #2a1c14;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
 }
 
-#overlay-root .chip small {
-  color: #c4a990;
-  font-size: 11px;
-  max-width: 110px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+#overlay-root .part-chip {
+  min-width: 4.4rem;
 }
 
 #overlay-root .chip.selected,
 #overlay-root .chip:hover {
   background: rgba(224, 163, 58, 0.14);
-  border-color: #e0a33a;
+  border-color: var(--gunny-gold);
   color: #fff6ea;
+}
+
+#overlay-root .chip.equipped-chip {
+  border-color: var(--gunny-blood);
+}
+
+#overlay-root .chip.unowned {
+  opacity: 0.55;
 }
 
 #overlay-root .chip.locked {
   opacity: 0.5;
-}
-
-#overlay-root .card.locked {
-  opacity: 0.55;
-}
-
-#overlay-root .card-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-#overlay-root .train-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-bottom: 12px;
-}
-
-#overlay-root button,
-#overlay-root .facility,
-#overlay-root .chip {
-  min-height: 44px;
-}
-
-#overlay-root .card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  width: 100%;
-  text-align: left;
-  padding: 12px;
-  min-height: 64px;
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid #6a5038;
-}
-
-#overlay-root .card:hover,
-#overlay-root .card.selected {
-  border-color: #e0a33a;
-  background: rgba(224, 163, 58, 0.1);
-  color: #fff6ea;
-}
-
-#overlay-root .card.equipped {
-  border-color: #c44536;
-  background: rgba(196, 69, 54, 0.14);
 }
 
 #overlay-root .card-top {
@@ -553,48 +537,119 @@ canvas {
 }
 
 #overlay-root .tag {
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #c4a990;
+  color: var(--gunny-muted);
   flex-shrink: 0;
 }
 
-#overlay-root .tag.hot {
-  color: #e8a090;
+#overlay-root .slot-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-#overlay-root .tag.own {
-  color: #e0a33a;
+#overlay-root .slot-row {
+  display: grid;
+  grid-template-columns: 3.7rem minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 36px;
+  flex-shrink: 0;
 }
 
-#overlay-root .skill-card button {
-  margin-top: 4px;
-  width: 100%;
+#overlay-root .slot-row.is-active .slot-label {
+  color: var(--gunny-gold);
+}
+
+#overlay-root .slot-row.locked {
+  opacity: 0.45;
+}
+
+#overlay-root .slot-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gunny-muted);
+  font-weight: 600;
+}
+
+#overlay-root .slot-lock {
+  padding: 0 4px;
+  font-size: 11px;
+}
+
+#overlay-root .train-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: start;
+  overflow: auto;
+}
+
+#overlay-root .skill-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid #6a5038;
+  border-radius: 6px;
+  min-width: 0;
+}
+
+#overlay-root .skill-row.selected {
+  border-color: var(--gunny-gold);
+  background: rgba(224, 163, 58, 0.1);
+}
+
+#overlay-root .skill-row strong {
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+#overlay-root .skill-row button {
+  min-width: 72px;
+  min-height: 36px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+#overlay-root .skill-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 #overlay-root .pips {
   display: flex;
-  gap: 3px;
+  gap: 2px;
+  flex-wrap: wrap;
 }
 
 #overlay-root .pips i {
   display: block;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 1px;
   background: #3a2a1c;
   border: 1px solid #6a5038;
 }
 
 #overlay-root .pips i.on {
-  background: #e0a33a;
-  border-color: #e0a33a;
-}
-
-#overlay-root .empty-note {
-  color: #c4a990;
-  padding: 18px 8px;
+  background: var(--gunny-gold);
+  border-color: var(--gunny-gold);
 }
 
 #overlay-root .sheet-foot {
@@ -602,49 +657,110 @@ canvas {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 12px;
-  padding-top: 12px;
+  margin: 0;
+  margin-top: auto;
+  padding-top: 8px;
   border-top: 1px solid #5a4030;
-  position: sticky;
-  bottom: -16px;
-  background: linear-gradient(180deg, rgba(24, 14, 10, 0), rgba(24, 14, 10, 0.97) 22%);
+  flex-shrink: 0;
 }
 
 #overlay-root .sheet-foot .primary {
   margin-left: auto;
-  min-width: 140px;
+  min-width: 128px;
+  flex-shrink: 0;
+}
+
+#overlay-root .camp-foot {
+  display: grid;
+  grid-template-columns: 1fr minmax(92px, 28%);
+  gap: 8px;
+  border-top: 0;
+  padding-top: 0;
+  align-items: stretch;
+}
+
+#overlay-root .camp-foot:has(> :only-child) {
+  grid-template-columns: 1fr;
+}
+
+#overlay-root .camp-foot .facility.start,
+#overlay-root .camp-foot .facility.side {
+  min-height: 68px;
 }
 
 #overlay-root .foot-hint {
   margin: 0;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 #overlay-root .hidden {
   display: none !important;
 }
 
-@media (max-width: 640px) {
-  #overlay-root .train-grid,
-  #overlay-root .facilities.end-actions,
-  #overlay-root .facilities {
-    grid-template-columns: 1fr;
+@media (max-width: 720px) {
+  #overlay-root {
+    grid-template-columns: minmax(96px, 124px) minmax(0, 1fr);
+    gap: 6px 8px;
   }
 
-  #overlay-root .ledger-value {
-    font-size: 16px;
+  #overlay-root .slot-row {
+    grid-template-columns: 3.2rem minmax(0, 1fr);
   }
 }
 
-@media (max-height: 480px) {
+@media (max-height: 420px) {
   #overlay-root .panel {
-    padding: 12px 14px;
+    padding: 8px 10px 6px;
+  }
+
+  #overlay-root .panel-stack {
+    gap: 6px;
   }
 
   #overlay-root h1 {
-    font-size: 26px;
+    font-size: 24px;
   }
 
-  #overlay-root button.facility.start {
-    min-height: 72px;
+  #overlay-root h2 {
+    font-size: 18px;
+  }
+
+  #overlay-root button.facility {
+    min-height: 52px;
+    padding: 7px 10px;
+  }
+
+  #overlay-root button.facility.start,
+  #overlay-root button.facility.side,
+  #overlay-root .camp-foot .facility.start,
+  #overlay-root .camp-foot .facility.side {
+    min-height: 56px;
+  }
+
+  #overlay-root .facility-title {
+    font-size: 16px;
+  }
+
+  #overlay-root .skill-row {
+    padding: 6px 8px;
+  }
+
+  #overlay-root .skill-row button {
+    min-height: 32px;
+  }
+
+  #overlay-root .chip {
+    min-height: 30px;
+    min-width: 3.8rem;
+  }
+}
+
+@media (min-width: 900px) and (min-height: 520px) {
+  #overlay-root .train-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

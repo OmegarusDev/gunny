@@ -67,7 +67,7 @@ function scaleMods(perRank, rank) {
 
 export function equippedLabel(profile) {
   const rec = RECEIVERS[profile.loadout.receiver];
-  return rec ? rec.name : 'Unknown';
+  return rec ? rec.short || rec.name : 'Unknown';
 }
 
 /** Degrees of cone before a shot: static accuracy + bloom + heat. */

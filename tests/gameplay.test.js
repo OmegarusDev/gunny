@@ -7,7 +7,7 @@ import {
   enemyHp,
   threatForDistance,
 } from '../src/config.js';
-import { PARTS } from '../src/data/attachments.js';
+import { PARTS, partsForSlot } from '../src/data/attachments.js';
 import { RECEIVERS } from '../src/data/receivers.js';
 import { SKILLS, emptyRanks, skillCost } from '../src/data/skills.js';
 import { resolveStats, shotSpreadDeg } from '../src/entities/loadout.js';
@@ -19,6 +19,8 @@ import { mixHex, mixTone } from '../src/util/color.js';
 import { runMeters } from '../src/world/metrics.js';
 import { createTerrain } from '../src/world/terrain.js';
 import { createPlayer } from '../src/entities/player.js';
+import { shotEnergy } from '../src/systems/impulse.js';
+import { spawnRagdoll } from '../src/systems/ragdoll.js';
 
 describe('threat pacing', () => {
   it('steps spawn pressure across the 250m track', () => {
@@ -63,6 +65,17 @@ describe('economy & ladders', () => {
     expect(RECEIVERS.t1_stock.cost).toBe(0);
     expect(RECEIVERS.t2_tactical.requires).toBe('t1_stock');
     expect(RECEIVERS.t3_ordnance.tier).toBe(3);
+  });
+});
+
+describe('gunsmith catalog', () => {
+  it('keeps magazine ladder order and short labels', () => {
+    const mags = partsForSlot('magazine');
+    expect(mags.map((p) => p.short)).toEqual(mags.map((p) => String(p.mods.magSize + 1)));
+    expect(mags[0].id).toBe('mag_1');
+    expect(mags.find((p) => p.id === 'mag_40').requires).toBe('mag_35');
+    expect(RECEIVERS.t1_stock.short).toBe('Stock');
+    expect(RECEIVERS.t2_tactical.short).toBe('Tactical');
   });
 });
 
@@ -168,5 +181,20 @@ describe('util', () => {
   it('mixes tones toward hex results', () => {
     expect(mixTone('#000000', '#ffffff', 0.5)).toMatch(/^#[0-9a-f]{6}$/);
     expect(mixHex('#ff0000', '#0000ff', 0.5)).toMatch(/^rgba\(/);
+  });
+});
+
+describe('hit impulse', () => {
+  it('gives stopping hits more energy than overpen at the same speed', () => {
+    expect(shotEnergy(820, true)).toBeGreaterThan(shotEnergy(820, false));
+    expect(shotEnergy(1640, true)).toBeGreaterThan(shotEnergy(820, true));
+  });
+
+  it('kicks ragdoll nodes with Verlet velocity instead of a pose shift', () => {
+    const enemy = { worldX: 0, y: 0, kind: 'zombie', id: 1, crawling: false, severedHead: false };
+    const rag = spawnRagdoll(enemy, { nx: 1, ny: 0, energy: 1, zone: 'upper' }, () => 0.5);
+    const rib = rag.nodes.find((n) => n.id === 'rib');
+    expect(rib.x - rib.ox).toBeGreaterThan(2);
+    expect(rib.mass).toBeGreaterThan(0);
   });
 });

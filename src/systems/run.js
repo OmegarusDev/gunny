@@ -1,11 +1,11 @@
-import { PERFECT_MAG_MULT, TRACK_METERS, V_RETREAT } from '../config.js';
+import { HIT_IMPULSE, PERFECT_MAG_MULT, TRACK_METERS, V_RETREAT } from '../config.js';
 import { randomSeed, seedForLevel, seedFromUint32 } from '../engine/rng.js';
 import { biomeFor, biomeFromSeed } from '../data/biomes.js';
 import { createTerrain } from '../world/terrain.js';
 import { createWeather } from '../world/weather.js';
 import { runMeters } from '../world/metrics.js';
 import { createPlayer, screenToWorld, cameraX } from '../entities/player.js';
-import { lethalCircles, isDead, updateLocomotion } from '../entities/enemy.js';
+import { applyFlinch, isDead, lethalCircles, stepFlinch, updateLocomotion } from '../entities/enemy.js';
 import { gunWorld, playerCoreFromPose } from '../figure.js';
 import { resolveStats, shotSpreadDeg } from '../entities/loadout.js';
 import { spawnBullet, stepBullets } from './ballistics.js';
@@ -108,6 +108,7 @@ function applyHits(run) {
       run.particles.push(...spawnBurst(hit.x, hit.y, 10, run.rng));
     }
 
+    applyFlinch(enemy, hit);
     updateLocomotion(enemy);
 
     if (isDead(enemy)) {
@@ -118,7 +119,7 @@ function applyHits(run) {
       if (overkill) {
         run.gibs.push(...spawnGibs(hit.x, hit.y, hit.nx, hit.ny, 10, run.rng));
       } else {
-        run.ragdolls.push(spawnRagdoll(enemy, hit.nx * 220, hit.ny * 220, run.rng));
+        run.ragdolls.push(spawnRagdoll(enemy, hit, run.rng));
       }
     }
   }
@@ -219,7 +220,10 @@ export function simulate(run, dt, viewport, input) {
 
   for (const enemy of run.enemies) {
     if (!enemy.alive) continue;
-    enemy.worldX -= enemy.speed * dt;
+    stepFlinch(enemy, dt);
+    const hitch = enemy.stun > 0 ? HIT_IMPULSE.stunHitch : 1;
+    enemy.worldX -= enemy.speed * hitch * dt;
+    enemy.worldX += (enemy.flinchX || 0) * dt;
     enemy.y = run.terrain.height(enemy.worldX);
   }
 

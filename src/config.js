@@ -22,6 +22,18 @@ export const RAGDOLL_FREEZE_SPEED = 0.05;
 export const MAX_FROZEN = 28;
 export const GRAVITY = 980;
 export const FLESH_PEN_COST = 1;
+/** Pen × speed → hit impulse. No extra ammo mass stat. */
+export const HIT_IMPULSE = {
+  refSpeed: 820,
+  overpen: 0.35,
+  ragdollKick: 10,
+  flinchX: 26,
+  flinchLean: 0.5,
+  stunPerEnergy: 0.16,
+  stunMax: 0.28,
+  stunHitch: 0.3,
+  flinchDamp: 12,
+};
 export const TRACK_METERS = 250;
 
 export const LOCATIONAL = {

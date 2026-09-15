@@ -76,6 +76,13 @@ const handlers = {
   retry() {
     startRun(lastType, lastLevel, lastSeed);
   },
+  chrome(stats, opts = {}) {
+    overlays.setChrome(profile, {
+      back: opts.back ?? mode !== 'hub',
+      onBack: showHub,
+      stats,
+    });
+  },
 };
 
 function syncCursor() {

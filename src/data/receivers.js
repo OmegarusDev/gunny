@@ -27,6 +27,7 @@ export const RECEIVERS = {
   t1_stock: {
     id: 't1_stock',
     name: 'Stock Receiver',
+    short: 'Stock',
     tier: 1,
     rank: 0,
     cost: 0,
@@ -54,6 +55,7 @@ export const RECEIVERS = {
   t2_tactical: {
     id: 't2_tactical',
     name: 'Tactical Receiver',
+    short: 'Tactical',
     tier: 2,
     rank: 1,
     requires: 't1_stock',
@@ -82,6 +84,7 @@ export const RECEIVERS = {
   t3_ordnance: {
     id: 't3_ordnance',
     name: 'Ordnance Receiver',
+    short: 'Ordnance',
     tier: 3,
     rank: 2,
     requires: 't2_tactical',

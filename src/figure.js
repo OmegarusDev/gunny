@@ -1,4 +1,5 @@
 import { palette } from './data/biomes.js';
+import { NODE_MASS } from './systems/impulse.js';
 
 export { mixTone } from './util/color.js';
 
@@ -225,7 +226,7 @@ export function offsetPose(p, ox, oy) {
   };
 }
 
-export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aimAngle = 0 }) {
+export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aimAngle = 0, lean = 0 }) {
   const chase = kind !== 'gunner';
   const locDir = -1;
   const face = kind === 'gunner' ? 1 : -1;
@@ -238,8 +239,8 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
   const hipY = crawl ? -18 * S + bob * 0.35 : -(THIGH + SHIN) + 7 * S + bob;
   const hipX = cycle * (crawl ? 1.4 * S : 0.7 * S);
   const pelvisAng = crawl ? 1.05 : cycle * 0.01;
-  const gutAng = pelvisAng + g.hunch * 0.12 + (crawl ? 0.18 : 0);
-  const ribAng = gutAng + g.hunch + cycle * g.chestFlex + (crawl ? 0.22 : 0);
+  const gutAng = pelvisAng + g.hunch * 0.12 + (crawl ? 0.18 : 0) + lean * 0.45;
+  const ribAng = gutAng + g.hunch + cycle * g.chestFlex + (crawl ? 0.22 : 0) + lean;
   const pelvis = { x: hipX, y: hipY };
   const gut = along(pelvis, gutAng, PELVIS_H * 0.55 + GUT_H * 0.5);
   const junction = along(gut, gutAng, GUT_H * 0.5);
@@ -307,7 +308,7 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
     gut,
     rib,
     junction,
-    head: { x: head0.x + face * (kind === 'vampire' ? 4 : 2) * S, y: head0.y },
+    head: { x: head0.x + face * (kind === 'vampire' ? 4 : 2) * S + lean * 10 * S, y: head0.y },
     gun,
     jL,
     jR,
@@ -353,6 +354,7 @@ export function poseEnemy(enemy) {
       seed: enemy.id || 1,
       t: enemyTime(enemy.worldX),
       crawl: !!enemy.crawling,
+      lean: enemy.flinchLean || 0,
     }),
     enemy.worldX,
     enemy.y,
@@ -442,7 +444,7 @@ export function ragdollNodesFromPose(p) {
     { id: 'pR', x: p.pR.x, y: p.pR.y },
     { id: 'hipBL', x: p.hipBL.x, y: p.hipBL.y },
     { id: 'hipBR', x: p.hipBR.x, y: p.hipBR.y },
-  ].map((n) => ({ ...n, ox: n.x, oy: n.y }));
+  ].map((n) => ({ ...n, ox: n.x, oy: n.y, mass: NODE_MASS[n.id] ?? 1 }));
 }
 
 const RAG_LINKS = [
@@ -470,6 +472,11 @@ const RAG_LINKS = [
   ['junction', 'jR'],
   ['pelvis', 'pL'],
   ['pelvis', 'pR'],
+  ['head', 'junction'],
+  ['rib', 'pelvis'],
+  ['rib', 'gut'],
+  ['shL', 'shR'],
+  ['pL', 'pR'],
 ];
 
 export function ragdollLinks(nodes) {

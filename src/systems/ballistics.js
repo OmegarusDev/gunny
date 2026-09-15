@@ -2,6 +2,7 @@ import { FLESH_PEN_COST, PERFECT_MAG_MULT } from '../config.js';
 import { limbCircles, locationalOf } from '../entities/enemy.js';
 import { segmentHitsTerrain } from '../world/terrain.js';
 import { segmentHitsCircle } from './hits.js';
+import { shotEnergy } from './impulse.js';
 
 export function spawnBullet(x, y, angle, stats, perfectMag) {
   const speed = stats.bulletSpeed;
@@ -45,6 +46,11 @@ export function stepBullets(run, dt) {
     }
 
     if (best) {
+      const nx = Math.cos(Math.atan2(b.vy, b.vx));
+      const ny = Math.sin(Math.atan2(b.vy, b.vx));
+      b.hitIds.add(best.enemy.id);
+      b.pen -= FLESH_PEN_COST;
+      const stopped = b.pen <= 0;
       run.pendingHits.push({
         bullet: b,
         enemy: best.enemy,
@@ -52,12 +58,11 @@ export function stepBullets(run, dt) {
         x: best.hit.x,
         y: best.hit.y,
         locational: locationalOf(best.zone),
-        nx: Math.cos(Math.atan2(b.vy, b.vx)),
-        ny: Math.sin(Math.atan2(b.vy, b.vx)),
+        nx,
+        ny,
+        energy: shotEnergy(Math.hypot(b.vx, b.vy), stopped),
       });
-      b.hitIds.add(best.enemy.id);
-      b.pen -= FLESH_PEN_COST;
-      if (b.pen <= 0) {
+      if (stopped) {
         b.alive = false;
         b.x = best.hit.x;
         b.y = best.hit.y;
