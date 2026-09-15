@@ -7,8 +7,8 @@ export function mountOverlays(root, optionHandlers) {
   root.innerHTML = `
     <div class="stage">
       <div id="panel-hub" class="panel panel-hero hidden"></div>
-      <div id="panel-gunsmith" class="panel panel-workshop hidden"></div>
-      <div id="panel-training" class="panel panel-workshop hidden"></div>
+      <div id="panel-gunsmith" class="panel panel-hero hidden"></div>
+      <div id="panel-training" class="panel panel-hero hidden"></div>
       <div id="panel-end" class="panel panel-hero hidden"></div>
     </div>
   `;
