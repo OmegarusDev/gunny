@@ -9,12 +9,20 @@ export const PLAYER_SCREEN_X_RATIO = 0.25;
 /** Campaign pace: 2 m/s → 250m in 125s. */
 export const RETREAT_MPS = 2;
 export const V_RETREAT = RETREAT_MPS * PX_PER_M;
-export const TERRAIN_AMP = 0.024;
+/** Height as a fraction of design height — rolling slopes, not pebbles. */
+export const TERRAIN_AMP = 0.09;
 export const BLOOM_CAP_DEG = 12;
 /** Base aim disc radius (px) from the gun — optics/skills push this out. */
-export const AIM_REACH_BASE = 168;
-export const AIM_REACH_MIN = 120;
-export const AIM_REACH_MAX = 360;
+export const AIM_REACH_BASE = 118;
+export const AIM_REACH_MIN = 88;
+export const AIM_REACH_MAX = 248;
+/** Keep the last metres of the screen (and off-screen spawns) out of shot range. */
+export const SHOT_EDGE_PAD = 36;
+
+export function clampShotRange(range, viewport) {
+  const visible = viewport.w * (1 - PLAYER_SCREEN_X_RATIO) - SHOT_EDGE_PAD;
+  return Math.max(AIM_REACH_MIN, Math.min(range, visible));
+}
 /** Static cone (degrees) before bloom/heat — first shots are not lasers. */
 export const BASE_SPREAD_DEG = 2.35;
 export const JAM_PENALTY = 0.9;
@@ -76,7 +84,9 @@ export function threatForDistance(meters, levelIndex, endless) {
   const L = endless ? 0 : Math.max(0, levelIndex || 0);
   const trackT = Math.max(0, Math.min(1, meters / TRACK_METERS));
   const pressure = L * THREAT.step + trackT * THREAT.span;
-  const u = THREAT.span > 0 ? pressure / THREAT.span : 0;
+  const rawU = THREAT.span > 0 ? pressure / THREAT.span : 0;
+  const u = Math.max(0, Math.min(1, rawU));
+  const over = Math.max(0, rawU - 1);
   const { chill, hectic } = THREAT;
   const lerp = (a, b) => a + (b - a) * u;
 
@@ -85,6 +95,13 @@ export function threatForDistance(meters, levelIndex, endless) {
   let speed = lerp(chill.speed, hectic.speed);
   let packChance = lerp(chill.packChance, hectic.packChance);
   const hpMul = lerp(chill.hpMul, hectic.hpMul);
+
+  if (over > 0) {
+    spawn = Math.max(THREAT.spawnFloor, spawn / (1 + over * 0.18));
+    maxAlive = Math.min(THREAT.maxAliveCap, Math.floor(maxAlive + over * 1.2));
+    speed *= 1 + over * 0.05;
+    packChance += over * 0.04;
+  }
 
   if (endless && meters > TRACK_METERS) {
     const extra = (meters - TRACK_METERS) / 120;
@@ -104,10 +121,11 @@ export function threatForDistance(meters, levelIndex, endless) {
 }
 
 export function enemyHp(hpMul) {
+  const m = Math.max(0.2, hpMul);
   return {
-    head: 40 * hpMul,
-    torso: 56 * hpMul,
-    lLeg: 22 * hpMul,
-    rLeg: 22 * hpMul,
+    head: Math.max(1, 40 * m),
+    torso: Math.max(1, 56 * m),
+    lLeg: Math.max(1, 22 * m),
+    rLeg: Math.max(1, 22 * m),
   };
 }

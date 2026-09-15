@@ -1,20 +1,17 @@
 import { SKILLS, skillCost } from '../data/skills.js';
 import { resolveStats } from '../entities/loadout.js';
 import { saveProfile } from '../state/profile.js';
-import { ledgerBlock, statsGrid } from './overlays.js';
+import { backButton, ledgerBlock, statsGrid } from './overlays.js';
 
 export function renderTraining(el, profile, handlers) {
   const stats = resolveStats(profile);
-
   const skills = Object.values(SKILLS);
-  let picked = el.dataset.skill || skills[0]?.id;
-  if (!skills.some((s) => s.id === picked)) picked = skills[0]?.id;
-  const focus = SKILLS[picked];
+  const hintId = el.dataset.hint && SKILLS[el.dataset.hint] ? el.dataset.hint : skills[0]?.id;
 
   el.innerHTML = `
     <div class="panel-stack training-stack">
       <div class="page-head">
-        <button class="ghost" type="button" data-act="hub">Camp</button>
+        ${backButton()}
         ${ledgerBlock(profile)}
       </div>
       <header class="camp-brand workshop-brand">
@@ -26,7 +23,7 @@ export function renderTraining(el, profile, handlers) {
         ['Crit ×', stats.critMult.toFixed(2)],
         ['Cash', `×${stats.cashMul.toFixed(2)}`],
         ['Aim', stats.aimRate.toFixed(1)],
-        ['Reach', Math.round(stats.aimReach)],
+        ['Range', Math.round(stats.aimReach)],
         ['Spread', `${stats.baseSpread.toFixed(2)}°`],
       ])}
       <div class="train-grid">
@@ -40,7 +37,7 @@ export function renderTraining(el, profile, handlers) {
               { length: def.maxRank },
               (_, i) => `<i class="${i < rank ? 'on' : ''}"></i>`,
             ).join('');
-            return `<div class="skill-row ${def.id === picked ? 'selected' : ''}" data-pick="${def.id}">
+            return `<div class="skill-row" data-pick="${def.id}">
               <div class="skill-main">
                 <div class="card-top">
                   <strong>${def.short || def.name}</strong>
@@ -56,17 +53,25 @@ export function renderTraining(el, profile, handlers) {
           .join('')}
       </div>
       <div class="sheet-foot">
-        <p class="muted foot-hint">${focus?.name ?? ''} · ${focus?.desc ?? ''}</p>
+        <p class="muted foot-hint" data-hint></p>
       </div>
     </div>
   `;
+
+  const hint = el.querySelector('[data-hint]');
+  const setHint = (id) => {
+    const def = SKILLS[id];
+    if (!def) return;
+    el.dataset.hint = id;
+    hint.textContent = `${def.name} · ${def.desc}`;
+  };
+  setHint(hintId);
+
   el.querySelector('[data-act="hub"]').onclick = () => handlers.hub();
   el.querySelectorAll('[data-pick]').forEach((row) => {
-    row.onclick = (e) => {
-      if (e.target.closest('[data-skill]')) return;
-      el.dataset.skill = row.dataset.pick;
-      renderTraining(el, profile, handlers);
-    };
+    const id = row.dataset.pick;
+    row.addEventListener('pointerenter', () => setHint(id));
+    row.addEventListener('focusin', () => setHint(id));
   });
   el.querySelectorAll('[data-skill]').forEach((btn) => {
     btn.onclick = (e) => {
@@ -79,7 +84,7 @@ export function renderTraining(el, profile, handlers) {
       profile.xp -= cost;
       profile.skillRanks[def.id] = rank + 1;
       saveProfile(profile);
-      el.dataset.skill = def.id;
+      el.dataset.hint = def.id;
       renderTraining(el, profile, handlers);
     };
   });

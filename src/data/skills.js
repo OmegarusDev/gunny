@@ -17,23 +17,14 @@ export const SKILLS = {
     baseCost: 40,
     perRank: { reload: -0.07, perfectWidth: 0.012 },
   },
-  elevation: {
-    id: 'elevation',
-    name: 'Agile Elevation Tracking',
-    short: 'Elevation',
-    desc: 'Faster aim settle and slightly longer reach across slopes.',
-    maxRank: 8,
-    baseCost: 35,
-    perRank: { aimRate: 0.5, aimReach: 6 },
-  },
   marksman: {
     id: 'marksman',
     name: 'Marksmanship',
     short: 'Marksman',
-    desc: 'Tighter first-shot cone and longer aim reach.',
+    desc: 'Tighter first-shot cone, a bit more reach, and faster aim settle.',
     maxRank: 8,
     baseCost: 40,
-    perRank: { baseSpread: -0.12, aimReach: 10 },
+    perRank: { baseSpread: -0.12, aimReach: 4, aimRate: 0.35 },
   },
   scavenger: {
     id: 'scavenger',
@@ -73,6 +64,25 @@ export function emptyRanks() {
   const ranks = {};
   for (const id of Object.keys(SKILLS)) ranks[id] = 0;
   return ranks;
+}
+
+/** Old skill trees — XP is refunded on load so retired ranks are not lost. */
+export const RETIRED_SKILLS = {
+  elevation: { id: 'elevation', maxRank: 8, baseCost: 35 },
+};
+
+export function refundRetiredRanks(ranks) {
+  if (!ranks) return 0;
+  let xp = 0;
+  for (const [id, def] of Object.entries(RETIRED_SKILLS)) {
+    const rank = ranks[id] || 0;
+    for (let r = 0; r < rank; r++) xp += skillCost(def, r);
+    delete ranks[id];
+  }
+  for (const id of Object.keys(ranks)) {
+    if (!SKILLS[id]) delete ranks[id];
+  }
+  return xp;
 }
 
 export function xpInvested(ranks) {

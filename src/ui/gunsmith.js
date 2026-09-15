@@ -2,7 +2,7 @@ import { RECEIVERS, SLOTS, SLOT_MIN_TIER } from '../data/receivers.js';
 import { CATALOG_WINDOW, catalogWindow, partsForSlot } from '../data/attachments.js';
 import { resolveStats, slotUnlockedFor, gunsmithStatRows } from '../entities/loadout.js';
 import { buyBlockedReason, buyPart, equipPart, owns } from '../state/profile.js';
-import { fmtMoney, ledgerBlock, statsGrid } from './overlays.js';
+import { fmtMoney, backButton, ledgerBlock, statsGrid } from './overlays.js';
 
 const SLOT_LABEL = {
   receiver: 'Receiver',
@@ -43,7 +43,7 @@ export function renderGunsmith(el, profile, handlers) {
   el.innerHTML = `
     <div class="panel-stack gunsmith-stack">
       <div class="page-head">
-        <button class="ghost" type="button" data-act="hub">Camp</button>
+        ${backButton()}
         ${ledgerBlock(profile)}
       </div>
       <header class="camp-brand workshop-brand">

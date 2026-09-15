@@ -1,26 +1,32 @@
-import { FLESH_PEN_COST, PERFECT_MAG_MULT } from '../config.js';
+import { FLESH_PEN_COST, PERFECT_MAG_MULT, SHOT_EDGE_PAD } from '../config.js';
 import { limbCircles, locationalOf } from '../entities/enemy.js';
+import { cameraX } from '../entities/player.js';
 import { segmentHitsTerrain } from '../world/terrain.js';
 import { segmentHitsCircle } from './hits.js';
 import { shotEnergy } from './impulse.js';
 
-export function spawnBullet(x, y, angle, stats, perfectMag) {
+export function spawnBullet(x, y, angle, stats, perfectMag, maxDist) {
   const speed = stats.bulletSpeed;
+  const range = Math.max(1, maxDist ?? stats.aimReach);
   return {
     x,
     y,
+    ox: x,
+    oy: y,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     pen: stats.pen * (perfectMag ? PERFECT_MAG_MULT : 1),
+    maxDist: range,
     alive: true,
     hitIds: new Set(),
     age: 0,
   };
 }
 
-export function stepBullets(run, dt) {
+export function stepBullets(run, dt, viewport) {
   const { bullets, enemies, terrain, weather, stats } = run;
   const decay = stats.penDecay;
+  const viewRight = cameraX(run.player.worldX, viewport) + viewport.w - SHOT_EDGE_PAD;
   for (const b of bullets) {
     if (!b.alive) continue;
     const nx = b.x + b.vx * dt + weather.windX * dt;
@@ -84,7 +90,8 @@ export function stepBullets(run, dt) {
 
     b.x = nx;
     b.y = ny;
-    if (b.age > 1.6 || b.pen <= 0) b.alive = false;
+    const travelled = Math.hypot(nx - b.ox, ny - b.oy);
+    if (b.age > 1.6 || b.pen <= 0 || travelled >= b.maxDist || nx > viewRight) b.alive = false;
   }
   run.bullets = bullets.filter((b) => b.alive);
 }

@@ -25,6 +25,7 @@ body {
   width: 100%;
   height: 100%;
   height: 100dvh;
+  min-height: 100lvh;
   overflow: hidden;
   background: var(--gunny-ink);
   font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
@@ -88,12 +89,12 @@ body {
   width: 100dvw;
   height: 100%;
   height: 100dvh;
+  min-height: 100lvh;
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
-  padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0)
-    env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -192,6 +193,7 @@ canvas {
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  container-type: size;
 }
 
 #overlay-root .panel {
@@ -211,8 +213,8 @@ canvas {
 
 #overlay-root .panel-hero {
   aspect-ratio: 4 / 3;
-  height: 100%;
-  width: auto;
+  width: min(100%, calc(100cqh * 4 / 3));
+  height: min(100%, calc(100cqw * 3 / 4));
   max-width: 100%;
   max-height: 100%;
 }
@@ -256,9 +258,26 @@ canvas {
   min-width: 0;
 }
 
-#overlay-root .page-head .ghost {
+#overlay-root .page-head .back {
+  flex: 0 0 auto;
   align-self: stretch;
-  min-width: 4.4rem;
+  width: 42px;
+  min-width: 42px;
+  height: auto;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--gunny-brass);
+  background: rgba(36, 22, 14, 0.94);
+  color: var(--gunny-gold);
+  box-shadow: inset 0 1px 0 rgba(255, 230, 190, 0.16);
+}
+
+#overlay-root .back-arrow {
+  display: block;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 700;
 }
 
 #overlay-root button:focus-visible,
@@ -701,13 +720,9 @@ canvas {
   min-height: 0;
 }
 
-#overlay-root .skill-row.selected {
-  border-color: var(--gunny-gold);
-  background: rgba(224, 163, 58, 0.1);
-}
-
 #overlay-root .skill-row:active {
   border-color: var(--gunny-gold);
+  background: rgba(224, 163, 58, 0.1);
 }
 
 #overlay-root .skill-row strong {
@@ -1083,6 +1098,13 @@ canvas {
 
   #overlay-root .skill-row:hover {
     border-color: var(--gunny-gold);
+    background: rgba(224, 163, 58, 0.1);
+  }
+
+  #overlay-root .back:hover {
+    background: var(--gunny-blood);
+    border-color: #e8c4a0;
+    color: #fff6ea;
   }
 
   #overlay-root .opt-fab:hover {

@@ -1,8 +1,16 @@
 /** Best-effort immersive mode. Works on Android Chrome; iOS needs Add to Home Screen. */
 export async function enterImmersive() {
+  try {
+    await screen.orientation?.lock?.('landscape');
+  } catch {
+    /* not a user-gesture, or already landscape */
+  }
+
+  if (document.fullscreenElement) return true;
+  if (window.matchMedia('(display-mode: fullscreen)').matches) return true;
+
   const root = document.documentElement;
   try {
-    if (document.fullscreenElement) return true;
     if (root.requestFullscreen) {
       await root.requestFullscreen({ navigationUI: 'hide' });
       return true;
@@ -12,7 +20,7 @@ export async function enterImmersive() {
       return true;
     }
   } catch {
-    /* user denied or unsupported */
+    /* user denied, missing gesture, or unsupported in this WebAPK */
   }
   return false;
 }

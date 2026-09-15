@@ -59,3 +59,9 @@ export function statsGrid(rows, extraClass = '') {
     .map(([label, value]) => `<div><span>${label}</span>${value}</div>`)
     .join('')}</div>`;
 }
+
+export function backButton(label = 'Back') {
+  return `<button class="back" type="button" data-act="hub" aria-label="${label}">
+    <span class="back-arrow" aria-hidden="true">←</span>
+  </button>`;
+}

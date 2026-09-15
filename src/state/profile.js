@@ -1,6 +1,6 @@
 import { RECEIVERS, receiverRequirement } from '../data/receivers.js';
 import { PARTS, STARTER_LOADOUT, STARTER_OWNED, partRequirement } from '../data/attachments.js';
-import { emptyRanks } from '../data/skills.js';
+import { emptyRanks, refundRetiredRanks } from '../data/skills.js';
 
 /** Bumped for economy + ladder rebalance (fresh camp). */
 const KEY = 'gunny.profile.v2';
@@ -34,14 +34,16 @@ export function loadProfile() {
         loadout[slot] = base.loadout[slot];
       }
     }
+    const skillRanks = { ...base.skillRanks, ...(parsed.skillRanks || {}) };
+    const refund = refundRetiredRanks(skillRanks);
     return {
       ...base,
       ...parsed,
       owned,
       loadout,
-      skillRanks: { ...base.skillRanks, ...(parsed.skillRanks || {}) },
+      skillRanks,
       cash: Math.max(0, Number(parsed.cash) || 0),
-      xp: Math.max(0, Number(parsed.xp) || 0),
+      xp: Math.max(0, Number(parsed.xp) || 0) + refund,
     };
   } catch {
     return defaultProfile();

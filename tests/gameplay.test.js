@@ -6,8 +6,10 @@ import {
   HIT_IMPULSE,
   MAX_DPR,
   PX_PER_M,
+  TERRAIN_AMP,
   THREAT,
   TRACK_METERS,
+  clampShotRange,
   enemyHp,
   threatForDistance,
 } from '../src/config.js';
@@ -15,7 +17,7 @@ import { PARTS, catalogWindow, partsForSlot } from '../src/data/attachments.js';
 import { BIOMES } from '../src/data/biomes.js';
 import { KINDS } from '../src/data/kinds.js';
 import { RECEIVERS } from '../src/data/receivers.js';
-import { SKILLS, emptyRanks, skillCost } from '../src/data/skills.js';
+import { SKILLS, emptyRanks, refundRetiredRanks, skillCost } from '../src/data/skills.js';
 import { gunsmithStatRows, resolveStats, shotSpreadDeg, STATS } from '../src/entities/loadout.js';
 import { applyFlinch, createEnemy, limbCircles, stepFlinch } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile } from '../src/state/profile.js';
@@ -23,13 +25,13 @@ import { clampAimPoint, resolveAimPoint } from '../src/view/aim.js';
 import { perfectBand, reloadNorm } from '../src/view/reload.js';
 import { uhash } from '../src/util/hash.js';
 import { mixHex, mixTone } from '../src/util/color.js';
-import { runMeters } from '../src/world/metrics.js';
 import { createTerrain } from '../src/world/terrain.js';
 import { createPlayer } from '../src/entities/player.js';
 import { poseEnemyLocal } from '../src/figure.js';
 import { shotEnergy } from '../src/systems/impulse.js';
 import { spawnRagdoll } from '../src/systems/ragdoll.js';
 import { createRun, simulate } from '../src/systems/run.js';
+import { spawnBullet, stepBullets } from '../src/systems/ballistics.js';
 import { capDpr, createQuality } from '../src/engine/quality.js';
 
 describe('threat pacing', () => {
@@ -72,6 +74,18 @@ describe('threat pacing', () => {
     const after = threatForDistance(TRACK_METERS + 200, 0, true);
     expect(after.spawnInterval).toBeLessThan(before.spawnInterval);
     expect(after.maxAlive).toBeGreaterThanOrEqual(before.maxAlive);
+  });
+
+  it('keeps hpMul in the chill–hectic band on late campaign roads', () => {
+    const l0e = threatForDistance(TRACK_METERS, 0, false);
+    const l10s = threatForDistance(0, 10, false);
+    const l10e = threatForDistance(TRACK_METERS, 10, false);
+    expect(l10s.hpMul).toBeGreaterThan(0);
+    expect(l10e.hpMul).toBeGreaterThan(0);
+    expect(l10e.hpMul).toBeCloseTo(THREAT.hectic.hpMul);
+    expect(l10s.spawnInterval).toBeLessThanOrEqual(l0e.spawnInterval);
+    expect(enemyHp(l10e.hpMul).torso).toBeGreaterThanOrEqual(1);
+    expect(enemyHp(-2).head).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -140,7 +154,7 @@ describe('loadout aim stats', () => {
     const stats = resolveStats(defaultProfile());
     expect(stats.magSize).toBe(1);
     expect(stats.aimReach).toBeGreaterThanOrEqual(AIM_REACH_MIN);
-    expect(stats.aimReach).toBeLessThan(220);
+    expect(stats.aimReach).toBeLessThan(140);
     expect(stats.baseSpread).toBeGreaterThan(1.5);
   });
 
@@ -205,7 +219,17 @@ describe('reload helpers', () => {
 describe('skills & profile', () => {
   it('includes marksman in empty ranks', () => {
     expect(emptyRanks().marksman).toBe(0);
-    expect(SKILLS.marksman.perRank.aimReach).toBe(10);
+    expect(SKILLS.marksman.perRank.aimReach).toBe(4);
+    expect(SKILLS.elevation).toBeUndefined();
+    expect(Object.keys(SKILLS).length % 2).toBe(0);
+  });
+
+  it('refunds retired elevation ranks', () => {
+    const ranks = { elevation: 2, marksman: 1 };
+    const xp = refundRetiredRanks(ranks);
+    expect(ranks.elevation).toBeUndefined();
+    expect(ranks.marksman).toBe(1);
+    expect(xp).toBe(skillCost({ baseCost: 35 }, 0) + skillCost({ baseCost: 35 }, 1));
   });
 
   it('prices skill ranks with a mild curve', () => {
@@ -215,8 +239,13 @@ describe('skills & profile', () => {
 });
 
 describe('world helpers', () => {
-  it('converts world retreat into metres', () => {
-    expect(runMeters({ player: { worldX: -350 } })).toBe(10);
+  it('uses rolling hills instead of tiny bumps', () => {
+    expect(TERRAIN_AMP).toBeGreaterThanOrEqual(0.07);
+    const terrain = createTerrain(1, 720);
+    const a = terrain.height(0);
+    const b = terrain.height(400);
+    const c = terrain.height(900);
+    expect(Math.abs(a - b) + Math.abs(b - c)).toBeGreaterThan(20);
   });
 
   it('scales enemy pools by hpMul', () => {
@@ -335,6 +364,11 @@ describe('simulate loop', () => {
     return run;
   }
 
+  it('starts a run unpaused', () => {
+    const run = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: 0, seed: 1 });
+    expect(run.paused).toBe(false);
+  });
+
   it('retreats the player and extracts campaign at TRACK_METERS', () => {
     const run = liveRun();
     const x0 = run.player.worldX;
@@ -394,6 +428,48 @@ describe('simulate loop', () => {
     expect(run.weapon.reloadT).toBeGreaterThanOrEqual(0.32);
     simulate(run, dt, viewport, { ...idle, pointerTap: true });
     expect(run.weapon.tapped).toBe(true);
+  });
+
+  it('fires again if the trigger is held through a finished reload', () => {
+    const run = liveRun();
+    run.weapon.ammo = 1;
+    run.weapon.cooldown = 0;
+    simulate(run, dt, viewport, { ...idle, firing: true });
+    expect(run.weapon.reloading).toBe(true);
+    const hold = { ...idle, firing: true };
+    const steps = Math.ceil(run.weapon.reloadDur / dt) + 2;
+    for (let i = 0; i < steps; i++) simulate(run, dt, viewport, hold);
+    expect(run.weapon.ammo).toBe(0);
+    expect(run.weapon.reloading).toBe(true);
+  });
+
+  it('treats a touch anywhere during reload as an active-reload tap', () => {
+    const run = liveRun();
+    run.weapon.ammo = 1;
+    run.weapon.cooldown = 0;
+    simulate(run, dt, viewport, { ...idle, firing: true });
+    const steps = Math.ceil(0.35 / dt);
+    for (let i = 0; i < steps; i++) simulate(run, dt, viewport, idle);
+    simulate(run, dt, viewport, {
+      ...idle,
+      pointerX: 8,
+      pointerY: 8,
+      pointerTap: true,
+      pointerType: 'touch',
+    });
+    expect(run.weapon.tapped).toBe(true);
+  });
+
+  it('drops bullets at gun range so off-screen spawns cannot be shot', () => {
+    const run = liveRun();
+    const maxDist = 48;
+    const b = spawnBullet(run.player.worldX, run.player.y - 120, 0, run.stats, false, maxDist);
+    run.enemies.length = 0;
+    run.bullets = [b];
+    for (let i = 0; i < 20; i++) stepBullets(run, dt, viewport);
+    expect(run.bullets).toHaveLength(0);
+    expect(clampShotRange(4000, viewport)).toBeLessThan(viewport.w * 0.75);
+    expect(AIM_REACH_MAX).toBeLessThan(clampShotRange(4000, viewport));
   });
 });
 

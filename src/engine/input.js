@@ -8,6 +8,7 @@ export function createInput(canvas) {
     pointerY: 0,
     firing: false,
     pointerTap: false,
+    pointerType: 'mouse',
     reloadTap: false,
     pauseTap: false,
     forcePause: false,
@@ -58,6 +59,7 @@ export function createInput(canvas) {
     toLocal(e);
     state.firing = true;
     state.pointerTap = true;
+    state.pointerType = e.pointerType || 'mouse';
     state.fireId = e.pointerId;
     return true;
   }

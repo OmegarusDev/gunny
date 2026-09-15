@@ -6,9 +6,9 @@ export function createTerrain(seed, viewportHeight, ampScale = TERRAIN_AMP) {
   const amp = viewportHeight * ampScale;
 
   function height(worldX) {
-    const n = fbm1D(worldX * 0.0034, seed);
-    const n2 = fbm1D(worldX * 0.0075, seed + 17);
-    return baseline + n * amp + n2 * amp * 0.16;
+    const n = fbm1D(worldX * 0.00108, seed);
+    const n2 = fbm1D(worldX * 0.00215, seed + 17);
+    return baseline + n * amp + n2 * amp * 0.2;
   }
 
   function slope(worldX) {

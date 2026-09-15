@@ -1,7 +1,7 @@
 import { FIXED_DT, MAX_FRAME_DT } from './config.js';
 import { createCanvas } from './engine/canvas.js';
 import { createInput } from './engine/input.js';
-import { enterImmersive, exitImmersive } from './engine/immersive.js';
+import { enterImmersive } from './engine/immersive.js';
 import { createLoop } from './engine/loop.js';
 import { resumeAudio } from './audio/synth.js';
 import { drawBackdrop, drawHud, drawWorld } from './render/draw.js';
@@ -36,7 +36,10 @@ let lastLevel = 0;
 let lastSeed = null;
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-window.addEventListener('pointerdown', () => resumeAudio(), { once: true });
+window.addEventListener('pointerdown', () => {
+  resumeAudio();
+  enterImmersive();
+});
 
 function inActiveRun() {
   return mode === 'run' && run && !run.ended;
@@ -98,6 +101,10 @@ function startRun(type, levelIndex, seed) {
   mode = 'run';
   overlays.hideAll();
   input.clearFireIntent();
+  input.consume('pauseTap');
+  input.consume('forcePause');
+  queuedPointerTap = false;
+  queuedReloadTap = false;
   loop.reset();
   syncUpdateBanner();
   syncCursor();
@@ -106,7 +113,6 @@ function startRun(type, levelIndex, seed) {
 function showHub() {
   mode = 'hub';
   run = null;
-  exitImmersive();
   overlays.show('hub');
   renderHub(overlays.hub, profile, handlers);
   offerOrApplyUpdate();
@@ -199,6 +205,7 @@ function frame(now) {
         simulate(run, FIXED_DT, viewport, {
           pointerX: input.state.pointerX,
           pointerY: input.state.pointerY,
+          pointerType: input.state.pointerType,
           firing,
           reloadPressed: i === 0 ? reloadPressed : false,
           pointerTap: i === 0 ? pointerTap : false,

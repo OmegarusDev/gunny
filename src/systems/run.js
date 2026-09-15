@@ -1,4 +1,4 @@
-import { HIT_IMPULSE, PERFECT_MAG_MULT, TRACK_METERS, V_RETREAT } from '../config.js';
+import { clampShotRange, HIT_IMPULSE, PERFECT_MAG_MULT, TRACK_METERS, V_RETREAT } from '../config.js';
 import { randomSeed, seedForLevel, seedFromUint32 } from '../engine/rng.js';
 import { biomeFor, biomeFromSeed } from '../data/biomes.js';
 import { createTerrain } from '../world/terrain.js';
@@ -53,7 +53,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     pendingHits: [],
     spawnTimer: 0.35,
     threat: null,
-    paused: true,
+    paused: false,
     ended: null,
     weapon: {
       ammo: stats.magSize,
@@ -126,7 +126,7 @@ function applyHits(run) {
   run.pendingHits.length = 0;
 }
 
-function tryFire(run, firing) {
+function tryFire(run, firing, viewport) {
   const { weapon, stats, player } = run;
   if (weapon.reloading || weapon.suppressFire) return false;
   if (!firing) {
@@ -146,7 +146,9 @@ function tryFire(run, firing) {
     x: gun.x + Math.cos(angle) * gun.len,
     y: gun.y + Math.sin(angle) * gun.len,
   };
-  run.bullets.push(spawnBullet(muzzle.x, muzzle.y, angle, stats, weapon.perfectMag));
+  run.bullets.push(
+    spawnBullet(muzzle.x, muzzle.y, angle, stats, weapon.perfectMag, clampShotRange(stats.aimReach, viewport)),
+  );
   weapon.bloom = Math.min(stats.bloomCap, weapon.bloom + stats.bloomPerShot);
   playMuzzle();
   return true;
@@ -210,13 +212,14 @@ export function simulate(run, dt, viewport, input) {
       if (result === 'perfect' || result === 'jam') weapon.suppressFire = true;
     }
   } else {
-    const shot = tryFire(run, holding);
+    const shot = tryFire(run, holding, viewport);
     if (shot && weapon.ammo <= 0) {
       startReload(weapon, stats);
       weapon.suppressFire = true;
     }
   }
   stepReload(weapon, stats, dt);
+  if (!weapon.reloading) weapon.suppressFire = false;
 
   for (const enemy of run.enemies) {
     if (!enemy.alive) continue;
@@ -228,7 +231,7 @@ export function simulate(run, dt, viewport, input) {
 
   stepSpawner(run, dt, viewport);
   run.pendingHits = [];
-  stepBullets(run, dt);
+  stepBullets(run, dt, viewport);
   applyHits(run);
   const left = cameraX(player.worldX, viewport);
   run.enemies = run.enemies.filter((e) => e.alive && e.worldX > left - 140);

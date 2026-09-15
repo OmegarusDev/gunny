@@ -11,7 +11,7 @@ export const STATS = [
   { id: 'bulletSpeed', min: 280, gunsmith: true, gunsmithLabel: 'VEL', format: (v) => v.toFixed(0) },
   { id: 'pen', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2) },
   { id: 'reload', min: 0.7, gunsmith: true, gunsmithLabel: 'Reload', format: (v) => `${v.toFixed(2)}s` },
-  { id: 'aimReach', min: AIM_REACH_MIN, max: AIM_REACH_MAX, gunsmith: true, gunsmithLabel: 'Reach', format: (v) => String(Math.round(v)) },
+  { id: 'aimReach', min: AIM_REACH_MIN, max: AIM_REACH_MAX, gunsmith: true, gunsmithLabel: 'Range', format: (v) => String(Math.round(v)) },
   { id: 'baseSpread', min: 0.2, max: 4.5, gunsmith: true, gunsmithLabel: 'Spread', format: (v) => `${v.toFixed(2)}°` },
   { id: 'perfectWidth', min: 0.04, max: 0.28 },
 ];
