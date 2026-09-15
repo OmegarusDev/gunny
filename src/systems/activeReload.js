@@ -22,7 +22,8 @@ export function startReload(weapon, stats) {
 
 export function tapReload(weapon, stats) {
   if (!weapon.reloading || weapon.tapped) return null;
-  if (weapon.reloadT < RELOAD_FORGIVE) return 'forgive';
+  // Swallow only the empty-mag press still held when reload began — a new tap must count.
+  if (weapon.suppressFire && weapon.reloadT < RELOAD_FORGIVE) return 'forgive';
   weapon.tapped = true;
   const t = weapon.reloadDur > 0 ? weapon.reloadT / weapon.reloadDur : 1;
   const band = perfectBand(stats);

@@ -1,5 +1,7 @@
 import { DESIGN_H } from '../config.js';
 
+const HUD = '#overlay-root .panel, #overlay-root .opt-fab, #overlay-root .opt-layer, #pwa-update';
+
 export function createInput(canvas) {
   const state = {
     pointerX: 0,
@@ -10,6 +12,7 @@ export function createInput(canvas) {
     pauseTap: false,
     forcePause: false,
     moved: false,
+    fireId: null,
   };
 
   function toDesign(clientX, clientY) {
@@ -31,15 +34,12 @@ export function createInput(canvas) {
     }
   }
   placeDefault();
-  window.addEventListener('resize', () => {
+  const relayout = () => {
     if (!state.moved) placeDefault();
-  });
-  window.visualViewport?.addEventListener('resize', () => {
-    if (!state.moved) placeDefault();
-  });
-  window.visualViewport?.addEventListener('scroll', () => {
-    if (!state.moved) placeDefault();
-  });
+  };
+  window.addEventListener('resize', relayout);
+  window.visualViewport?.addEventListener('resize', relayout);
+  window.visualViewport?.addEventListener('scroll', relayout);
 
   function toLocal(e) {
     const p = toDesign(e.clientX, e.clientY);
@@ -48,40 +48,47 @@ export function createInput(canvas) {
     state.moved = true;
   }
 
-  function onPanel(e) {
-    return !!e.target.closest(
-      '#overlay-root .panel:not(.hidden), #overlay-root .opt-fab, #overlay-root .opt-layer:not(.hidden)',
-    );
+  function onHud(e) {
+    return !!e.target.closest(HUD);
   }
 
   function onDown(e) {
-    if (onPanel(e)) return;
-    if (!e.target.closest('#canvas-container')) return;
+    if (onHud(e)) return false;
+    if (!e.target.closest('#canvas-container')) return false;
     toLocal(e);
     state.firing = true;
     state.pointerTap = true;
+    state.fireId = e.pointerId;
+    return true;
   }
 
-  function endFire() {
+  function endFire(e) {
+    if (e && state.fireId != null && e.pointerId !== state.fireId) return;
     state.firing = false;
+    state.fireId = null;
   }
 
   function onMove(e) {
-    if (state.firing || e.target.closest('#canvas-container')) toLocal(e);
+    if (onHud(e)) return;
+    if (state.firing || e.target === canvas) toLocal(e);
   }
 
   function requestPause() {
     state.firing = false;
+    state.fireId = null;
     state.forcePause = true;
   }
 
   canvas.addEventListener(
     'pointerdown',
     (e) => {
-      try {
-        canvas.setPointerCapture(e.pointerId);
-      } catch {
-        /* some browsers reject capture mid-gesture */
+      if (onHud(e)) return;
+      if (e.pointerType !== 'touch') {
+        try {
+          canvas.setPointerCapture(e.pointerId);
+        } catch {
+          /* some browsers reject capture mid-gesture */
+        }
       }
       onDown(e);
       e.preventDefault();
@@ -91,23 +98,21 @@ export function createInput(canvas) {
   window.addEventListener(
     'pointerdown',
     (e) => {
-      if (e.target === canvas) return;
+      if (e.target === canvas || onHud(e)) return;
       onDown(e);
     },
     { passive: true },
   );
   window.addEventListener('pointermove', onMove, { passive: true });
   canvas.addEventListener('pointerup', endFire);
-  canvas.addEventListener('lostpointercapture', endFire);
   canvas.addEventListener('pointercancel', endFire);
   window.addEventListener('pointerup', endFire);
   window.addEventListener('pointercancel', endFire);
 
-  // Block iOS long-press callout / selection on the canvas surface.
   canvas.addEventListener(
     'touchstart',
     (e) => {
-      if (onPanel(e)) return;
+      if (onHud(e)) return;
       e.preventDefault();
     },
     { passive: false },
@@ -119,7 +124,6 @@ export function createInput(canvas) {
     if (k === 'r') state.reloadTap = true;
     if (k === 'p' || k === 'escape') state.pauseTap = true;
     if (k === ' ' || k === 'enter') {
-      // Resume / pause with keyboard when focused (desktop + bluetooth keyboards).
       state.pauseTap = true;
       e.preventDefault();
     }
@@ -138,9 +142,9 @@ export function createInput(canvas) {
       state[name] = false;
       return v;
     },
-    /** Drop a resume/start tap so it does not also fire. */
     clearFireIntent() {
       state.firing = false;
+      state.fireId = null;
       state.pointerTap = false;
     },
   };

@@ -153,6 +153,9 @@ function settleRun() {
   syncCursor();
 }
 
+let queuedPointerTap = false;
+let queuedReloadTap = false;
+
 function frame(now) {
   const { steps, frame: frameDt } = loop.tick(now);
   const q = viewport.quality;
@@ -161,19 +164,23 @@ function frame(now) {
   if (mode === 'run' && run) {
     const forcePause = input.consume('forcePause');
     const pauseTap = input.consume('pauseTap');
-    const pointerTap = input.consume('pointerTap');
-    const reloadPressed = input.consume('reloadTap');
+    queuedPointerTap = queuedPointerTap || input.consume('pointerTap');
+    queuedReloadTap = queuedReloadTap || input.consume('reloadTap');
     let skipSim = false;
 
     if (!run.ended) {
       if (run.paused) {
-        if (pointerTap || pauseTap) {
+        if (queuedPointerTap || pauseTap) {
           run.paused = false;
+          queuedPointerTap = false;
+          queuedReloadTap = false;
           input.clearFireIntent();
           skipSim = true; // resume gesture is not a shot
         }
       } else if (forcePause || pauseTap) {
         run.paused = true;
+        queuedPointerTap = false;
+        queuedReloadTap = false;
         input.clearFireIntent();
         skipSim = true;
       }
@@ -181,11 +188,18 @@ function frame(now) {
     }
 
     if (!run.paused && !run.ended && !skipSim) {
+      const pointerTap = queuedPointerTap;
+      const reloadPressed = queuedReloadTap;
+      const firing = input.state.firing || pointerTap;
+      if (steps > 0) {
+        queuedPointerTap = false;
+        queuedReloadTap = false;
+      }
       for (let i = 0; i < steps; i++) {
         simulate(run, FIXED_DT, viewport, {
           pointerX: input.state.pointerX,
           pointerY: input.state.pointerY,
-          firing: input.state.firing,
+          firing,
           reloadPressed: i === 0 ? reloadPressed : false,
           pointerTap: i === 0 ? pointerTap : false,
         });
@@ -203,6 +217,8 @@ function frame(now) {
     drawHud(ctx, run, viewport, profile);
     if (run.ended) settleRun();
   } else {
+    queuedPointerTap = false;
+    queuedReloadTap = false;
     drawBackdrop(ctx, viewport, now / 1000, profile.unlockedLevel);
   }
   requestAnimationFrame(frame);

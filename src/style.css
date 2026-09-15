@@ -180,6 +180,7 @@ canvas {
   padding: max(12px, env(safe-area-inset-top, 0px)) max(52px, env(safe-area-inset-right, 0px))
     max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
   touch-action: auto;
+  -webkit-touch-callout: none;
 }
 
 #overlay-root .stage {
@@ -394,9 +395,10 @@ canvas {
   cursor: pointer;
   border-radius: 6px;
   touch-action: manipulation;
+  -webkit-touch-callout: none;
 }
 
-#overlay-root button:hover,
+#overlay-root button:active,
 #overlay-root button.active {
   background: var(--gunny-blood);
   border-color: #e8c4a0;
@@ -410,7 +412,7 @@ canvas {
   font-weight: 600;
 }
 
-#overlay-root button.primary:hover {
+#overlay-root button.primary:active {
   background: #a8362a;
 }
 
@@ -423,7 +425,7 @@ canvas {
   align-self: center;
 }
 
-#overlay-root button.ghost:hover {
+#overlay-root button.ghost:active {
   background: rgba(196, 69, 54, 0.2);
 }
 
@@ -447,7 +449,7 @@ canvas {
   background: #2e1c14;
 }
 
-#overlay-root button.facility:hover {
+#overlay-root button.facility:active {
   background: #4a2c1c;
   border-color: var(--gunny-gold);
   color: #fff6ea;
@@ -460,7 +462,7 @@ canvas {
   color: #fff6ea;
 }
 
-#overlay-root button.facility.start:hover {
+#overlay-root button.facility.start:active {
   background: #a8362a;
 }
 
@@ -570,7 +572,7 @@ canvas {
 }
 
 #overlay-root .chip.selected,
-#overlay-root .chip:hover {
+#overlay-root .chip:active {
   background: rgba(224, 163, 58, 0.14);
   border-color: var(--gunny-gold);
   color: #fff6ea;
@@ -710,7 +712,7 @@ canvas {
   background: rgba(224, 163, 58, 0.1);
 }
 
-#overlay-root .skill-row:hover {
+#overlay-root .skill-row:active {
   border-color: var(--gunny-gold);
 }
 
@@ -829,7 +831,7 @@ canvas {
   display: block;
 }
 
-#overlay-root .opt-fab:hover,
+#overlay-root .opt-fab:active,
 #overlay-root .opt-fab[aria-expanded='true'] {
   background: var(--gunny-blood);
   border-color: #e8c4a0;
@@ -930,7 +932,7 @@ canvas {
   color: #f0c8bc;
 }
 
-#overlay-root .opt-danger:hover {
+#overlay-root .opt-danger:active {
   background: var(--gunny-blood);
   color: #fff6ea;
 }
@@ -945,6 +947,8 @@ canvas {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 #overlay-root .hold-fill {
@@ -1048,5 +1052,53 @@ canvas {
 
   #overlay-root .stats.stats-wide div {
     padding: 6px 8px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #overlay-root button:hover,
+  #overlay-root button.active {
+    background: var(--gunny-blood);
+    border-color: #e8c4a0;
+    color: #fff6ea;
+  }
+
+  #overlay-root button.primary:hover {
+    background: #a8362a;
+  }
+
+  #overlay-root button.ghost:hover {
+    background: rgba(196, 69, 54, 0.2);
+  }
+
+  #overlay-root button.facility:hover {
+    background: #4a2c1c;
+    border-color: var(--gunny-gold);
+    color: #fff6ea;
+  }
+
+  #overlay-root button.facility.start:hover {
+    background: #a8362a;
+  }
+
+  #overlay-root .chip:hover {
+    background: rgba(224, 163, 58, 0.14);
+    border-color: var(--gunny-gold);
+    color: #fff6ea;
+  }
+
+  #overlay-root .skill-row:hover {
+    border-color: var(--gunny-gold);
+  }
+
+  #overlay-root .opt-fab:hover {
+    background: var(--gunny-blood);
+    border-color: #e8c4a0;
+    color: #fff6ea;
+  }
+
+  #overlay-root .opt-danger:hover {
+    background: var(--gunny-blood);
+    color: #fff6ea;
   }
 }

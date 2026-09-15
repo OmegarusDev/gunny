@@ -367,6 +367,20 @@ describe('simulate loop', () => {
     simulate(run2, dt, viewport, idle);
     expect(run2.ended).toBe('death');
   });
+
+  it('registers a reload tap after the empty-mag press is released', () => {
+    const run = liveRun();
+    run.weapon.ammo = 1;
+    run.weapon.cooldown = 0;
+    simulate(run, dt, viewport, { ...idle, firing: true, pointerTap: true });
+    expect(run.weapon.reloading).toBe(true);
+    simulate(run, dt, viewport, idle);
+    expect(run.weapon.suppressFire).toBe(false);
+    for (let i = 0; i < 8; i++) simulate(run, dt, viewport, idle);
+    expect(run.weapon.reloadT).toBeLessThan(0.32);
+    simulate(run, dt, viewport, { ...idle, firing: true, pointerTap: true });
+    expect(run.weapon.tapped).toBe(true);
+  });
 });
 
 describe('render budget', () => {
