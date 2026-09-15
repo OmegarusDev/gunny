@@ -60,7 +60,7 @@ describe('threat pacing', () => {
     expect(early.spawnInterval).toBeGreaterThan(mid.spawnInterval);
     expect(mid.spawnInterval).toBeGreaterThan(late.spawnInterval);
     expect(late.maxAlive).toBeGreaterThan(early.maxAlive);
-    expect(early.hpMul).toBeGreaterThan(late.hpMul);
+    expect(early.hpMul).toBeCloseTo(late.hpMul);
   });
 
   it('opens the next road harder than this opening but not harder than this finale', () => {
@@ -75,28 +75,53 @@ describe('threat pacing', () => {
     expect(l1s.maxAlive).toBeLessThanOrEqual(l0e.maxAlive);
   });
 
-  it('scales later campaign roads at the same metre while endless uses the L0 curve', () => {
-    const s0 = threatForDistance(80, 0, false);
-    const s2 = threatForDistance(80, 2, false);
-    expect(s2.maxAlive).toBeGreaterThanOrEqual(s0.maxAlive);
-    expect(s2.speed).toBeGreaterThan(s0.speed);
-    expect(threatForDistance(80, 0, true).spawnInterval).toBe(s0.spawnInterval);
+  it('steps campaign grunt HP per road, not within the 250m', () => {
+    const l0s = threatForDistance(0, 0, false);
+    const l0e = threatForDistance(TRACK_METERS, 0, false);
+    const l2s = threatForDistance(80, 2, false);
+    const l2e = threatForDistance(TRACK_METERS, 2, false);
+    expect(l0e.hpMul).toBeCloseTo(l0s.hpMul);
+    expect(l2e.hpMul).toBeCloseTo(l2s.hpMul);
+    expect(l2s.hpMul).toBeGreaterThan(l0s.hpMul);
+    expect(l2s.maxAlive).toBeGreaterThanOrEqual(threatForDistance(80, 0, false).maxAlive);
+    expect(l2s.speed).toBeGreaterThan(threatForDistance(80, 0, false).speed);
   });
 
-  it('ramps endless only past TRACK_METERS', () => {
-    const before = threatForDistance(TRACK_METERS - 1, 0, true);
-    const after = threatForDistance(TRACK_METERS + 200, 0, true);
-    expect(after.spawnInterval).toBeLessThan(before.spawnInterval);
-    expect(after.maxAlive).toBeGreaterThanOrEqual(before.maxAlive);
+  it('makes Endless a steeper curve than campaign, not a 1:1 road map', () => {
+    const camp0_80 = threatForDistance(80, 0, false);
+    const camp0_250 = threatForDistance(TRACK_METERS, 0, false);
+    const camp1_250 = threatForDistance(TRACK_METERS, 1, false);
+    const camp4_250 = threatForDistance(TRACK_METERS, 4, false);
+    const end80 = threatForDistance(80, 0, true);
+    const end250 = threatForDistance(TRACK_METERS, 0, true);
+    const end500 = threatForDistance(500, 0, true);
+
+    expect(end80.hpMul).toBeGreaterThan(camp0_80.hpMul);
+    expect(end80.spawnInterval).toBeLessThan(camp0_80.spawnInterval);
+    expect(end250.hpMul).toBeGreaterThan(camp0_250.hpMul);
+    expect(end250.hpMul).toBeGreaterThan(camp1_250.hpMul);
+    expect(end250.spawnInterval).toBeLessThanOrEqual(camp1_250.spawnInterval);
+    expect(end500.hpMul).toBeGreaterThan(camp4_250.hpMul);
+    expect(end500.hpMul).toBeGreaterThan(end250.hpMul);
+    expect(end500.spawnInterval).toBeLessThan(end250.spawnInterval);
   });
 
-  it('keeps hpMul in the chill–hectic band on late campaign roads', () => {
+  it('ramps Endless toughness with metres including inside the first 250', () => {
+    const early = threatForDistance(40, 0, true);
+    const mid = threatForDistance(180, 0, true);
+    const later = threatForDistance(TRACK_METERS + 200, 0, true);
+    expect(mid.hpMul).toBeGreaterThan(early.hpMul);
+    expect(later.hpMul).toBeGreaterThan(mid.hpMul);
+    expect(later.spawnInterval).toBeLessThan(mid.spawnInterval);
+    expect(later.maxAlive).toBeGreaterThanOrEqual(mid.maxAlive);
+  });
+
+  it('keeps campaign HP positive and rising on late roads', () => {
     const l0e = threatForDistance(TRACK_METERS, 0, false);
     const l10s = threatForDistance(0, 10, false);
     const l10e = threatForDistance(TRACK_METERS, 10, false);
-    expect(l10s.hpMul).toBeGreaterThan(0);
-    expect(l10e.hpMul).toBeGreaterThan(0);
-    expect(l10e.hpMul).toBeCloseTo(THREAT.hectic.hpMul);
+    expect(l10s.hpMul).toBeGreaterThan(l0e.hpMul);
+    expect(l10e.hpMul).toBeCloseTo(l10s.hpMul);
     expect(l10s.spawnInterval).toBeLessThanOrEqual(l0e.spawnInterval);
     expect(enemyHp(l10e.hpMul).torso).toBeGreaterThanOrEqual(1);
     expect(enemyHp(-2).head).toBeGreaterThanOrEqual(1);

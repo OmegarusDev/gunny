@@ -91,12 +91,21 @@ export const HIT_IMPULSE = {
 };
 export const TRACK_METERS = 250;
 
-/** Within-road ramp (SPAN) is larger than per-road start shift (STEP). */
+/** Within-road swarm ramp (SPAN) is larger than per-road start shift (STEP). */
 export const THREAT = {
   step: 0.35,
   span: 1,
-  chill: { spawn: 3.4, max: 1, speed: 124, packChance: 0.02, hpMul: 1.15 },
-  hectic: { spawn: 1.05, max: 7, speed: 186, packChance: 0.45, hpMul: 0.82 },
+  chill: { spawn: 3.4, max: 1, speed: 124, packChance: 0.02 },
+  hectic: { spawn: 1.05, max: 7, speed: 186, packChance: 0.45 },
+  /** Campaign L0 grunt toughness; constant for the whole 250m. */
+  gruntHp: 1,
+  /** Each later road’s baseline HP. */
+  roadHpStep: 0.18,
+  /** Endless starts tougher than Forest open, then climbs with metres. */
+  endlessHp: 1.24,
+  endlessHpPerM: 0.00215,
+  /** 0 = Forest open; 1 = Forest extract swarm. Endless opens already mid-hectic. */
+  endlessOpen: 0.52,
   /** Determined chase. Below a sprint for almost the whole game. */
   speedCap: 204,
   /** Late-campaign / deep-endless only — urgent, not a blur. */
@@ -132,22 +141,17 @@ export const ECONOMY = {
   extractXp: 45,
 };
 
-/** @param {number} levelIndex Campaign road (0 = first). Endless always treated as 0 for the 250m curve. */
-export function threatForDistance(meters, levelIndex, endless) {
-  const L = endless ? 0 : Math.max(0, levelIndex || 0);
-  const trackT = Math.max(0, Math.min(1, meters / TRACK_METERS));
-  const pressure = L * THREAT.step + trackT * THREAT.span;
+function swarmFromPressure(pressure) {
+  const { chill, hectic } = THREAT;
   const rawU = THREAT.span > 0 ? pressure / THREAT.span : 0;
   const u = Math.max(0, Math.min(1, rawU));
   const over = Math.max(0, rawU - 1);
-  const { chill, hectic } = THREAT;
   const lerp = (a, b) => a + (b - a) * u;
 
   let spawn = Math.max(THREAT.spawnFloor, lerp(chill.spawn, hectic.spawn));
   let maxAlive = Math.max(1, Math.round(lerp(chill.max, hectic.max)));
   let speed = lerp(chill.speed, hectic.speed);
   let packChance = lerp(chill.packChance, hectic.packChance);
-  const hpMul = lerp(chill.hpMul, hectic.hpMul);
 
   if (over > 0) {
     spawn = Math.max(THREAT.spawnFloor, spawn / (1 + over * 0.18));
@@ -156,14 +160,32 @@ export function threatForDistance(meters, levelIndex, endless) {
     packChance += over * 0.04;
   }
 
-  let extra = 0;
-  if (endless && meters > TRACK_METERS) {
-    extra = (meters - TRACK_METERS) / 120;
-    spawn = Math.max(THREAT.spawnFloor, spawn / (1 + extra * 0.3));
-    maxAlive = Math.min(THREAT.maxAliveCap, Math.floor(maxAlive + extra * 1.5));
-    packChance += extra * 0.05;
+  return { spawn, maxAlive, speed, packChance, over };
+}
+
+/**
+ * Campaign: HP is a per-road baseline (flat over 250m); swarm densifies toward extract.
+ * Endless: own steeper curve — HP and swarm climb with metres, not campaign `levelIndex`.
+ */
+export function threatForDistance(meters, levelIndex, endless) {
+  const m = Math.max(0, meters || 0);
+  const L = Math.max(0, levelIndex || 0);
+  const trackT = Math.max(0, Math.min(1, m / TRACK_METERS));
+
+  let pressure;
+  let hpMul;
+  if (endless) {
+    pressure = THREAT.endlessOpen * THREAT.span + (m / TRACK_METERS) * THREAT.span;
+    hpMul = THREAT.endlessHp * (1 + m * THREAT.endlessHpPerM);
+  } else {
+    pressure = L * THREAT.step + trackT * THREAT.span;
+    hpMul = THREAT.gruntHp * (1 + L * THREAT.roadHpStep);
   }
 
+  const swarm = swarmFromPressure(pressure);
+  let { spawn, maxAlive, speed, packChance, over } = swarm;
+
+  const extra = endless && m > TRACK_METERS ? (m - TRACK_METERS) / 120 : 0;
   speed = Math.min(speed, THREAT.speedCap);
   const sprintT = endless
     ? Math.max(0, extra - THREAT.sprintEndless) / 10
