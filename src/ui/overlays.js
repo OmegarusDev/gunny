@@ -5,7 +5,6 @@ const PANEL_KEYS = ['hub', 'gunsmith', 'training', 'end'];
 export function mountOverlays(root) {
   root.innerHTML = `
     <header class="chrome-ledger hidden" id="chrome-ledger"></header>
-    <aside class="sat-panel hidden" id="sat-stats"></aside>
     <div class="stage">
       <div id="panel-hub" class="panel hidden"></div>
       <div id="panel-gunsmith" class="panel hidden"></div>
@@ -14,7 +13,6 @@ export function mountOverlays(root) {
     </div>
   `;
   const ledger = root.querySelector('#chrome-ledger');
-  const sat = root.querySelector('#sat-stats');
   const api = {
     hub: root.querySelector('#panel-hub'),
     gunsmith: root.querySelector('#panel-gunsmith'),
@@ -25,14 +23,12 @@ export function mountOverlays(root) {
         api[key].classList.toggle('hidden', key !== name);
       }
       ledger.classList.remove('hidden');
-      sat.classList.remove('hidden');
     },
     hideAll() {
       for (const key of PANEL_KEYS) api[key].classList.add('hidden');
       ledger.classList.add('hidden');
-      sat.classList.add('hidden');
     },
-    setChrome(profile, { back = false, onBack, stats = '' } = {}) {
+    setChrome(profile, { back = false, onBack } = {}) {
       ledger.innerHTML = `
         <div class="ledger">
           <div>
@@ -50,7 +46,6 @@ export function mountOverlays(root) {
         </div>
         ${back ? `<button class="ghost" type="button" data-act="hub">Camp</button>` : ''}
       `;
-      sat.innerHTML = stats;
       const btn = ledger.querySelector('[data-act="hub"]');
       if (btn && onBack) btn.onclick = onBack;
     },
@@ -62,8 +57,8 @@ export function fmtMoney(n) {
   return `$${Math.floor(n)}`;
 }
 
-export function statsRail(rows) {
-  return `<div class="stats stats-rail">${rows
+export function statsGrid(rows, extraClass = '') {
+  return `<div class="stats ${extraClass}">${rows
     .map(([label, value]) => `<div><span>${label}</span>${value}</div>`)
     .join('')}</div>`;
 }

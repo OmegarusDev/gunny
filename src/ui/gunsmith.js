@@ -2,7 +2,7 @@ import { RECEIVERS, SLOTS, SLOT_MIN_TIER } from '../data/receivers.js';
 import { partsForSlot } from '../data/attachments.js';
 import { resolveStats, slotUnlockedFor, gunsmithStatRows } from '../entities/loadout.js';
 import { buyBlockedReason, buyPart, equipPart, owns } from '../state/profile.js';
-import { fmtMoney, statsRail } from './overlays.js';
+import { fmtMoney, statsGrid } from './overlays.js';
 
 const SLOT_LABEL = {
   receiver: 'Rec',
@@ -22,10 +22,7 @@ export function renderGunsmith(el, profile, handlers) {
   const prevSlot = el.dataset.prevSlot;
   const prevPart = el.dataset.prevPart;
   const stats = resolveStats(profile);
-  handlers.chrome?.(
-    statsRail(gunsmithStatRows(stats)),
-    { back: true },
-  );
+  handlers.chrome?.(null, { back: true });
 
   const selected = el.dataset.slot || 'receiver';
   const rows = SLOTS.map((slot) => {
@@ -54,6 +51,7 @@ export function renderGunsmith(el, profile, handlers) {
         <p class="kicker">Facility</p>
         <h2>Gunsmith</h2>
       </header>
+      ${statsGrid(gunsmithStatRows(stats), 'stats-wide')}
       <div class="slot-matrix">
         ${rows
           .map(({ slot, locked, items }) => {

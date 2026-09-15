@@ -1,21 +1,11 @@
 import { SKILLS, skillCost } from '../data/skills.js';
 import { resolveStats } from '../entities/loadout.js';
 import { saveProfile } from '../state/profile.js';
-import { statsRail } from './overlays.js';
+import { statsGrid } from './overlays.js';
 
 export function renderTraining(el, profile, handlers) {
   const stats = resolveStats(profile);
-  handlers.chrome?.(
-    statsRail([
-      ['Crit', `${(stats.critChance * 100).toFixed(0)}%`],
-      ['Crit ×', stats.critMult.toFixed(2)],
-      ['Cash', `×${stats.cashMul.toFixed(2)}`],
-      ['Aim', stats.aimRate.toFixed(1)],
-      ['Reach', Math.round(stats.aimReach)],
-      ['Spread', `${stats.baseSpread.toFixed(2)}°`],
-    ]),
-    { back: true },
-  );
+  handlers.chrome?.(null, { back: true });
 
   const skills = Object.values(SKILLS);
   let picked = el.dataset.skill || skills[0]?.id;
@@ -28,6 +18,14 @@ export function renderTraining(el, profile, handlers) {
         <p class="kicker">Facility</p>
         <h2>Training</h2>
       </header>
+      ${statsGrid([
+        ['Crit', `${(stats.critChance * 100).toFixed(0)}%`],
+        ['Crit ×', stats.critMult.toFixed(2)],
+        ['Cash', `×${stats.cashMul.toFixed(2)}`],
+        ['Aim', stats.aimRate.toFixed(1)],
+        ['Reach', Math.round(stats.aimReach)],
+        ['Spread', `${stats.baseSpread.toFixed(2)}°`],
+      ])}
       <div class="train-grid">
         ${skills
           .map((def) => {
