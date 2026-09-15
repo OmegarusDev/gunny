@@ -55,7 +55,7 @@ Landscape only (portrait shows a rotate prompt). Touch-first: tap-hold to fire, 
    - **iPhone/iPad (Safari):** Share → Add to Home Screen
 3. Later launches use the home-screen icon. Pushes to `main` deploy a new Pages build; the next time you open the app it reloads onto that build.
 
-The installed Android app requests true immersive fullscreen on the first tap (hides the status bar and paints into the camera cutout). Desktop and browser tabs stay windowed unless you tick **Fullscreen in all modes** in Options. Chrome caches the install display mode — if an older icon still shows the clock after a tap, remove it and Add to Home Screen again.
+The installed Android app launches in manifest fullscreen, which is what hides the status bar. Desktop and browser tabs stay windowed unless you tick **Fullscreen in all modes** in Options. Chrome caches the install display mode — if an older icon still shows the clock, remove it and Add to Home Screen again after this build is live.
 
 ## Development
 

@@ -2,17 +2,22 @@ import { loadSettings } from '../state/settings.js';
 
 /** Best-effort immersive mode. Fullscreen API needs a user gesture; do not await anything first. */
 export function enterImmersive() {
-  if (!wantsImmersive()) return Promise.resolve(false);
+  const settings = loadSettings();
+  const env = detectEnv();
+  if (!wantsImmersive(settings, env)) return Promise.resolve(false);
+
+  lockLandscape();
+
+  // WebAPK display:fullscreen is what actually hides the Android status bar.
+  // Requesting the HTML Fullscreen API on top of that is what brought the
+  // clock/battery back. Only use the API when opted in, or when the install
+  // is still standalone.
+  if (!usesHtmlFullscreen(settings, env)) return Promise.resolve(true);
 
   const html = document.documentElement;
   const box = document.getElementById('canvas-container') || html;
   const current = document.fullscreenElement || document.webkitFullscreenElement;
-  lockLandscape();
   if (current) return Promise.resolve(true);
-
-  // Standalone WebAPK + navigationUI hide dismisses the Android status bar
-  // and paints into the camera cutout. Browser/desktop skip this unless
-  // Options → Fullscreen in all modes is on.
   return requestHide(box).then((ok) => (ok ? true : requestHide(html)));
 }
 
@@ -21,11 +26,18 @@ export function wantsImmersive(settings = loadSettings(), env = detectEnv()) {
   return !!(env.android && env.installed);
 }
 
+export function usesHtmlFullscreen(settings = loadSettings(), env = detectEnv()) {
+  if (settings?.fullscreen) return true;
+  if (!(env.android && env.installed)) return false;
+  return !env.displayFullscreen;
+}
+
 export function detectEnv() {
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
   return {
     android: /Android/i.test(ua),
     installed: isStandaloneDisplay(),
+    displayFullscreen: isDisplayFullscreen(),
   };
 }
 
@@ -72,10 +84,18 @@ export async function exitImmersive() {
   }
 }
 
+export function isDisplayFullscreen() {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(display-mode: fullscreen)').matches
+  );
+}
+
 export function isStandaloneDisplay() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
   return (
-    window.matchMedia('(display-mode: fullscreen)').matches ||
+    isDisplayFullscreen() ||
     window.matchMedia('(display-mode: standalone)').matches ||
     (typeof navigator !== 'undefined' && navigator.standalone === true)
   );

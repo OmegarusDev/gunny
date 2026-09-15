@@ -29,7 +29,7 @@ import { gunsmithStatRows, resolveStats, shotSpreadDeg, STATS } from '../src/ent
 import { applyFlinch, createEnemy, limbCircles, stepFlinch } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
-import { wantsImmersive } from '../src/engine/immersive.js';
+import { wantsImmersive, usesHtmlFullscreen } from '../src/engine/immersive.js';
 import { clampAimPoint, resolveAimPoint } from '../src/view/aim.js';
 import { perfectBand, reloadNorm } from '../src/view/reload.js';
 import { uhash } from '../src/util/hash.js';
@@ -295,6 +295,13 @@ describe('skills & profile', () => {
     expect(wantsImmersive({ fullscreen: false }, { android: false, installed: true })).toBe(false);
     expect(wantsImmersive({ fullscreen: false }, { android: true, installed: true })).toBe(true);
     expect(wantsImmersive({ fullscreen: true }, { android: false, installed: false })).toBe(true);
+    expect(
+      usesHtmlFullscreen({ fullscreen: false }, { android: true, installed: true, displayFullscreen: true }),
+    ).toBe(false);
+    expect(
+      usesHtmlFullscreen({ fullscreen: false }, { android: true, installed: true, displayFullscreen: false }),
+    ).toBe(true);
+    expect(usesHtmlFullscreen({ fullscreen: true }, { android: false, installed: false })).toBe(true);
   });
 });
 
