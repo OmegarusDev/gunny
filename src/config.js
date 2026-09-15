@@ -5,11 +5,15 @@ export const MAX_FRAME_DT = 0.1;
 export const MAX_DPR = 2;
 /** Longer metre so gait / scenery match the counter (visual scroll stays ~70px/s). */
 export const PX_PER_M = 35;
-export const PLAYER_SCREEN_X_RATIO = 0.25;
+export const PLAYER_SCREEN_X_RATIO = 0.2;
 /** Campaign pace: 2 m/s → 250m in 125s. */
 export const RETREAT_MPS = 2;
 export const V_RETREAT = RETREAT_MPS * PX_PER_M;
-/** Height as a fraction of design height — real rolling hills, not pebbles. */
+/** Valley floor sits this fraction above the bottom of the screen. */
+export const TERRAIN_FLOOR_PAD = 0.065;
+/** Empty sky above the gunner’s head at the highest peak. */
+export const TERRAIN_HEADROOM = 0.18;
+/** Typical half-span; real min/max come from floor pad + headroom. */
 export const TERRAIN_AMP = 0.18;
 export const BLOOM_CAP_DEG = 12;
 /** Irons: sight picture to mid-screen. Optics push this out. */

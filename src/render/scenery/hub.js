@@ -2,7 +2,8 @@ import { BIOMES } from '../../data/biomes.js';
 import { createTerrain } from '../../world/terrain.js';
 
 export function hubTerrain(viewport, biomeIndex = 0) {
-  return createTerrain(1801 + (biomeIndex % BIOMES.length) * 131, viewport.h);
+  const biome = BIOMES[biomeIndex % BIOMES.length];
+  return createTerrain(1801 + (biomeIndex % BIOMES.length) * 131, viewport.h, biome);
 }
 
 export function hubRun(viewport, t, biomeIndex = 0) {

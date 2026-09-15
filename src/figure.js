@@ -373,6 +373,16 @@ export function posePlayer(player) {
   return offsetPose(posePlayerLocal(player), player.worldX, player.y);
 }
 
+/** Feet-to-crown in local pose space, including gait bob. */
+export function playerHeadClearance() {
+  let span = 0;
+  for (let i = 0; i < 10; i++) {
+    const p = poseLocal({ kind: 'gunner', seed: 1, t: i * 0.07, aimAngle: 0 });
+    span = Math.max(span, 14 * S - p.head.y);
+  }
+  return span;
+}
+
 export function limbCirclesFromPose(p) {
   const crawl = p.crawl;
   return {

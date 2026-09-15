@@ -12,6 +12,8 @@ import {
   SHOT_REACH_BASE,
   SHOT_SCREEN_FRAC,
   TERRAIN_AMP,
+  TERRAIN_FLOOR_PAD,
+  TERRAIN_HEADROOM,
   THREAT,
   TRACK_METERS,
   clampShotRange,
@@ -36,7 +38,7 @@ import { uhash } from '../src/util/hash.js';
 import { mixHex, mixTone } from '../src/util/color.js';
 import { createTerrain } from '../src/world/terrain.js';
 import { createPlayer } from '../src/entities/player.js';
-import { poseEnemyLocal } from '../src/figure.js';
+import { playerHeadClearance, poseEnemyLocal } from '../src/figure.js';
 import { shotEnergy } from '../src/systems/impulse.js';
 import { spawnRagdoll } from '../src/systems/ragdoll.js';
 import { createRun, simulate } from '../src/systems/run.js';
@@ -317,19 +319,28 @@ describe('world helpers', () => {
 
   it('uses rolling hills instead of tiny bumps', () => {
     expect(TERRAIN_AMP).toBeGreaterThanOrEqual(0.14);
-    const terrain = createTerrain(1, 720);
+    const h = 720;
+    const forest = createTerrain(1, h, { id: 'forest' });
+    const desert = createTerrain(1, h, { id: 'desert' });
+    const stand = playerHeadClearance();
+    const floorY = h * (1 - TERRAIN_FLOOR_PAD);
+    const peakY = h * TERRAIN_HEADROOM + stand;
     let min = Infinity;
     let max = -Infinity;
-    let steep = 0;
-    for (let x = 0; x < 12000; x += 40) {
-      const y = terrain.height(x);
+    let forestSteep = 0;
+    let desertSteep = 0;
+    for (let x = 0; x < 24000; x += 40) {
+      const y = forest.height(x);
       min = Math.min(min, y);
       max = Math.max(max, y);
-      steep = Math.max(steep, Math.abs(terrain.slope(x)));
+      expect(y).toBeGreaterThanOrEqual(peakY - 0.75);
+      expect(y).toBeLessThanOrEqual(floorY + 0.75);
+      forestSteep = Math.max(forestSteep, Math.abs(forest.slope(x)));
+      desertSteep = Math.max(desertSteep, Math.abs(desert.slope(x)));
     }
-    expect(max - min).toBeGreaterThan(50);
-    expect(max - min).toBeLessThan(terrain.amp * 2.15);
-    expect(steep).toBeLessThan(0.32);
+    expect(max - min).toBeGreaterThan((floorY - peakY) * 0.32);
+    expect(forestSteep).toBeGreaterThan(desertSteep);
+    expect(forestSteep).toBeLessThan(0.38);
   });
 
   it('scales enemy pools by hpMul', () => {
@@ -590,7 +601,7 @@ describe('simulate loop', () => {
     run.bullets = [b];
     for (let i = 0; i < 20; i++) stepBullets(run, dt, viewport);
     expect(run.bullets).toHaveLength(0);
-    expect(clampShotRange(4000, viewport)).toBeLessThan(viewport.w * 0.75);
+    expect(clampShotRange(4000, viewport)).toBeLessThan(viewport.w * (1 - PLAYER_SCREEN_X_RATIO));
     expect(AIM_REACH_MAX).toBeLessThan(clampShotRange(4000, viewport));
   });
 });

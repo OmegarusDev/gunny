@@ -27,7 +27,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
         ? randomSeed()
         : seedForLevel(levelIndex);
   const biome = biomeFor(levelIndex);
-  const terrain = createTerrain(seeded.seed, viewport.h);
+  const terrain = createTerrain(seeded.seed, viewport.h, biome);
   const weather = createWeather(seeded.rng);
   const stats = resolveStats(profile);
   const player = createPlayer(0, terrain);
