@@ -368,17 +368,31 @@ describe('simulate loop', () => {
     expect(run2.ended).toBe('death');
   });
 
-  it('registers a reload tap after the empty-mag press is released', () => {
+  it('forgives fire-spam taps at the start of reload so they do not jam', () => {
     const run = liveRun();
     run.weapon.ammo = 1;
     run.weapon.cooldown = 0;
     simulate(run, dt, viewport, { ...idle, firing: true, pointerTap: true });
     expect(run.weapon.reloading).toBe(true);
     simulate(run, dt, viewport, idle);
-    expect(run.weapon.suppressFire).toBe(false);
     for (let i = 0; i < 8; i++) simulate(run, dt, viewport, idle);
     expect(run.weapon.reloadT).toBeLessThan(0.32);
     simulate(run, dt, viewport, { ...idle, firing: true, pointerTap: true });
+    expect(run.weapon.tapped).toBe(false);
+    expect(run.weapon.jammed).toBe(false);
+    expect(run.weapon.reloading).toBe(true);
+  });
+
+  it('applies a reload tap after the forgive window', () => {
+    const run = liveRun();
+    run.weapon.ammo = 1;
+    run.weapon.cooldown = 0;
+    simulate(run, dt, viewport, { ...idle, firing: true });
+    expect(run.weapon.reloading).toBe(true);
+    const steps = Math.ceil(0.35 / dt);
+    for (let i = 0; i < steps; i++) simulate(run, dt, viewport, idle);
+    expect(run.weapon.reloadT).toBeGreaterThanOrEqual(0.32);
+    simulate(run, dt, viewport, { ...idle, pointerTap: true });
     expect(run.weapon.tapped).toBe(true);
   });
 });
