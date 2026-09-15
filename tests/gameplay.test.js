@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AIM_REACH_BASE,
   AIM_REACH_MAX,
   AIM_REACH_MIN,
+  AIM_SCREEN_FRAC,
   ECONOMY,
   HIT_IMPULSE,
   MAX_DPR,
+  PLAYER_SCREEN_X_RATIO,
   PX_PER_M,
   TERRAIN_AMP,
   THREAT,
   TRACK_METERS,
   clampShotRange,
+  effectiveShotRange,
   enemyHp,
   threatForDistance,
 } from '../src/config.js';
@@ -154,8 +158,16 @@ describe('loadout aim stats', () => {
     const stats = resolveStats(defaultProfile());
     expect(stats.magSize).toBe(1);
     expect(stats.aimReach).toBeGreaterThanOrEqual(AIM_REACH_MIN);
-    expect(stats.aimReach).toBeLessThan(140);
+    expect(stats.aimReach).toBeCloseTo(AIM_REACH_BASE, 5);
     expect(stats.baseSpread).toBeGreaterThan(1.5);
+  });
+
+  it('places base shot range two-thirds across the screen', () => {
+    const viewport = { w: 1280, h: 720 };
+    const stats = resolveStats(defaultProfile());
+    const range = effectiveShotRange(stats, viewport);
+    const gunX = viewport.w * PLAYER_SCREEN_X_RATIO;
+    expect(gunX + range).toBeCloseTo(viewport.w * AIM_SCREEN_FRAC, 5);
   });
 
   it('extends reach and tightens spread with optic + marksman', () => {
@@ -170,6 +182,8 @@ describe('loadout aim stats', () => {
     expect(stats.aimReach).toBeGreaterThan(stock.aimReach);
     expect(stats.baseSpread).toBeLessThan(stock.baseSpread);
     expect(stats.aimReach).toBeLessThanOrEqual(AIM_REACH_MAX);
+    const viewport = { w: 1280, h: 720 };
+    expect(effectiveShotRange(stats, viewport)).toBeGreaterThan(effectiveShotRange(stock, viewport));
   });
 
   it('includes base spread in the shot cone even at zero bloom', () => {

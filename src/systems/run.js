@@ -1,4 +1,4 @@
-import { clampShotRange, HIT_IMPULSE, PERFECT_MAG_MULT, TRACK_METERS, V_RETREAT } from '../config.js';
+import { effectiveShotRange, HIT_IMPULSE, PERFECT_MAG_MULT, TRACK_METERS, V_RETREAT } from '../config.js';
 import { randomSeed, seedForLevel, seedFromUint32 } from '../engine/rng.js';
 import { biomeFor, biomeFromSeed } from '../data/biomes.js';
 import { createTerrain } from '../world/terrain.js';
@@ -147,7 +147,7 @@ function tryFire(run, firing, viewport) {
     y: gun.y + Math.sin(angle) * gun.len,
   };
   run.bullets.push(
-    spawnBullet(muzzle.x, muzzle.y, angle, stats, weapon.perfectMag, clampShotRange(stats.aimReach, viewport)),
+    spawnBullet(muzzle.x, muzzle.y, angle, stats, weapon.perfectMag, effectiveShotRange(stats, viewport)),
   );
   weapon.bloom = Math.min(stats.bloomCap, weapon.bloom + stats.bloomPerShot);
   playMuzzle();
@@ -179,7 +179,7 @@ export function simulate(run, dt, viewport, input) {
   player.y = run.terrain.height(player.worldX);
 
   const gun = gunWorld(player);
-  const aim = resolveAimPoint(input.pointerX, input.pointerY, player, viewport, stats.aimReach);
+  const aim = resolveAimPoint(input.pointerX, input.pointerY, player, viewport, effectiveShotRange(stats, viewport));
   run.aim = aim;
   const aimWorld = screenToWorld(aim.x, aim.y, player.worldX, viewport);
   const target = Math.atan2(aimWorld.y - gun.y, aimWorld.x - gun.x);

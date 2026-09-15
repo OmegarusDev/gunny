@@ -76,7 +76,7 @@ export const PARTS = {
     short: 'Stub',
     cost: 0,
     desc: 'Short range. Snappy, imprecise.',
-    mods: { bulletSpeed: -90, bloomPerShot: 0.35, pen: -0.08, aimRate: 0.4, baseSpread: 0.35, aimReach: -22 },
+    mods: { bulletSpeed: -90, bloomPerShot: 0.35, pen: -0.08, aimRate: 0.4, baseSpread: 0.35 },
   },
   barrel_carbine: {
     id: 'barrel_carbine',
@@ -87,7 +87,7 @@ export const PARTS = {
     short: 'Carbine',
     cost: 140,
     desc: 'A bit more range and a cleaner cone.',
-    mods: { bulletSpeed: 40, bloomPerShot: -0.15, pen: 0.08, baseSpread: -0.2, aimReach: 18 },
+    mods: { bulletSpeed: 40, bloomPerShot: -0.15, pen: 0.08, baseSpread: -0.2, aimReach: 48 },
   },
   barrel_rifle: {
     id: 'barrel_rifle',
@@ -98,7 +98,7 @@ export const PARTS = {
     short: 'Rifle',
     cost: 280,
     desc: 'Longer effective range and punch.',
-    mods: { bulletSpeed: 140, bloomPerShot: -0.28, pen: 0.22, aimRate: -0.6, weight: 0.08, baseSpread: -0.4, aimReach: 38 },
+    mods: { bulletSpeed: 140, bloomPerShot: -0.28, pen: 0.22, aimRate: -0.6, weight: 0.08, baseSpread: -0.4, aimReach: 96 },
   },
   barrel_long: {
     id: 'barrel_long',
@@ -109,7 +109,7 @@ export const PARTS = {
     short: 'Long',
     cost: 480,
     desc: 'Best on-screen range. Slow settle on slopes.',
-    mods: { bulletSpeed: 240, bloomPerShot: -0.4, pen: 0.38, aimRate: -1.2, weight: 0.14, baseSpread: -0.65, aimReach: 58 },
+    mods: { bulletSpeed: 240, bloomPerShot: -0.4, pen: 0.38, aimRate: -1.2, weight: 0.14, baseSpread: -0.65, aimReach: 150 },
   },
 
   ...buildMagParts(),

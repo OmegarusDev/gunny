@@ -1,4 +1,4 @@
-import { FIXED_DT, MAX_FRAME_DT } from './config.js';
+import { effectiveShotRange, FIXED_DT, MAX_FRAME_DT } from './config.js';
 import { createCanvas } from './engine/canvas.js';
 import { createInput } from './engine/input.js';
 import { enterImmersive } from './engine/immersive.js';
@@ -36,10 +36,14 @@ let lastLevel = 0;
 let lastSeed = null;
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-window.addEventListener('pointerdown', () => {
-  resumeAudio();
-  enterImmersive();
-});
+window.addEventListener(
+  'pointerdown',
+  () => {
+    enterImmersive();
+    resumeAudio();
+  },
+  { capture: true },
+);
 
 function inActiveRun() {
   return mode === 'run' && run && !run.ended;
@@ -148,7 +152,7 @@ function settleRun() {
   mode = 'end';
   overlays.show('end');
   renderEnd(overlays.end, {
-    title: run.ended === 'extract' ? 'You made it' : 'They caught you',
+    title: run.ended === 'extract' ? 'You made it' : 'You barely escape alive...',
     run,
     profile,
     handlers,
@@ -217,7 +221,7 @@ function frame(now) {
         input.state.pointerY,
         run.player,
         viewport,
-        run.stats.aimReach,
+        effectiveShotRange(run.stats, viewport),
       );
     }
     drawWorld(ctx, run, viewport);

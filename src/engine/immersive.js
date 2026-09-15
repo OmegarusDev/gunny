@@ -1,28 +1,36 @@
-/** Best-effort immersive mode. Works on Android Chrome; iOS needs Add to Home Screen. */
-export async function enterImmersive() {
+/** Best-effort immersive mode. Fullscreen API needs a user gesture; do not await anything first. */
+export function enterImmersive() {
+  if (document.fullscreenElement) {
+    lockLandscape();
+    return Promise.resolve(true);
+  }
+
+  const root = document.documentElement;
+  let pending = Promise.resolve(false);
   try {
-    await screen.orientation?.lock?.('landscape');
+    if (root.requestFullscreen) {
+      pending = root
+        .requestFullscreen({ navigationUI: 'hide' })
+        .then(() => true)
+        .catch(() => root.requestFullscreen().then(() => true).catch(() => false));
+    } else if (root.webkitRequestFullscreen) {
+      root.webkitRequestFullscreen();
+      pending = Promise.resolve(true);
+    }
+  } catch {
+    pending = Promise.resolve(false);
+  }
+  lockLandscape();
+  return pending;
+}
+
+function lockLandscape() {
+  try {
+    const lock = screen.orientation?.lock?.('landscape');
+    if (lock && typeof lock.catch === 'function') lock.catch(() => {});
   } catch {
     /* not a user-gesture, or already landscape */
   }
-
-  if (document.fullscreenElement) return true;
-  if (window.matchMedia('(display-mode: fullscreen)').matches) return true;
-
-  const root = document.documentElement;
-  try {
-    if (root.requestFullscreen) {
-      await root.requestFullscreen({ navigationUI: 'hide' });
-      return true;
-    }
-    if (root.webkitRequestFullscreen) {
-      root.webkitRequestFullscreen();
-      return true;
-    }
-  } catch {
-    /* user denied, missing gesture, or unsupported in this WebAPK */
-  }
-  return false;
 }
 
 export async function exitImmersive() {

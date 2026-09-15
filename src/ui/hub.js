@@ -4,6 +4,7 @@ import { RECEIVERS } from '../data/receivers.js';
 import { PARTS } from '../data/attachments.js';
 import { equippedLabel, resolveStats } from '../entities/loadout.js';
 import { ledgerBlock, statsGrid } from './overlays.js';
+import { facilityButton } from './icons.js';
 
 export function renderHub(el, profile, handlers) {
   const stats = resolveStats(profile);
@@ -16,31 +17,37 @@ export function renderHub(el, profile, handlers) {
       ${ledgerBlock(profile)}
       <header class="camp-brand">
         <h1>GUNNY</h1>
-        <p class="lede">They’re faster than you. Shoot over your shoulder and don’t let them touch you.</p>
+        <p class="lede">a game with a gun</p>
       </header>
       <div class="facilities">
-        <button class="facility" data-act="gunsmith">
-          <span class="facility-kicker">Facility</span>
-          <span class="facility-title">Gunsmith</span>
-          <span class="facility-sub">${rec?.short ?? rec?.name ?? 'Receiver'}</span>
-        </button>
-        <button class="facility" data-act="training">
-          <span class="facility-kicker">Facility</span>
-          <span class="facility-title">Training</span>
-          <span class="facility-sub">Spend XP</span>
-        </button>
+        ${facilityButton({
+          act: 'gunsmith',
+          icon: 'gunsmith',
+          title: 'Gunsmith',
+          sub: rec?.short ?? rec?.name ?? 'Receiver',
+        })}
+        ${facilityButton({
+          act: 'training',
+          icon: 'training',
+          title: 'Training',
+          sub: 'Spend XP',
+        })}
       </div>
       <div class="sheet-foot camp-foot">
-        <button class="facility start" data-act="deploy">
-          <span class="facility-kicker">Mission</span>
-          <span class="facility-title">Start Run</span>
-          <span class="facility-sub">${next.place} · ${TRACK_METERS}m</span>
-        </button>
-        <button class="facility side" data-act="endless">
-          <span class="facility-kicker">Hunt</span>
-          <span class="facility-title">Endless</span>
-          <span class="facility-sub">Random</span>
-        </button>
+        ${facilityButton({
+          act: 'deploy',
+          icon: 'deploy',
+          title: 'Start Run',
+          sub: `${next.place} · ${TRACK_METERS}m`,
+          variant: 'start',
+        })}
+        ${facilityButton({
+          act: 'endless',
+          icon: 'endless',
+          title: 'Endless',
+          sub: 'Random',
+          variant: 'side',
+        })}
       </div>
       ${statsGrid([
         ['Kit', equippedLabel(profile)],
@@ -77,32 +84,38 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
         ['XP', `+${Math.floor(run.score.xp)}`],
       ])}
       <div class="facilities">
-        <button class="facility" data-act="gunsmith">
-          <span class="facility-kicker">Facility</span>
-          <span class="facility-title">Gunsmith</span>
-          <span class="facility-sub">Spend cash</span>
-        </button>
-        <button class="facility" data-act="training">
-          <span class="facility-kicker">Facility</span>
-          <span class="facility-title">Training</span>
-          <span class="facility-sub">Spend XP</span>
-        </button>
+        ${facilityButton({
+          act: 'gunsmith',
+          icon: 'gunsmith',
+          title: 'Gunsmith',
+          sub: 'Spend cash',
+        })}
+        ${facilityButton({
+          act: 'training',
+          icon: 'training',
+          title: 'Training',
+          sub: 'Spend XP',
+        })}
       </div>
       <div class="sheet-foot camp-foot">
         ${
           extract
             ? ''
-            : `<button class="facility start" data-act="retry">
-          <span class="facility-kicker">Mission</span>
-          <span class="facility-title">Retry</span>
-          <span class="facility-sub">Same road</span>
-        </button>`
+            : facilityButton({
+                act: 'retry',
+                icon: 'retry',
+                title: 'Retry',
+                sub: 'Same road',
+                variant: 'start',
+              })
         }
-        <button class="facility ${extract ? 'start' : 'side'}" data-act="hub">
-          <span class="facility-kicker">Camp</span>
-          <span class="facility-title">${extract ? 'Return' : 'Camp'}</span>
-          <span class="facility-sub">Ledger and kit</span>
-        </button>
+        ${facilityButton({
+          act: 'hub',
+          icon: 'camp',
+          title: extract ? 'Return' : 'Camp',
+          sub: 'Ledger and kit',
+          variant: extract ? 'start' : 'side',
+        })}
       </div>
     </div>
   `;
