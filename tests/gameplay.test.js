@@ -21,7 +21,7 @@ import {
   threatForDistance,
 } from '../src/config.js';
 import { PARTS, catalogWindow, partsForSlot } from '../src/data/attachments.js';
-import { BIOMES } from '../src/data/biomes.js';
+import { BIOMES, beatenRoadIndexes, biomeFor } from '../src/data/biomes.js';
 import { KINDS } from '../src/data/kinds.js';
 import { RECEIVERS } from '../src/data/receivers.js';
 import { SKILLS, emptyRanks, refundRetiredRanks, skillCost } from '../src/data/skills.js';
@@ -288,13 +288,22 @@ describe('skills & profile', () => {
 });
 
 describe('world helpers', () => {
+  it('cycles biomes and unlocks beaten skins for endless', () => {
+    expect(biomeFor(0).id).toBe('forest');
+    expect(biomeFor(BIOMES.length).id).toBe('forest');
+    expect(beatenRoadIndexes(0)).toEqual([0]);
+    expect(beatenRoadIndexes(1)).toEqual([0]);
+    expect(beatenRoadIndexes(2)).toEqual([0, 1]);
+    expect(beatenRoadIndexes(BIOMES.length + 1)).toHaveLength(BIOMES.length);
+  });
+
   it('uses rolling hills instead of tiny bumps', () => {
-    expect(TERRAIN_AMP).toBeGreaterThanOrEqual(0.07);
+    expect(TERRAIN_AMP).toBeGreaterThanOrEqual(0.14);
     const terrain = createTerrain(1, 720);
     const a = terrain.height(0);
     const b = terrain.height(400);
     const c = terrain.height(900);
-    expect(Math.abs(a - b) + Math.abs(b - c)).toBeGreaterThan(20);
+    expect(Math.abs(a - b) + Math.abs(b - c)).toBeGreaterThan(70);
   });
 
   it('scales enemy pools by hpMul', () => {
@@ -479,17 +488,55 @@ describe('simulate loop', () => {
     expect(run.weapon.tapped).toBe(true);
   });
 
-  it('fires again if the trigger is held through a finished reload', () => {
+  it('fires the next mag if the trigger is held through a passive reload', () => {
     const run = liveRun();
+    run.spawnTimer = 1e9;
+    run.enemies.length = 0;
     run.weapon.ammo = 1;
     run.weapon.cooldown = 0;
     simulate(run, dt, viewport, { ...idle, firing: true });
     expect(run.weapon.reloading).toBe(true);
     const hold = { ...idle, firing: true };
-    const steps = Math.ceil(run.weapon.reloadDur / dt) + 2;
-    for (let i = 0; i < steps; i++) simulate(run, dt, viewport, hold);
-    expect(run.weapon.ammo).toBe(0);
+    for (let i = 0; i < 400 && run.weapon.reloading; i++) simulate(run, dt, viewport, hold);
+    expect(run.ended).toBeNull();
+    expect(run.weapon.reloading).toBe(false);
+    expect(run.weapon.ammo).toBe(run.stats.magSize);
+    simulate(run, dt, viewport, hold);
+    expect(run.weapon.ammo).toBeLessThan(run.stats.magSize);
+  });
+
+  it('does not dump the next mag if the trigger is held through a perfect reload', () => {
+    const run = liveRun();
+    run.weapon.ammo = 1;
+    run.weapon.cooldown = 0;
+    simulate(run, dt, viewport, { ...idle, firing: true });
+    const band = perfectBand(run.stats);
+    for (let i = 0; i < 240; i++) {
+      const n = run.weapon.reloadDur > 0 ? run.weapon.reloadT / run.weapon.reloadDur : 1;
+      if (n >= band.a && n <= band.b) break;
+      simulate(run, dt, viewport, idle);
+    }
+    simulate(run, dt, viewport, { ...idle, firing: true, pointerTap: true });
+    expect(run.weapon.perfectMag).toBe(true);
+    expect(run.weapon.reloading).toBe(false);
+    expect(run.weapon.ammo).toBe(run.stats.magSize);
+    simulate(run, dt, viewport, { ...idle, firing: true });
+    expect(run.weapon.ammo).toBe(run.stats.magSize);
+    expect(run.weapon.suppressFire).toBe(true);
+    simulate(run, dt, viewport, idle);
+    simulate(run, dt, viewport, { ...idle, firing: true });
+    expect(run.weapon.ammo).toBeLessThan(run.stats.magSize);
+  });
+
+  it('bakes perfect-mag onto the emptying shot', () => {
+    const run = liveRun();
+    run.weapon.perfectMag = true;
+    run.weapon.ammo = 1;
+    run.weapon.cooldown = 0;
+    simulate(run, dt, viewport, { ...idle, firing: true });
     expect(run.weapon.reloading).toBe(true);
+    expect(run.weapon.perfectMag).toBe(false);
+    expect(run.bullets[0].perfect).toBe(true);
   });
 
   it('treats a touch anywhere during reload as an active-reload tap', () => {

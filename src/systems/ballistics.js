@@ -16,6 +16,7 @@ export function spawnBullet(x, y, angle, stats, perfectMag, maxDist) {
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     pen: stats.pen * (perfectMag ? PERFECT_MAG_MULT : 1),
+    perfect: !!perfectMag,
     maxDist: range,
     alive: true,
     hitIds: new Set(),

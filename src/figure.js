@@ -2,7 +2,7 @@ import { KINDS, palette } from './data/kinds.js';
 
 export { mixTone } from './util/color.js';
 
-export const S = 1;
+export const S = 1.42;
 export const MUZZLE_LEN = 48 * S;
 
 const THIGH = 48 * S;

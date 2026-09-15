@@ -9,8 +9,8 @@ export const PLAYER_SCREEN_X_RATIO = 0.25;
 /** Campaign pace: 2 m/s → 250m in 125s. */
 export const RETREAT_MPS = 2;
 export const V_RETREAT = RETREAT_MPS * PX_PER_M;
-/** Height as a fraction of design height — rolling slopes, not pebbles. */
-export const TERRAIN_AMP = 0.09;
+/** Height as a fraction of design height — real rolling hills, not pebbles. */
+export const TERRAIN_AMP = 0.18;
 export const BLOOM_CAP_DEG = 12;
 /** Irons: sight picture to mid-screen. Optics push this out. */
 export const AIM_SCREEN_FRAC = 0.5;

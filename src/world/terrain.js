@@ -4,11 +4,15 @@ import { fbm1D } from '../engine/noise.js';
 export function createTerrain(seed, viewportHeight, ampScale = TERRAIN_AMP) {
   const baseline = viewportHeight * 0.72;
   const amp = viewportHeight * ampScale;
+  const phase = (seed % 97) * 0.13;
 
   function height(worldX) {
-    const n = fbm1D(worldX * 0.00108, seed);
-    const n2 = fbm1D(worldX * 0.00215, seed + 17);
-    return baseline + n * amp + n2 * amp * 0.2;
+    // Wavelengths fit on one screen so hills read as peaks, not a tilted rumble.
+    const hill = Math.sin(worldX * 0.0062 + phase) * amp * 0.82;
+    const roll = fbm1D(worldX * 0.0014, seed);
+    const mid = fbm1D(worldX * 0.0031, seed + 9);
+    const bump = fbm1D(worldX * 0.008, seed + 17);
+    return baseline + hill + roll * amp * 0.34 + mid * amp * 0.14 + bump * amp * 0.05;
   }
 
   function slope(worldX) {

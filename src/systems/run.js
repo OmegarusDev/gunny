@@ -1,6 +1,6 @@
 import { effectiveAimReach, effectiveShotRange, HIT_IMPULSE, PERFECT_MAG_MULT, TRACK_METERS, V_RETREAT } from '../config.js';
 import { randomSeed, seedForLevel, seedFromUint32 } from '../engine/rng.js';
-import { biomeFor, biomeFromSeed } from '../data/biomes.js';
+import { biomeFor } from '../data/biomes.js';
 import { createTerrain } from '../world/terrain.js';
 import { createWeather } from '../world/weather.js';
 import { runMeters } from '../world/metrics.js';
@@ -26,7 +26,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
       : type === 'endless'
         ? randomSeed()
         : seedForLevel(levelIndex);
-  const biome = type === 'endless' ? biomeFromSeed(seeded.seed) : biomeFor(levelIndex);
+  const biome = biomeFor(levelIndex);
   const terrain = createTerrain(seeded.seed, viewport.h);
   const weather = createWeather(seeded.rng);
   const stats = resolveStats(profile);
@@ -81,13 +81,13 @@ function degToRad(d) {
 }
 
 function applyHits(run) {
-  const { stats, weapon } = run;
+  const { stats } = run;
   for (const hit of run.pendingHits) {
     const enemy = hit.enemy;
     if (!enemy.alive) continue;
     const crit = run.rng() < stats.critChance;
     const loc = hit.locational;
-    const perfect = weapon.perfectMag ? PERFECT_MAG_MULT : 1;
+    const perfect = hit.bullet?.perfect ? PERFECT_MAG_MULT : 1;
     const critMul = crit ? stats.critMult : 1;
     const dmg = stats.damage * loc * critMul * perfect;
     const zone = hit.zone;
@@ -205,11 +205,13 @@ export function simulate(run, dt, viewport, input) {
     input.reloadPressed ||
     (weapon.reloading && input.pointerTap) ||
     (input.pointerTap && pointerInReloadGauge(input.pointerX, input.pointerY, viewport));
+  let reloadTap = null;
+  const wasReloading = weapon.reloading;
   if (weapon.reloading) {
     if (tapReloadIntent) {
-      const result = tapReload(weapon, stats);
-      if (result === 'perfect') onPerfect(run.score);
-      if (result === 'perfect' || result === 'jam') weapon.suppressFire = true;
+      reloadTap = tapReload(weapon, stats);
+      if (reloadTap === 'perfect') onPerfect(run.score);
+      if (reloadTap === 'perfect' || reloadTap === 'jam') weapon.suppressFire = true;
     }
   } else {
     const shot = tryFire(run, holding, viewport);
@@ -219,7 +221,9 @@ export function simulate(run, dt, viewport, input) {
     }
   }
   stepReload(weapon, stats, dt);
-  if (!weapon.reloading) weapon.suppressFire = false;
+  if (wasReloading && !weapon.reloading && reloadTap !== 'perfect' && reloadTap !== 'jam') {
+    weapon.suppressFire = false;
+  }
 
   for (const enemy of run.enemies) {
     if (!enemy.alive) continue;

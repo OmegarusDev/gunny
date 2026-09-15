@@ -125,4 +125,15 @@ export function biomeFromSeed(seed) {
   return BIOMES[(seed >>> 0) % BIOMES.length];
 }
 
+/** Campaign skins the player has extracted from. Fresh camps still get Forest. */
+export function beatenRoadIndexes(unlockedLevel) {
+  if (!(unlockedLevel > 0)) return [0];
+  const seen = [];
+  for (let i = 0; i < unlockedLevel; i++) {
+    const idx = i % BIOMES.length;
+    if (!seen.includes(idx)) seen.push(idx);
+  }
+  return seen;
+}
+
 export { palette } from './kinds.js';

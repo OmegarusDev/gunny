@@ -373,7 +373,7 @@ export function drawHud(ctx, run, viewport, profile) {
     viewport.h - 36,
   );
   ctx.fillStyle = 'rgba(243, 230, 208, 0.62)';
-  ctx.fillText(run.lastCallout || 'Tap to fire · tap again to reload · P pause', 22, viewport.h - 18);
+  ctx.fillText(run.lastCallout || 'Hold fire · reload when empty · P pause', 22, viewport.h - 18);
 
   const magW = 116;
   const bx = viewport.w - 150;

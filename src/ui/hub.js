@@ -1,5 +1,5 @@
 import { TRACK_METERS } from '../config.js';
-import { biomeFor } from '../data/biomes.js';
+import { beatenRoadIndexes, biomeFor } from '../data/biomes.js';
 import { RECEIVERS } from '../data/receivers.js';
 import { PARTS } from '../data/attachments.js';
 import { equippedLabel, resolveStats } from '../entities/loadout.js';
@@ -10,6 +10,11 @@ export function renderHub(el, profile, handlers) {
   const stats = resolveStats(profile);
   const rec = RECEIVERS[profile.loadout.receiver];
   const next = biomeFor(profile.unlockedLevel);
+  const roads = beatenRoadIndexes(profile.unlockedLevel);
+  const endlessPick = roads.includes(handlers.endlessBiome)
+    ? handlers.endlessBiome
+    : roads[roads.length - 1];
+  const endlessPlace = biomeFor(endlessPick).place;
   const mag = PARTS[profile.loadout.magazine]?.name ?? '—';
   const barrel = PARTS[profile.loadout.barrel]?.name ?? '—';
   el.innerHTML = `
@@ -45,10 +50,22 @@ export function renderHub(el, profile, handlers) {
           act: 'endless',
           icon: 'endless',
           title: 'Endless',
-          sub: 'Random',
+          sub: endlessPlace,
           variant: 'side',
         })}
       </div>
+      ${
+        roads.length > 1
+          ? `<div class="skin-picks" role="listbox" aria-label="Endless road">
+        ${roads
+          .map(
+            (idx) =>
+              `<button class="chip ${idx === endlessPick ? 'selected' : ''}" type="button" data-biome="${idx}">${biomeFor(idx).place}</button>`,
+          )
+          .join('')}
+      </div>`
+          : ''
+      }
       ${statsGrid([
         ['Kit', equippedLabel(profile)],
         ['DMG', stats.damage.toFixed(1)],
@@ -63,7 +80,10 @@ export function renderHub(el, profile, handlers) {
   el.querySelector('[data-act="deploy"]').onclick = () => handlers.deploy(profile.unlockedLevel);
   el.querySelector('[data-act="gunsmith"]').onclick = () => handlers.gunsmith();
   el.querySelector('[data-act="training"]').onclick = () => handlers.training();
-  el.querySelector('[data-act="endless"]').onclick = () => handlers.endless();
+  el.querySelector('[data-act="endless"]').onclick = () => handlers.endless(endlessPick);
+  el.querySelectorAll('[data-biome]').forEach((btn) => {
+    btn.onclick = () => handlers.pickEndless(Number(btn.dataset.biome));
+  });
 }
 
 export function renderEnd(el, { title, run, profile, handlers, extract }) {

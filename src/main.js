@@ -12,12 +12,11 @@ import { renderHub, renderEnd } from './ui/hub.js';
 import { mountOverlays } from './ui/overlays.js';
 import { renderTraining } from './ui/training.js';
 import { resolveAimPoint } from './view/aim.js';
-import { applyPwaUpdate, hasPwaUpdate, initPwa } from './pwa.js';
+import { initPwa } from './pwa.js';
 import { mountSoftCursor } from './ui/cursor.js';
 
 const canvas = document.getElementById('gameCanvas');
 const overlayRoot = document.getElementById('overlay-root');
-const updateBtn = document.getElementById('pwa-update');
 const { ctx, viewport } = createCanvas(canvas);
 const input = createInput(canvas);
 const softCursor = mountSoftCursor();
@@ -34,6 +33,7 @@ let run = null;
 let lastType = 'campaign';
 let lastLevel = 0;
 let lastSeed = null;
+let endlessBiome = 0;
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener(
@@ -45,42 +45,19 @@ window.addEventListener(
   { capture: true },
 );
 
-function inActiveRun() {
-  return mode === 'run' && run && !run.ended;
-}
-
-function syncUpdateBanner() {
-  if (!updateBtn) return;
-  updateBtn.classList.toggle('hidden', !hasPwaUpdate() || !inActiveRun());
-}
-
-function offerOrApplyUpdate() {
-  if (!hasPwaUpdate()) {
-    syncUpdateBanner();
-    return;
-  }
-  if (inActiveRun()) {
-    syncUpdateBanner();
-    return;
-  }
-  applyPwaUpdate();
-}
-
-initPwa({
-  isSafeToReload: () => !inActiveRun(),
-  onUpdateAvailable: offerOrApplyUpdate,
-});
-
-updateBtn?.addEventListener('click', () => {
-  applyPwaUpdate();
-});
+initPwa();
 
 const handlers = {
   deploy(level) {
     startRun('campaign', level);
   },
-  endless() {
-    startRun('endless', 0);
+  endless(biomeIndex) {
+    endlessBiome = biomeIndex ?? endlessBiome;
+    startRun('endless', endlessBiome);
+  },
+  pickEndless(biomeIndex) {
+    endlessBiome = biomeIndex;
+    showHub();
   },
   hub: showHub,
   gunsmith: showGunsmith,
@@ -110,7 +87,6 @@ function startRun(type, levelIndex, seed) {
   queuedPointerTap = false;
   queuedReloadTap = false;
   loop.reset();
-  syncUpdateBanner();
   syncCursor();
 }
 
@@ -118,8 +94,7 @@ function showHub() {
   mode = 'hub';
   run = null;
   overlays.show('hub');
-  renderHub(overlays.hub, profile, handlers);
-  offerOrApplyUpdate();
+  renderHub(overlays.hub, profile, { ...handlers, endlessBiome });
   syncCursor();
 }
 
@@ -128,7 +103,6 @@ function showGunsmith() {
   run = null;
   overlays.show('gunsmith');
   renderGunsmith(overlays.gunsmith, profile, handlers);
-  offerOrApplyUpdate();
   syncCursor();
 }
 
@@ -137,7 +111,6 @@ function showTraining() {
   run = null;
   overlays.show('training');
   renderTraining(overlays.training, profile, handlers);
-  offerOrApplyUpdate();
   syncCursor();
 }
 
@@ -158,8 +131,6 @@ function settleRun() {
     handlers,
     extract: run.ended === 'extract',
   });
-  syncUpdateBanner();
-  offerOrApplyUpdate();
   syncCursor();
 }
 

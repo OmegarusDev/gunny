@@ -67,13 +67,15 @@ export function mountOptions(root, handlers) {
       `;
       const hold = sheet.querySelector('.hold-reset');
       const fill = sheet.querySelector('.hold-fill');
-      let holdPointer = null;
+      let holding = false;
+      let holdPointer = -1;
       const tick = (now) => {
-        if (holdPointer == null) return;
+        if (!holding) return;
         const p = Math.min(1, (now - holdFrom) / HOLD_MS);
         fill.style.transform = `scaleX(${p})`;
         if (p >= 1) {
-          holdPointer = null;
+          holding = false;
+          holdPointer = -1;
           stopHold();
           close();
           handlers.resetProgress();
@@ -81,24 +83,50 @@ export function mountOptions(root, handlers) {
         }
         holdRaf = requestAnimationFrame(tick);
       };
+      const pointerOnHold = (e) => {
+        const r = hold.getBoundingClientRect();
+        const pad = 20;
+        return (
+          e.clientX >= r.left - pad &&
+          e.clientX <= r.right + pad &&
+          e.clientY >= r.top - pad &&
+          e.clientY <= r.bottom + pad
+        );
+      };
       const startHold = (e) => {
-        if (e.button != null && e.button !== 0) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
         e.preventDefault();
         e.stopPropagation();
+        if (holding && holdPointer === e.pointerId) return;
         stopHold();
+        holding = true;
         holdPointer = e.pointerId;
         holdFrom = performance.now();
+        try {
+          hold.setPointerCapture(e.pointerId);
+        } catch {
+          /* not a mouse/touch we can capture */
+        }
         holdRaf = requestAnimationFrame(tick);
       };
       const endHold = (e) => {
-        if (holdPointer == null) return;
+        if (!holding) return;
         if (e && e.pointerId != null && e.pointerId !== holdPointer) return;
-        holdPointer = null;
+        if (e?.type === 'lostpointercapture' && performance.now() - holdFrom < 80) return;
+        holding = false;
+        holdPointer = -1;
         stopHold();
       };
+      const onMove = (e) => {
+        if (!holding) return;
+        if (e.pointerId != null && e.pointerId !== holdPointer) return;
+        if (!pointerOnHold(e)) endHold(e);
+      };
       hold.addEventListener('pointerdown', startHold);
+      hold.addEventListener('pointermove', onMove);
       hold.addEventListener('pointerup', endHold);
       hold.addEventListener('pointercancel', endHold);
+      hold.addEventListener('lostpointercapture', endHold);
       hold.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
       hold.addEventListener('contextmenu', (e) => e.preventDefault());
       sheet.querySelector('.opt-cancel').onclick = () => {

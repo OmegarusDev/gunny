@@ -6,8 +6,8 @@ export function drawHills(ctx, viewport, run) {
   const biome = run.biome;
   const left = worldLeft(run.player.worldX, viewport);
   const jagged = biome.id !== 'desert' && biome.id !== 'quarry';
-  drawRidge(ctx, viewport, left, biome.hillFar, viewport.h * 0.46, 38, 0.0007, jagged, biome, 1);
-  drawRidge(ctx, viewport, left, biome.hillNear, viewport.h * 0.54, 26, 0.0012, jagged, biome, 2);
+  drawRidge(ctx, viewport, left, biome.hillFar, viewport.h * 0.3, 168, 0.0029, jagged, biome, 1);
+  drawRidge(ctx, viewport, left, biome.hillNear, viewport.h * 0.44, 128, 0.0046, jagged, biome, 2);
 }
 
 function drawRidge(ctx, viewport, left, color, yBase, amp, freq, jagged, biome, layer) {
@@ -23,10 +23,10 @@ function drawRidge(ctx, viewport, left, color, yBase, amp, freq, jagged, biome, 
       const b = Math.abs(Math.sin(wx * 0.041 + layer));
       y -=
         biome.id === 'transylvania'
-          ? 8 + a * a * 30 + b * 12
+          ? 14 + a * a * 48 + b * 18
           : biome.id === 'fen'
-            ? 3 + a * 10 + b * 5
-            : 5 + a * 16 + b * 7;
+            ? 6 + a * 16 + b * 8
+            : 8 + a * 26 + b * 12;
     }
     ys.push(y);
   }

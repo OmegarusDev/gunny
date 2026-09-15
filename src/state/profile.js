@@ -36,7 +36,7 @@ export function loadProfile() {
     }
     const skillRanks = { ...base.skillRanks, ...(parsed.skillRanks || {}) };
     const refund = refundRetiredRanks(skillRanks);
-    return {
+    const next = {
       ...base,
       ...parsed,
       owned,
@@ -45,6 +45,8 @@ export function loadProfile() {
       cash: Math.max(0, Number(parsed.cash) || 0),
       xp: Math.max(0, Number(parsed.xp) || 0) + refund,
     };
+    if (refund > 0) saveProfile(next);
+    return next;
   } catch {
     return defaultProfile();
   }
