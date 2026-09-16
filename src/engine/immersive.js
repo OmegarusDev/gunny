@@ -1,5 +1,9 @@
 import { loadSettings } from '../state/settings.js';
 
+export function isPortrait(win = typeof window !== 'undefined' ? window : null) {
+  return !!win?.matchMedia?.('(orientation: portrait)')?.matches;
+}
+
 /** Best-effort immersive mode. Fullscreen API needs a user gesture; do not await anything first. */
 export function enterImmersive() {
   const settings = loadSettings();

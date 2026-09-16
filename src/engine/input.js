@@ -1,4 +1,5 @@
 import { DESIGN_H } from '../config.js';
+import { isPortrait } from './immersive.js';
 
 const HUD = '#overlay-root .panel, #overlay-root .opt-fabs, #overlay-root .opt-fab, #overlay-root .opt-layer';
 
@@ -12,6 +13,7 @@ export function createInput(canvas) {
     reloadTap: false,
     pauseTap: false,
     forcePause: false,
+    portrait: false,
     moved: false,
     fireId: null,
   };
@@ -79,6 +81,20 @@ export function createInput(canvas) {
     state.firing = false;
     state.fireId = null;
     state.forcePause = true;
+  }
+
+  function syncPortrait() {
+    state.portrait = isPortrait();
+    if (state.portrait) requestPause();
+  }
+  syncPortrait();
+  window.addEventListener('orientationchange', syncPortrait);
+  window.addEventListener('resize', syncPortrait);
+  const portraitMq = window.matchMedia?.('(orientation: portrait)');
+  if (portraitMq) {
+    const onPortrait = () => syncPortrait();
+    if (portraitMq.addEventListener) portraitMq.addEventListener('change', onPortrait);
+    else if (portraitMq.addListener) portraitMq.addListener(onPortrait);
   }
 
   canvas.addEventListener(

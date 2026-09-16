@@ -34,7 +34,7 @@ import { gunsmithStatRows, resolveStats, shotSpreadDeg, STAT_BY_ID, STATS } from
 import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, lethalCircles, lethalHpRatio, limbCircles, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
-import { wantsImmersive, usesHtmlFullscreen } from '../src/engine/immersive.js';
+import { wantsImmersive, usesHtmlFullscreen, isPortrait } from '../src/engine/immersive.js';
 import { clampAimPoint, clampToViewport, resolveAimPoint } from '../src/view/aim.js';
 import { perfectBand, reloadNorm } from '../src/view/reload.js';
 import { uhash } from '../src/util/hash.js';
@@ -441,6 +441,12 @@ describe('skills & profile', () => {
       usesHtmlFullscreen({ fullscreen: false }, { android: true, installed: true, displayFullscreen: false }),
     ).toBe(true);
     expect(usesHtmlFullscreen({ fullscreen: true }, { android: false, installed: false })).toBe(true);
+  });
+
+  it('treats a portrait media query as portrait', () => {
+    expect(isPortrait({ matchMedia: () => ({ matches: true }) })).toBe(true);
+    expect(isPortrait({ matchMedia: () => ({ matches: false }) })).toBe(false);
+    expect(isPortrait(null)).toBe(false);
   });
 });
 

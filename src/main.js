@@ -151,15 +151,23 @@ function frame(now) {
     let skipSim = false;
 
     if (!run.ended && !run.dying) {
+      const portrait = input.state.portrait;
       if (run.paused) {
-        if (queuedPointerTap || pauseTap) {
+        if (portrait) {
+          if (queuedPointerTap || pauseTap) {
+            queuedPointerTap = false;
+            queuedReloadTap = false;
+            input.clearFireIntent();
+            skipSim = true;
+          }
+        } else if (queuedPointerTap || pauseTap) {
           run.paused = false;
           queuedPointerTap = false;
           queuedReloadTap = false;
           input.clearFireIntent();
           skipSim = true; // resume gesture is not a shot
         }
-      } else if (forcePause || pauseTap) {
+      } else if (forcePause || pauseTap || portrait) {
         run.paused = true;
         queuedPointerTap = false;
         queuedReloadTap = false;
