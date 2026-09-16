@@ -7,7 +7,7 @@ import {
   poseFromNodes,
   posePlayerLocal,
 } from '../figure.js';
-import { lethalHpRatio } from '../entities/enemy.js';
+import { enemyIsHurt, lethalHpRatio } from '../entities/enemy.js';
 
 function oval(ctx, x, y, rx, ry, fill) {
   ctx.fillStyle = fill;
@@ -328,13 +328,15 @@ export function drawCreature(ctx, enemy, w2s) {
 }
 
 export function drawEnemyVitals(ctx, enemy, w2s) {
+  if (!enemy.alive || !enemyIsHurt(enemy)) return;
   const origin = w2s(enemy.worldX, enemy.y);
   const local = enemy.pose || poseEnemyLocal(enemy);
   const fill = lethalHpRatio(enemy);
   const w = 40;
   const h = 5;
   const x = origin.x - w * 0.5;
-  const y = origin.y + local.head.y - 15 * S;
+  /** Head poly crown is 15S; vampire tuft ~21S. Sit the bar above with a gap. */
+  const y = origin.y + local.head.y - 28 * S;
   ctx.save();
   ctx.fillStyle = 'rgba(8,4,2,0.72)';
   ctx.fillRect(x - 1, y - 1, w + 2, h + 2);

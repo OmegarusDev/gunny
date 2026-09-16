@@ -87,6 +87,14 @@ export function lethalHpRatio(enemy) {
   return Math.max(0, Math.min(1, cur / max));
 }
 
+/** Any pool missing — bar stays hidden on fresh spawns. */
+export function enemyIsHurt(enemy) {
+  for (const k of ['head', 'torso', 'lLeg', 'rLeg']) {
+    if ((enemy.hp[k] ?? 0) < (enemy.max[k] ?? 0) - 1e-4) return true;
+  }
+  return false;
+}
+
 export function isDead(enemy) {
   return enemy.hp.head <= 0 || enemy.hp.torso <= 0;
 }
