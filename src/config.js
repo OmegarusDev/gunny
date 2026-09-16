@@ -157,10 +157,29 @@ export const DEATH_HOLD = 1.8;
 /** Cached WebAPK / home-screen payload. JS + icons, no extra asset packs. */
 export const INSTALL_DOWNLOAD = 'about 1 MB';
 
-/** Canvas HUD sizes are authored in CSS pixels, then lifted into design space. */
-export function hudScale(viewport) {
+/**
+ * HUD layout vs type. Short phones need a readability bump; mapping 1:1 to CSS
+ * px made camp-sized chrome eat a 390px landscape. Panels stay near design
+ * space; type tracks the screen a bit more, both capped.
+ */
+export const HUD_SCALE_MAX = 1.06;
+export const HUD_TYPE_MAX = 1.28;
+
+function hudRaw(viewport) {
   const cssH = Math.max(1, viewport?.cssH || viewport?.h || DESIGN_H);
   return DESIGN_H / cssH;
+}
+
+function blendTowardCss(raw, amount, cap) {
+  return Math.min(cap, Math.max(0.94, 1 + (raw - 1) * amount));
+}
+
+export function hudScale(viewport) {
+  return blendTowardCss(hudRaw(viewport), 0.18, HUD_SCALE_MAX);
+}
+
+export function hudTypeScale(viewport) {
+  return blendTowardCss(hudRaw(viewport), 0.4, HUD_TYPE_MAX);
 }
 
 function swarmFromPressure(pressure) {

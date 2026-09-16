@@ -1,4 +1,4 @@
-import { hudScale, TRACK_METERS } from '../config.js';
+import { hudScale, hudTypeScale, TRACK_METERS } from '../config.js';
 import { fillRoundRect, strokeRoundRect } from '../util/color.js';
 import { perfectBand, reloadGaugeBounds, reloadNorm } from '../view/reload.js';
 import { runMeters } from '../world/metrics.js';
@@ -13,6 +13,7 @@ const SANS = '"Segoe UI", "Trebuchet MS", system-ui, sans-serif';
 
 function layout(viewport) {
   const u = hudScale(viewport);
+  const t = hudTypeScale(viewport);
   const pad = 14 * u;
   const gap = 14 * u;
   const ledgerInner = 8 * u;
@@ -30,13 +31,14 @@ function layout(viewport) {
   }
   return {
     u,
+    t,
     pad,
     r: Math.max(8 * u, 10),
-    kicker: Math.round(18 * u),
-    label: Math.round(15 * u),
-    value: Math.round(36 * u),
-    mag: Math.round(44 * u),
-    pause: Math.round(42 * u),
+    kicker: Math.round(18 * t),
+    label: Math.round(15 * t),
+    value: Math.round(36 * t),
+    mag: Math.round(44 * t),
+    pause: Math.round(42 * t),
     chipW,
     chipH: 68 * u,
     chipGap,
@@ -102,7 +104,7 @@ function chip(ctx, x, y, w, h, title, val, m) {
   ctx.lineWidth = 1;
   strokeRoundRect(ctx, x, y, w, h, 6 * m.u);
   kicker(ctx, title, x + 12 * m.u, y + 12 * m.u, m.kicker, '0.12em');
-  value(ctx, val, x + 12 * m.u, y + 36 * m.u, Math.round(28 * m.u));
+  value(ctx, val, x + 12 * m.u, y + 36 * m.u, Math.round(28 * m.t));
 }
 
 function meter(ctx, x, y, w, h, t, fill, edge) {
@@ -135,7 +137,7 @@ function drawBrand(ctx, run, x, y, m) {
   value(ctx, title, ix, y + 42 * m.u, m.value);
   const metres = runMeters(run);
   if (endless) {
-    value(ctx, `${metres.toFixed(0)}m`, ix, y + 84 * m.u, Math.round(26 * m.u));
+    value(ctx, `${metres.toFixed(0)}m`, ix, y + 84 * m.u, Math.round(26 * m.t));
     return;
   }
   const barW = w - 36 * m.u - 88 * m.u;
@@ -151,7 +153,7 @@ function drawBrand(ctx, run, x, y, m) {
     'rgba(224, 163, 58, 0.4)',
   );
   ctx.textAlign = 'right';
-  value(ctx, `${metres.toFixed(0)}m`, x + w - 18 * m.u, y + 86 * m.u, Math.round(24 * m.u));
+  value(ctx, `${metres.toFixed(0)}m`, x + w - 18 * m.u, y + 86 * m.u, Math.round(24 * m.t));
   ctx.textAlign = 'left';
 }
 
@@ -210,10 +212,10 @@ function drawPause(ctx, run, viewport, m) {
   kicker(ctx, 'Run', viewport.w / 2, py + 20 * m.u, m.kicker);
   value(ctx, 'Paused', viewport.w / 2, py + 44 * m.u, m.pause, GOLD);
   ctx.fillStyle = MUTED;
-  ctx.font = `${Math.round(16 * m.u)}px ${SANS}`;
+  ctx.font = `${Math.round(16 * m.t)}px ${SANS}`;
   ctx.letterSpacing = '0.04em';
   ctx.fillText('Tap anywhere to resume', viewport.w / 2, py + 92 * m.u);
-  ctx.font = `${Math.round(13 * m.u)}px ${SANS}`;
+  ctx.font = `${Math.round(13 * m.t)}px ${SANS}`;
   ctx.fillStyle = 'rgba(243, 230, 208, 0.5)';
   ctx.fillText('P  ·  Esc  ·  Space', viewport.w / 2, py + 118 * m.u);
   ctx.letterSpacing = '0px';

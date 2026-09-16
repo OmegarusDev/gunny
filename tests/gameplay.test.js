@@ -22,6 +22,7 @@ import {
   effectiveShotRange,
   enemyHp,
   hudScale,
+  hudTypeScale,
   threatForDistance,
   usesFullScreenAim,
 } from '../src/config.js';
@@ -188,12 +189,12 @@ describe('economy & ladders', () => {
   });
 
   it('keeps Shoddy slow and steps receiver RoF up the ladder', () => {
-    expect(RECEIVERS.t1_stock.base.rof).toBeLessThan(2);
-    expect(RECEIVERS.t2_tactical.base.rof).toBeGreaterThan(RECEIVERS.t1_stock.base.rof);
-    expect(RECEIVERS.t3_ordnance.base.rof).toBeGreaterThan(RECEIVERS.t2_tactical.base.rof);
-    expect(RECEIVERS.t4_advanced.base.rof).toBeGreaterThan(RECEIVERS.t3_ordnance.base.rof);
-    expect(RECEIVERS.t4_advanced.base.rof).toBeLessThan(7);
-    expect(resolveStats(defaultProfile()).rof).toBe(RECEIVERS.t1_stock.base.rof);
+    expect(RECEIVERS.t1_stock.base.rof).toBe(0.5);
+    expect(RECEIVERS.t2_tactical.base.rof).toBe(1);
+    expect(RECEIVERS.t3_ordnance.base.rof).toBe(2);
+    expect(RECEIVERS.t4_advanced.base.rof).toBe(3);
+    expect(STAT_BY_ID.rof.min).toBeLessThanOrEqual(0.5);
+    expect(resolveStats(defaultProfile()).rof).toBe(0.5);
   });
 
   it('pays modest XP from distance, kills, heads, and extract', () => {
@@ -924,8 +925,14 @@ describe('render budget', () => {
   });
 
   it('sizes canvas HUD in screen pixels so short phones stay readable', () => {
-    expect(hudScale({ h: 720, cssH: 720 })).toBeCloseTo(1, 5);
-    expect(hudScale({ h: 720, cssH: 390 })).toBeCloseTo(720 / 390, 5);
-    expect(hudScale({ h: 720, cssH: 390 })).toBeGreaterThan(hudScale({ h: 720, cssH: 720 }));
+    const phone = hudScale({ h: 720, cssH: 390 });
+    const desk = hudScale({ h: 720, cssH: 720 });
+    const phoneType = hudTypeScale({ h: 720, cssH: 390 });
+    expect(desk).toBeCloseTo(1, 5);
+    expect(phone).toBeGreaterThan(desk);
+    expect(phone).toBeLessThanOrEqual(1.06);
+    expect(phone).toBeLessThan(720 / 390);
+    expect(phoneType).toBeGreaterThan(phone);
+    expect(phoneType).toBeLessThanOrEqual(1.28);
   });
 });

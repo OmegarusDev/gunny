@@ -32,6 +32,7 @@ export function tapReload(weapon, stats) {
     weapon.reloadT = 0;
     weapon.ammo = stats.magSize;
     weapon.perfectMag = true;
+    weapon.cooldown = 0;
     playPerfect();
     return 'perfect';
   }
@@ -57,5 +58,6 @@ export function stepReload(weapon, stats, dt) {
     weapon.perfectMag = false;
     weapon.jammed = false;
     weapon.tapped = false;
+    weapon.cooldown = 0;
   }
 }

@@ -9,7 +9,7 @@ import { SKILLS } from '../data/skills.js';
  */
 export const STATS = [
   { id: 'damage', stack: 'add', min: 6, gunsmith: true, gunsmithLabel: 'DMG', format: (v) => v.toFixed(1), hint: 'Damage per shot, before crits and range falloff.' },
-  { id: 'rof', stack: 'add', min: 1.2, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => v.toFixed(1), hint: 'Rounds fired per second.' },
+  { id: 'rof', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => v.toFixed(1), hint: 'Rounds fired per second.' },
   { id: 'magSize', stack: 'add', min: 1, round: true, gunsmith: true, gunsmithLabel: 'MAG', format: (v) => String(v), hint: 'Rounds in the magazine.' },
   { id: 'bulletSpeed', stack: 'add', min: 280, gunsmith: true, gunsmithLabel: 'VEL', format: (v) => v.toFixed(0), hint: 'Muzzle velocity. Faster rounds hit harder at range and fly farther before drop-off.' },
   { id: 'pen', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2), hint: 'How many bodies a round can punch through.' },
