@@ -204,21 +204,3 @@ export function drawGrain(ctx, viewport, t) {
   ctx.fillRect(-128, -128, viewport.w + 256, viewport.h + 256);
   ctx.restore();
 }
-
-export function drawHudPanel(ctx, x, y, w, h) {
-  ctx.save();
-  ctx.fillStyle = 'rgba(10, 6, 3, 0.62)';
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(x, y, w, h, 6);
-  else ctx.rect(x, y, w, h);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(212, 176, 122, 0.28)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(255, 230, 190, 0.14)';
-  ctx.beginPath();
-  ctx.moveTo(x + 10, y + 1);
-  ctx.lineTo(x + w - 10, y + 1);
-  ctx.stroke();
-  ctx.restore();
-}

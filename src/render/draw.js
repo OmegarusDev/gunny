@@ -1,18 +1,15 @@
-import { PLAYER_SCREEN_X_RATIO, TRACK_METERS, PERFECT_MAG_MULT } from '../config.js';
+import { PLAYER_SCREEN_X_RATIO } from '../config.js';
 import { worldToScreen } from '../entities/player.js';
-import { runMeters } from '../world/metrics.js';
-import { perfectBand, reloadGaugeBounds, reloadNorm } from '../view/reload.js';
-import { fillRoundRect, strokeRoundRect } from '../util/color.js';
 import { shotSpreadDeg } from '../entities/loadout.js';
 import { drawCreature, drawEnemyVitals, drawFrozenCorpse, drawRagdollBody, drawSurvivor } from './creatures.js';
 import { gunWorld } from '../figure.js';
 import { rangeDamageMul } from '../systems/ballistics.js';
+import { drawReloadGauge } from './hud.js';
 import {
   drawAirHaze,
   drawGrain,
   drawHeatHaze,
   drawHorizonGlow,
-  drawHudPanel,
   drawKeyLight,
   drawMotes,
   drawVignette,
@@ -261,44 +258,6 @@ function drawParticles(ctx, run, viewport) {
   }
 }
 
-function drawReloadGauge(ctx, run, viewport) {
-  const w = run.weapon;
-  if (!w.reloading || run.escaping) return;
-  const { barX: x, barY: y, barW, barH } = reloadGaugeBounds(viewport);
-  const t = reloadNorm(w);
-  const band = perfectBand(run.stats);
-  const jam = w.jammed;
-  ctx.save();
-  ctx.fillStyle = 'rgba(8, 4, 2, 0.78)';
-  fillRoundRect(ctx, x - 8, y - 12, barW + 16, barH + 24, 7);
-  ctx.strokeStyle = jam ? 'rgba(196, 69, 54, 0.55)' : 'rgba(212, 176, 122, 0.35)';
-  ctx.lineWidth = 1;
-  strokeRoundRect(ctx, x - 8, y - 12, barW + 16, barH + 24, 7);
-
-  ctx.fillStyle = 'rgba(48, 28, 14, 0.95)';
-  fillRoundRect(ctx, x, y, barW, barH, 4);
-
-  ctx.fillStyle = jam ? 'rgba(196, 69, 54, 0.55)' : 'rgba(224, 163, 58, 0.92)';
-  ctx.fillRect(x + band.a * barW, y + 2, Math.max(2, (band.b - band.a) * barW), barH - 4);
-
-  const nx = x + t * barW;
-  ctx.fillStyle = jam ? '#c44536' : '#f3e6d0';
-  ctx.fillRect(nx - 1.5, y - 5, 3, barH + 10);
-  ctx.beginPath();
-  ctx.moveTo(nx, y - 5);
-  ctx.lineTo(nx - 5, y - 13);
-  ctx.lineTo(nx + 5, y - 13);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = jam ? '#e07060' : 'rgba(243, 230, 208, 0.7)';
-  ctx.font = '700 11px "Segoe UI", system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(jam ? 'JAMMED' : 'TAP', x + barW * 0.5, y + barH + 18);
-  ctx.textAlign = 'left';
-  ctx.restore();
-}
-
 function drawCallouts(ctx, run, viewport) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -322,109 +281,6 @@ function drawCallouts(ctx, run, viewport) {
   }
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-}
-
-function drawMeterBar(ctx, x, y, w, h, fill, fillColor, edge) {
-  ctx.fillStyle = 'rgba(8,4,2,0.55)';
-  fillRoundRect(ctx, x, y, w, h, 3);
-  const fw = Math.max(0, Math.min(1, fill)) * w;
-  if (fw > 0) {
-    ctx.fillStyle = fillColor;
-    fillRoundRect(ctx, x, y, fw, h, 3);
-  }
-  ctx.strokeStyle = edge;
-  ctx.lineWidth = 1;
-  strokeRoundRect(ctx, x, y, w, h, 3);
-}
-
-export function drawHud(ctx, run, viewport, profile) {
-  const bone = run.biome?.hud || '#f3e6d0';
-  const accent = run.biome?.accent || '#c44536';
-  const endless = run.endless;
-  const topH = endless ? 92 : 118;
-  drawHudPanel(ctx, 8, 8, 340, topH);
-  drawHudPanel(ctx, 8, viewport.h - 78, 400, 70);
-  drawHudPanel(ctx, viewport.w - 168, viewport.h - 66, 160, 58);
-
-  ctx.fillStyle = accent;
-  ctx.fillRect(22, 18, 26, 3);
-  ctx.fillStyle = '#e0a33a';
-  ctx.font = '700 15px Georgia, "Iowan Old Style", serif';
-  const place = run.biome ? `${run.biome.place.toUpperCase()}  ·  ${run.biome.foe}` : '';
-  const mode = endless ? `ENDLESS  ·  ${place}` : `${place}  ·  L${run.levelIndex + 1}`;
-  const m = runMeters(run);
-  ctx.fillText(mode, 22, 38);
-  ctx.fillStyle = bone;
-  ctx.font = '12px "Segoe UI", system-ui, sans-serif';
-  ctx.fillText(`Distance  ${m.toFixed(1)}m`, 22, 58);
-  if (!endless) {
-    ctx.fillText(`Track  ${Math.min(TRACK_METERS, m).toFixed(0)} / ${TRACK_METERS}m`, 22, 74);
-    const prog = Math.max(0, Math.min(1, m / TRACK_METERS));
-    drawMeterBar(ctx, 22, 84, 300, 6, prog, accent, 'rgba(224, 163, 58, 0.45)');
-    ctx.fillStyle = 'rgba(243, 230, 208, 0.88)';
-    ctx.fillText(
-      `Cash  $${Math.floor(profile.cash + run.score.cash)}   XP  ${Math.floor(profile.xp + run.score.xp)}   ·   Kills  ${run.score.kills}   HS  ${run.score.headshots}   Perf  ${run.score.perfects}`,
-      22,
-      108,
-    );
-  } else {
-    ctx.fillStyle = 'rgba(243, 230, 208, 0.88)';
-    ctx.fillText(
-      `Cash  $${Math.floor(profile.cash + run.score.cash)}   XP  ${Math.floor(profile.xp + run.score.xp)}   ·   Kills  ${run.score.kills}   HS  ${run.score.headshots}   Perf  ${run.score.perfects}`,
-      22,
-      82,
-    );
-  }
-
-  const w = run.weapon;
-  ctx.fillStyle = bone;
-  ctx.font = '12px "Segoe UI", system-ui, sans-serif';
-  const perfectHud = w.perfectMag ? `  DMG×${PERFECT_MAG_MULT}` : '';
-  ctx.fillText(`Mag  ${w.ammo}/${run.stats.magSize}${perfectHud}`, 22, viewport.h - 54);
-  ctx.fillText(
-    `Bloom  ${w.bloom.toFixed(1)}° / ${run.stats.bloomCap}°    Heat  ${(w.heat * 100).toFixed(0)}%`,
-    22,
-    viewport.h - 36,
-  );
-  ctx.fillStyle = 'rgba(243, 230, 208, 0.62)';
-  ctx.fillText(run.lastCallout || 'Hold fire · reload when empty · P pause', 22, viewport.h - 18);
-
-  const magW = 116;
-  const bx = viewport.w - 150;
-  const by = viewport.h - 48;
-  const magFill = ctx.createLinearGradient(bx, by, bx + magW, by);
-  magFill.addColorStop(0, '#c48a28');
-  magFill.addColorStop(1, '#ffe08a');
-  drawMeterBar(ctx, bx, by, magW, 9, w.ammo / Math.max(1, run.stats.magSize), magFill, 'rgba(224, 163, 58, 0.55)');
-  const heatFill = ctx.createLinearGradient(bx, by + 14, bx + magW, by + 14);
-  heatFill.addColorStop(0, '#6a2018');
-  heatFill.addColorStop(1, accent);
-  drawMeterBar(ctx, bx, by + 14, magW, 5, w.heat, heatFill, 'rgba(196, 69, 54, 0.4)');
-
-  if (run.paused) {
-    ctx.fillStyle = 'rgba(8, 4, 2, 0.66)';
-    ctx.fillRect(0, 0, viewport.w, viewport.h);
-    const pw = Math.min(360, viewport.w * 0.56);
-    const ph = 118;
-    const px = (viewport.w - pw) * 0.5;
-    const py = viewport.h * 0.5 - ph * 0.5;
-    ctx.fillStyle = 'rgba(18, 10, 6, 0.92)';
-    fillRoundRect(ctx, px, py, pw, ph, 8);
-    ctx.strokeStyle = 'rgba(224, 163, 58, 0.55)';
-    ctx.lineWidth = 1.2;
-    strokeRoundRect(ctx, px, py, pw, ph, 8);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = bone;
-    ctx.font = '700 30px Georgia, "Iowan Old Style", serif';
-    ctx.fillText('PAUSED', viewport.w / 2, py + 44);
-    ctx.fillStyle = '#e0a33a';
-    ctx.font = '15px "Segoe UI", system-ui, sans-serif';
-    ctx.fillText('Tap anywhere to resume', viewport.w / 2, py + 74);
-    ctx.fillStyle = 'rgba(243, 230, 208, 0.55)';
-    ctx.font = '12px "Segoe UI", system-ui, sans-serif';
-    ctx.fillText('P · Esc · Space', viewport.w / 2, py + 96);
-    ctx.textAlign = 'left';
-  }
 }
 
 export function drawBackdrop(ctx, viewport, t, biomeIndex = 0) {
