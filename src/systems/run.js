@@ -24,6 +24,7 @@ import { spawnBurst, spawnGibs, stepGibs } from './gibs.js';
 import { startReload, tapReload, stepReload } from './activeReload.js';
 import { pointerInReloadGauge } from '../view/reload.js';
 import { resolveAimPoint } from '../view/aim.js';
+import { roleOf } from '../data/roles.js';
 import { createScore, tickDistance, onHit, onKill, onPerfect, extractBonus } from './scoring.js';
 import { rectCircleOverlap } from './hits.js';
 import { playFlesh, playMuzzle } from '../audio/synth.js';
@@ -60,6 +61,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     callouts: [],
     impacts: [],
     pendingHits: [],
+    spawnedBehemoth: false,
     spawnTimer: 0.35,
     threat: null,
     paused: false,
@@ -82,7 +84,6 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
       suppressFire: false,
     },
     score: createScore(),
-    lastCallout: '',
     aim: null,
   };
 }
@@ -123,7 +124,6 @@ function applyHits(run) {
       crit,
       head: zone === 'head',
     });
-    run.lastCallout = crit ? `${n} crit` : n;
 
     if (zone === 'head') {
       run.particles.push(...spawnBurst(hit.x, hit.y, 10, run.rng));
@@ -136,7 +136,8 @@ function applyHits(run) {
       enemy.alive = false;
       if (zone === 'head' || enemy.hp.head <= 0) enemy.severedHead = true;
       const overkill = dmg > remaining * 2 && remaining > 0;
-      onKill(run.score, stats.cashMul);
+      const role = roleOf(enemy.role);
+      onKill(run.score, stats.cashMul * role.cash, role.xp);
       if (overkill) {
         run.gibs.push(...spawnGibs(hit.x, hit.y, hit.nx, hit.ny, 10, run.rng));
       } else {

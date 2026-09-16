@@ -1,20 +1,25 @@
 import { HIT_IMPULSE, LOCATIONAL, enemyHp } from '../config.js';
+import { chaseSpeed, roleOf } from '../data/roles.js';
 import { limbCirclesFromPose, offsetPose, poseEnemyLocal } from '../figure.js';
 
 let nextId = 1;
 
-export function createEnemy(worldX, terrain, hpMul, speed, kind = 'zombie') {
-  const hp = enemyHp(hpMul);
+export function createEnemy(worldX, terrain, hpMul, speed, kind = 'zombie', roleId = 'grunt') {
+  const role = roleOf(roleId);
+  const hp = enemyHp(hpMul * role.hp);
   const y = terrain.height(worldX);
+  const pace = chaseSpeed(speed, role.id);
   return {
     id: nextId++,
     kind,
+    role: role.id,
+    scale: role.scale,
     worldX,
     y,
     alive: true,
     crawling: false,
-    speed,
-    baseSpeed: speed,
+    speed: pace,
+    baseSpeed: pace,
     hp,
     max: { ...hp },
     severedHead: false,

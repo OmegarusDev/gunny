@@ -1,11 +1,10 @@
 import { threatForDistance, TRACK_METERS } from '../config.js';
+import { occupancyOf, pickRole, roleOf } from '../data/roles.js';
 import { createEnemy } from '../entities/enemy.js';
 import { cameraX } from '../entities/player.js';
 import { randRange } from '../engine/rng.js';
 import { pickRosterKind } from '../data/kinds.js';
 import { metersFromWorldX } from '../world/metrics.js';
-
-const MIN_GAP = 130;
 
 export function stepSpawner(run, dt, viewport) {
   run.spawnTimer -= dt;
@@ -14,23 +13,33 @@ export function stepSpawner(run, dt, viewport) {
   const threat = threatForDistance(meters, run.endless ? 0 : run.levelIndex, run.endless);
   run.threat = threat;
   const living = run.enemies.filter((e) => e.alive);
-  if (run.spawnTimer > 0 || living.length >= threat.maxAlive) return;
+  const occ = occupancyOf(living);
+  if (run.spawnTimer > 0 || occ >= threat.maxAlive) return;
 
   const wantPair = threat.packChance > 0 && run.rng() < threat.packChance;
-  const count = Math.min(wantPair ? 2 : 1, threat.maxAlive - living.length);
   run.spawnTimer = threat.spawnInterval * randRange(run.rng, 0.85, 1.25);
 
   const cam = cameraX(run.player.worldX, viewport);
   let x = cam + viewport.w + randRange(run.rng, 140, 260);
-  x = spaceFromLiving(x, living, MIN_GAP);
 
-  for (let i = 0; i < count; i++) {
-    const sx = i === 0 ? x : spaceFromLiving(x + MIN_GAP + randRange(run.rng, 20, 70), living, MIN_GAP);
-    const kind = pickRosterKind(run.biome.roster, run.rng);
-    const enemy = createEnemy(sx, run.terrain, threat.hpMul, threat.speed, kind);
-    run.enemies.push(enemy);
-    living.push(enemy);
-  }
+  const firstRole = pickRole(run, meters, living);
+  const first = spawnOne(run, living, x, threat, firstRole);
+  living.push(first);
+
+  if (!wantPair || firstRole === 'behemoth') return;
+  const nextRole = pickRole(run, meters, living);
+  if (nextRole === 'behemoth') return;
+  if (occupancyOf(living) + roleOf(nextRole).weight > threat.maxAlive) return;
+  spawnOne(run, living, first.worldX, threat, nextRole);
+}
+
+function spawnOne(run, living, nearX, threat, roleId) {
+  const role = roleOf(roleId);
+  const sx = spaceFromLiving(nearX + (living.length ? randRange(run.rng, 20, 70) : 0), living, role.gap);
+  const kind = pickRosterKind(run.biome.roster, run.rng);
+  const enemy = createEnemy(sx, run.terrain, threat.hpMul, threat.speed, kind, role.id);
+  run.enemies.push(enemy);
+  return enemy;
 }
 
 function spaceFromLiving(x, living, gap) {
@@ -38,8 +47,9 @@ function spaceFromLiving(x, living, gap) {
   for (let n = 0; n < 6; n++) {
     let pushed = false;
     for (const e of living) {
-      if (Math.abs(e.worldX - out) < gap) {
-        out = e.worldX + gap;
+      const need = Math.max(gap, roleOf(e.role).gap);
+      if (Math.abs(e.worldX - out) < need) {
+        out = e.worldX + need;
         pushed = true;
       }
     }

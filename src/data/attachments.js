@@ -5,6 +5,73 @@ const MAG_BOX = [1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30
 const MAG_DRUM = [40, 45, 50, 55, 60, 65, 70, 75];
 const MAG_BELT = [80, 90, 100, 110, 120];
 
+export const PART_COST_RATE = 1.7;
+export const TRIGGER_COST_RATE = 1.9;
+export const BARREL_COST_BASE = 140;
+export const OPTIC_COST_BASE = 200;
+export const STOCK_COST_BASE = 160;
+export const MUZZLE_COST_BASE = 160;
+export const TRIGGER_COST_BASE = 400;
+export const GAS_COST_BASE = 320;
+export const SPRING_COST_BASE = 120;
+export const TRIGGER_ROF_PER_RANK = 0.1;
+export const MUZZLE_RECOIL_STEP = -0.14;
+export const MUZZLE_SPREAD_STEP = -0.12;
+
+export function ladderCost(baseCost, costRate, rank) {
+  if (rank <= 0) return 0;
+  return Math.round(baseCost * costRate ** (rank - 1));
+}
+
+function roundTo(v, d = 3) {
+  const p = 10 ** d;
+  return Math.round(v * p) / p;
+}
+
+function scaleMods(perRank, rank) {
+  const out = {};
+  for (const [k, v] of Object.entries(perRank || {})) out[k] = roundTo(v * rank);
+  return out;
+}
+
+function rankedSlot({ slot, starter, rungs, baseCost, costRate, perRank }) {
+  const out = {
+    [starter.id]: {
+      id: starter.id,
+      slot,
+      rank: 0,
+      name: starter.name,
+      short: starter.short,
+      cost: 0,
+      desc: starter.desc,
+      mods: starter.mods || {},
+    },
+  };
+  rungs.forEach((rung, i) => {
+    const rank = i + 1;
+    const prev = i === 0 ? starter.id : rungs[i - 1].id;
+    out[rung.id] = {
+      id: rung.id,
+      slot,
+      rank,
+      requires: prev,
+      name: rung.name,
+      short: rung.short,
+      cost: ladderCost(baseCost, costRate, rank),
+      desc: rung.desc,
+      mods: { ...scaleMods(perRank, rank), ...(rung.mods || {}) },
+    };
+  });
+  return out;
+}
+
+function muzzleMods(recoil, spread) {
+  return {
+    bloomPerShot: roundTo(MUZZLE_RECOIL_STEP * recoil, 2),
+    baseSpread: roundTo(MUZZLE_SPREAD_STEP * spread, 2),
+  };
+}
+
 function magCost(size) {
   if (size <= 1) return 0;
   const n = size - 1;
@@ -76,7 +143,7 @@ export const PARTS = {
     short: 'Stub',
     cost: 0,
     desc: 'Short range. Snappy, imprecise.',
-    mods: { bulletSpeed: -90, bloomPerShot: 0.35, pen: -0.08, aimRate: 0.4, baseSpread: 0.35 },
+    mods: { bulletSpeed: -90, bloomPerShot: 0.35, aimRate: 0.4, baseSpread: 0.35 },
   },
   barrel_carbine: {
     id: 'barrel_carbine',
@@ -85,7 +152,7 @@ export const PARTS = {
     requires: 'barrel_stub',
     name: 'Carbine Barrel',
     short: 'Carbine',
-    cost: 140,
+    cost: ladderCost(BARREL_COST_BASE, PART_COST_RATE, 1),
     desc: 'A bit more range and a cleaner cone.',
     mods: { bulletSpeed: 40, bloomPerShot: -0.15, pen: 0.08, baseSpread: -0.2, shotRange: 48 },
   },
@@ -96,7 +163,7 @@ export const PARTS = {
     requires: 'barrel_carbine',
     name: 'Rifle Barrel',
     short: 'Rifle',
-    cost: 280,
+    cost: ladderCost(BARREL_COST_BASE, PART_COST_RATE, 2),
     desc: 'Longer effective range and punch.',
     mods: { bulletSpeed: 140, bloomPerShot: -0.28, pen: 0.22, aimRate: -0.6, weight: 0.08, baseSpread: -0.4, shotRange: 96 },
   },
@@ -107,7 +174,7 @@ export const PARTS = {
     requires: 'barrel_rifle',
     name: 'Long Barrel',
     short: 'Long',
-    cost: 480,
+    cost: ladderCost(BARREL_COST_BASE, PART_COST_RATE, 3),
     desc: 'Best on-screen range. Slow settle on slopes.',
     mods: { bulletSpeed: 240, bloomPerShot: -0.4, pen: 0.38, aimRate: -1.2, weight: 0.14, baseSpread: -0.65, shotRange: 150 },
   },
@@ -131,7 +198,7 @@ export const PARTS = {
     requires: 'optic_none',
     name: 'Red Dot',
     short: 'Dot',
-    cost: 200,
+    cost: ladderCost(OPTIC_COST_BASE, PART_COST_RATE, 1),
     desc: 'Tighter cone and a farther hold. Still short of mid-field. Does not add gun range.',
     mods: { bloomPerShot: -0.28, aimRate: 0.8, aimReach: 141, baseSpread: -0.25 },
   },
@@ -142,7 +209,7 @@ export const PARTS = {
     requires: 'optic_dot',
     name: 'ACOG',
     short: 'ACOG',
-    cost: 380,
+    cost: ladderCost(OPTIC_COST_BASE, PART_COST_RATE, 2),
     desc: 'Holds into the right half of the screen with a cleaner first shot.',
     mods: { bloomPerShot: -0.4, aimRate: -0.3, bloomRecover: 0.6, aimReach: 294, baseSpread: -0.45 },
   },
@@ -153,7 +220,7 @@ export const PARTS = {
     requires: 'optic_acog',
     name: 'LPVO',
     short: 'LPVO',
-    cost: 640,
+    cost: ladderCost(OPTIC_COST_BASE, PART_COST_RATE, 3),
     desc: 'Hold anywhere on screen. Barrel still sets how hard the round hits out there.',
     mods: { bloomPerShot: -0.55, aimRate: 0.4, bloomRecover: 0.9, weight: 0.06, fullScreenAim: 1, baseSpread: -0.7 },
   },
@@ -175,7 +242,7 @@ export const PARTS = {
     requires: 'stock_none',
     name: 'Wire Stock',
     short: 'Wire',
-    cost: 160,
+    cost: ladderCost(STOCK_COST_BASE, PART_COST_RATE, 1),
     desc: 'Light brace.',
     mods: { bloomRecover: 0.8, aimRate: 0.5, baseSpread: -0.1 },
   },
@@ -186,7 +253,7 @@ export const PARTS = {
     requires: 'stock_wire',
     name: 'Combat Stock',
     short: 'Combat',
-    cost: 320,
+    cost: ladderCost(STOCK_COST_BASE, PART_COST_RATE, 2),
     desc: 'Bloom recovery and slope settle.',
     mods: { bloomRecover: 1.8, aimRate: 1.1, bloomPerShot: -0.12, baseSpread: -0.25 },
   },
@@ -197,187 +264,153 @@ export const PARTS = {
     requires: 'stock_combat',
     name: 'Precision Stock',
     short: 'Precision',
-    cost: 520,
+    cost: ladderCost(STOCK_COST_BASE, PART_COST_RATE, 3),
     desc: 'Best recovery. Heavier.',
     mods: { bloomRecover: 3.0, aimRate: 1.6, bloomPerShot: -0.22, weight: 0.1, baseSpread: -0.4 },
   },
 
-  muzzle_none: {
-    id: 'muzzle_none',
+  ...rankedSlot({
     slot: 'muzzle',
-    rank: 0,
-    name: 'Bare Muzzle',
-    short: 'Bare',
-    cost: 0,
-    desc: 'No device.',
-    mods: {},
-  },
-  muzzle_flash: {
-    id: 'muzzle_flash',
-    slot: 'muzzle',
-    rank: 1,
-    requires: 'muzzle_none',
-    name: 'Flash Hider',
-    short: 'Flash',
-    cost: 140,
-    desc: 'Mild bloom cut.',
-    mods: { bloomPerShot: -0.12 },
-  },
-  muzzle_comp: {
-    id: 'muzzle_comp',
-    slot: 'muzzle',
-    rank: 2,
-    requires: 'muzzle_flash',
-    name: 'Compensator',
-    short: 'Comp',
-    cost: 300,
-    desc: 'Strong bloom control, extra heat.',
-    mods: { bloomPerShot: -0.42, heatBuild: 0.04 },
-  },
-  muzzle_can: {
-    id: 'muzzle_can',
-    slot: 'muzzle',
-    rank: 3,
-    requires: 'muzzle_comp',
-    name: 'Suppressor',
-    short: 'Can',
-    cost: 480,
-    desc: 'Quieter muzzle, lower velocity.',
-    mods: { bloomPerShot: -0.22, bulletSpeed: -80, pen: -0.06, heatDump: 0.04 },
-  },
+    baseCost: MUZZLE_COST_BASE,
+    costRate: PART_COST_RATE,
+    starter: {
+      id: 'muzzle_none',
+      name: 'Bare Muzzle',
+      short: 'Bare',
+      desc: 'No device.',
+    },
+    rungs: [
+      {
+        id: 'muzzle_comp',
+        name: 'Compensator',
+        short: 'Comp',
+        desc: 'Cuts recoil and tightens the cone a little.',
+        mods: muzzleMods(1, 1),
+      },
+      {
+        id: 'muzzle_brake',
+        name: 'Muzzle Brake',
+        short: 'Brake',
+        desc: 'Strong recoil dump. Spread help stays modest.',
+        mods: muzzleMods(2, 1),
+      },
+      {
+        id: 'muzzle_ported',
+        name: 'Ported Muzzle',
+        short: 'Ported',
+        desc: 'Ports dump recoil and clean the cone.',
+        mods: muzzleMods(2, 2),
+      },
+      {
+        id: 'muzzle_hybrid',
+        name: 'Hybrid Brake',
+        short: 'Hybrid',
+        desc: 'Best recoil control, with a tight cone.',
+        mods: muzzleMods(3, 2),
+      },
+    ],
+  }),
 
-  trigger_milspec: {
-    id: 'trigger_milspec',
+  ...rankedSlot({
     slot: 'trigger',
-    rank: 0,
-    name: 'Milspec Trigger',
-    short: 'Milspec',
-    cost: 0,
-    desc: 'Factory pull.',
-    mods: {},
-  },
-  trigger_match: {
-    id: 'trigger_match',
-    slot: 'trigger',
-    rank: 1,
-    requires: 'trigger_milspec',
-    name: 'Match Trigger',
-    short: 'Match',
-    cost: 360,
-    desc: 'Higher RoF, cleaner break.',
-    mods: { rof: 0.55 },
-  },
-  trigger_binary: {
-    id: 'trigger_binary',
-    slot: 'trigger',
-    rank: 2,
-    requires: 'trigger_match',
-    name: 'Binary Trigger',
-    short: 'Binary',
-    cost: 720,
-    desc: 'RoF ceiling. Bloom hungry.',
-    mods: { rof: 1.5, bloomPerShot: 0.2, heatBuild: 0.06 },
-  },
-  trigger_volt: {
-    id: 'trigger_volt',
-    slot: 'trigger',
-    rank: 3,
-    requires: 'trigger_binary',
-    name: 'Lightning Trigger',
-    short: 'Volt',
-    cost: 1100,
-    desc: 'Hair-split cycle. Heat soars.',
-    mods: { rof: 2.1, bloomPerShot: 0.38, heatBuild: 0.12 },
-  },
+    baseCost: TRIGGER_COST_BASE,
+    costRate: TRIGGER_COST_RATE,
+    perRank: { rof: TRIGGER_ROF_PER_RANK, bloomPerShot: 0.12, heatBuild: 0.04 },
+    starter: {
+      id: 'trigger_milspec',
+      name: 'Milspec Trigger',
+      short: 'Milspec',
+      desc: 'Factory pull.',
+    },
+    rungs: [
+      {
+        id: 'trigger_match',
+        name: 'Match Trigger',
+        short: 'Match',
+        desc: 'Higher RoF, cleaner break.',
+      },
+      {
+        id: 'trigger_binary',
+        name: 'Binary Trigger',
+        short: 'Binary',
+        desc: 'RoF ceiling. Bloom hungry.',
+      },
+      {
+        id: 'trigger_volt',
+        name: 'Lightning Trigger',
+        short: 'Volt',
+        desc: 'Hair-split cycle. Heat soars.',
+      },
+    ],
+  }),
 
-  gas_factory: {
-    id: 'gas_factory',
+  ...rankedSlot({
     slot: 'gasBlock',
-    rank: 0,
-    name: 'Factory Gas',
-    short: 'Factory',
-    cost: 0,
-    desc: 'Stock cycling.',
-    mods: {},
-  },
-  gas_adjust: {
-    id: 'gas_adjust',
-    slot: 'gasBlock',
-    rank: 1,
-    requires: 'gas_factory',
-    name: 'Adjustable Gas',
-    short: 'Adjust',
-    cost: 320,
-    desc: 'Dumps heat faster.',
-    mods: { heatDump: 0.12, heatBuild: -0.04, bloomRecover: 0.4 },
-  },
-  gas_over: {
-    id: 'gas_over',
-    slot: 'gasBlock',
-    rank: 2,
-    requires: 'gas_adjust',
-    name: 'Overgassed',
-    short: 'Over',
-    cost: 480,
-    desc: 'Faster cycle, more heat and bloom.',
-    mods: { rof: 0.7, heatBuild: 0.08, bloomPerShot: 0.15 },
-  },
-  gas_piston: {
-    id: 'gas_piston',
-    slot: 'gasBlock',
-    rank: 3,
-    requires: 'gas_over',
-    name: 'Piston Drive',
-    short: 'Piston',
-    cost: 760,
-    desc: 'Cleaner impulse. Heavier, cooler.',
-    mods: { heatDump: 0.2, heatBuild: -0.07, weight: 0.08, bloomRecover: 0.55 },
-  },
+    baseCost: GAS_COST_BASE,
+    costRate: PART_COST_RATE,
+    perRank: { heatDump: 0.07, heatBuild: -0.02, bloomRecover: 0.2 },
+    starter: {
+      id: 'gas_factory',
+      name: 'Factory Gas',
+      short: 'Factory',
+      desc: 'Stock cycling.',
+    },
+    rungs: [
+      {
+        id: 'gas_adjust',
+        name: 'Adjustable Gas',
+        short: 'Adjust',
+        desc: 'Dumps heat faster.',
+      },
+      {
+        id: 'gas_over',
+        name: 'Overgassed',
+        short: 'Over',
+        desc: 'Faster cycle, more heat and bloom.',
+        mods: { rof: 0.12, heatBuild: 0.1, bloomPerShot: 0.15 },
+      },
+      {
+        id: 'gas_piston',
+        name: 'Piston Drive',
+        short: 'Piston',
+        desc: 'Faster cycle, cooler impulse. Heavier.',
+        mods: { rof: 0.18, weight: 0.08, heatBuild: -0.05, bloomRecover: 0.15 },
+      },
+    ],
+  }),
 
-  // Springs = reload speed ladder (available on T1). Perfect window is a gunner skill.
-  spring_factory: {
-    id: 'spring_factory',
+  ...rankedSlot({
     slot: 'springs',
-    rank: 0,
-    name: 'Factory Spring',
-    short: 'Factory',
-    cost: 0,
-    desc: 'Stock return. Slow inserts.',
-    mods: {},
-  },
-  spring_tuned: {
-    id: 'spring_tuned',
-    slot: 'springs',
-    rank: 1,
-    requires: 'spring_factory',
-    name: 'Tuned Spring',
-    short: 'Tuned',
-    cost: 120,
-    desc: 'Noticeably faster mag work.',
-    mods: { reload: -0.22 },
-  },
-  spring_light: {
-    id: 'spring_light',
-    slot: 'springs',
-    rank: 2,
-    requires: 'spring_tuned',
-    name: 'Reduced Power',
-    short: 'Light',
-    cost: 240,
-    desc: 'Quick inserts under pressure.',
-    mods: { reload: -0.42 },
-  },
-  spring_race: {
-    id: 'spring_race',
-    slot: 'springs',
-    rank: 3,
-    requires: 'spring_light',
-    name: 'Race Spring',
-    short: 'Race',
-    cost: 420,
-    desc: 'Fastest cycle the action will take.',
-    mods: { reload: -0.65 },
-  },
+    baseCost: SPRING_COST_BASE,
+    costRate: PART_COST_RATE,
+    perRank: { reload: -0.22 },
+    starter: {
+      id: 'spring_factory',
+      name: 'Factory Spring',
+      short: 'Factory',
+      desc: 'Stock return. Slow inserts.',
+    },
+    rungs: [
+      {
+        id: 'spring_tuned',
+        name: 'Tuned Spring',
+        short: 'Tuned',
+        desc: 'Noticeably faster mag work.',
+      },
+      {
+        id: 'spring_light',
+        name: 'Reduced Power',
+        short: 'Light',
+        desc: 'Quick inserts under pressure.',
+      },
+      {
+        id: 'spring_race',
+        name: 'Race Spring',
+        short: 'Race',
+        desc: 'Fastest cycle the action will take.',
+      },
+    ],
+  }),
 };
 
 export const STARTER_OWNED = [

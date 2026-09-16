@@ -25,10 +25,10 @@ export function onHit(score, zone, crit) {
   }
 }
 
-export function onKill(score, cashMul) {
+export function onKill(score, cashMul, xpMul = 1) {
   score.kills += 1;
   score.cash += ECONOMY.cashPerKill * cashMul;
-  score.xp += ECONOMY.xpPerKill;
+  score.xp += ECONOMY.xpPerKill * xpMul;
 }
 
 export function onPerfect(score) {

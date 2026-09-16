@@ -332,11 +332,12 @@ export function drawEnemyVitals(ctx, enemy, w2s) {
   const origin = w2s(enemy.worldX, enemy.y);
   const local = enemy.pose || poseEnemyLocal(enemy);
   const fill = lethalHpRatio(enemy);
-  const w = 40;
+  const s = local.scale || 1;
+  const w = 40 * Math.min(s, 1.65);
   const h = 5;
   const x = origin.x - w * 0.5;
   /** Head poly crown is 15S; vampire tuft ~21S. Sit the bar above with a gap. */
-  const y = origin.y + local.head.y - 28 * S;
+  const y = origin.y + local.head.y - 28 * S * s;
   ctx.save();
   ctx.fillStyle = 'rgba(8,4,2,0.72)';
   ctx.fillRect(x - 1, y - 1, w + 2, h + 2);

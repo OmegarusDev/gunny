@@ -25,127 +25,118 @@ export const SLOT_MIN_TIER = {
   gasBlock: 3,
 };
 
-export const RECEIVERS = {
-  t1_stock: {
+/** Combat stats grow by this each receiver rank. Shoddy is rank 0. */
+export const RECEIVER_STAT_RATE = 1.5;
+export const RECEIVER_COST_BASE = 550;
+export const RECEIVER_COST_RATE = 2;
+
+const SHODDY_BASE = {
+  damage: 13,
+  rof: 0.5,
+  magSize: 1,
+  reload: 2.55,
+  perfectWidth: 0.07,
+  bulletSpeed: 820,
+  pen: 1.05,
+  penDecay: 0.0009,
+  bloomPerShot: 1.85,
+  bloomRecover: 5.2,
+  aimRate: 7.2,
+  aimReach: AIM_REACH_BASE,
+  shotRange: SHOT_REACH_BASE,
+  baseSpread: 2.35,
+  heatBuild: 0.22,
+  heatDump: 0.16,
+  heatBloom: 4.5,
+  weight: 1.15,
+};
+
+/** Linear add per rank on top of Shoddy. Combat (dmg/rof/pen) uses STAT_RATE instead. */
+const RECEIVER_PER_RANK = {
+  reload: -0.15,
+  perfectWidth: 0.01,
+  bulletSpeed: 40,
+  penDecay: -0.0001,
+  bloomPerShot: -0.2,
+  bloomRecover: 0.9,
+  aimRate: 0.9,
+  shotRange: 24,
+  baseSpread: -0.28,
+  heatBuild: -0.04,
+  heatDump: 0.06,
+  heatBloom: -0.85,
+  weight: -0.1,
+};
+
+function roundTo(v, d) {
+  const p = 10 ** d;
+  return Math.round(v * p) / p;
+}
+
+export function receiverCost(rank) {
+  if (rank <= 0) return 0;
+  return Math.round(RECEIVER_COST_BASE * RECEIVER_COST_RATE ** (rank - 1));
+}
+
+export function receiverBase(rank) {
+  const g = RECEIVER_STAT_RATE ** rank;
+  const base = { ...SHODDY_BASE };
+  base.damage = roundTo(SHODDY_BASE.damage * g, 1);
+  base.rof = SHODDY_BASE.rof * g;
+  base.pen = roundTo(SHODDY_BASE.pen * g, 2);
+  for (const [k, v] of Object.entries(RECEIVER_PER_RANK)) {
+    if (k === 'shotRange') {
+      base[k] = SHODDY_BASE[k] + v * rank;
+      continue;
+    }
+    const digits = k === 'penDecay' ? 4 : 2;
+    base[k] = roundTo(SHODDY_BASE[k] + v * rank, digits);
+  }
+  base.magSize = 1;
+  base.aimReach = AIM_REACH_BASE;
+  return base;
+}
+
+const META = [
+  {
     id: 't1_stock',
     name: 'Shoddy Receiver',
     short: 'Shoddy',
-    tier: 1,
-    rank: 0,
-    cost: 0,
     desc: 'Jury-rigged receiver. Barrel, mag, and springs. Heavy, slow, hot.',
-    base: {
-      damage: 13,
-      rof: 0.5,
-      magSize: 1,
-      reload: 2.55,
-      perfectWidth: 0.07,
-      bulletSpeed: 820,
-      pen: 1.05,
-      penDecay: 0.0009,
-      bloomPerShot: 1.85,
-      bloomRecover: 5.2,
-      aimRate: 7.2,
-      aimReach: AIM_REACH_BASE,
-      shotRange: SHOT_REACH_BASE,
-      baseSpread: 2.35,
-      heatBuild: 0.22,
-      heatDump: 0.16,
-      heatBloom: 4.5,
-      weight: 1.15,
-    },
   },
-  t2_tactical: {
+  {
     id: 't2_tactical',
     name: 'Tactical Receiver',
     short: 'Tactical',
-    tier: 2,
-    rank: 1,
-    requires: 't1_stock',
-    cost: 550,
     desc: 'Opens optic, stock, and muzzle. Better heat path.',
-    base: {
-      damage: 14,
-      rof: 1,
-      magSize: 1,
-      reload: 2.35,
-      perfectWidth: 0.08,
-      bulletSpeed: 860,
-      pen: 1.15,
-      penDecay: 0.0008,
-      bloomPerShot: 1.55,
-      bloomRecover: 6.4,
-      aimRate: 8.4,
-      aimReach: AIM_REACH_BASE,
-      shotRange: SHOT_REACH_BASE + 24,
-      baseSpread: 2.05,
-      heatBuild: 0.16,
-      heatDump: 0.24,
-      heatBloom: 3.2,
-      weight: 1,
-    },
   },
-  t3_ordnance: {
+  {
     id: 't3_ordnance',
     name: 'Ordnance Receiver',
     short: 'Ordnance',
-    tier: 3,
-    rank: 2,
-    requires: 't2_tactical',
-    cost: 1350,
     desc: 'Full internals: trigger and gas. High RoF ceiling.',
-    base: {
-      damage: 15,
-      rof: 2,
-      magSize: 1,
-      reload: 2.2,
-      perfectWidth: 0.09,
-      bulletSpeed: 900,
-      pen: 1.25,
-      penDecay: 0.0007,
-      bloomPerShot: 1.35,
-      bloomRecover: 7.2,
-      aimRate: 9.2,
-      aimReach: AIM_REACH_BASE,
-      shotRange: SHOT_REACH_BASE + 48,
-      baseSpread: 1.75,
-      heatBuild: 0.12,
-      heatDump: 0.3,
-      heatBloom: 2.4,
-      weight: 0.92,
-    },
   },
-  t4_advanced: {
+  {
     id: 't4_advanced',
     name: 'Advanced Receiver',
     short: 'Advanced',
-    tier: 4,
-    rank: 3,
-    requires: 't3_ordnance',
-    cost: 2800,
     desc: 'Machined successor. Same rails as Ordnance, hotter ceiling.',
-    base: {
-      damage: 16,
-      rof: 3,
-      magSize: 1,
-      reload: 2.05,
-      perfectWidth: 0.1,
-      bulletSpeed: 940,
-      pen: 1.35,
-      penDecay: 0.0006,
-      bloomPerShot: 1.2,
-      bloomRecover: 8,
-      aimRate: 10,
-      aimReach: AIM_REACH_BASE,
-      shotRange: SHOT_REACH_BASE + 72,
-      baseSpread: 1.5,
-      heatBuild: 0.1,
-      heatDump: 0.34,
-      heatBloom: 1.9,
-      weight: 0.86,
-    },
   },
-};
+];
+
+export const RECEIVERS = Object.fromEntries(
+  META.map((meta, rank) => [
+    meta.id,
+    {
+      ...meta,
+      tier: rank + 1,
+      rank,
+      cost: receiverCost(rank),
+      ...(rank > 0 ? { requires: META[rank - 1].id } : {}),
+      base: receiverBase(rank),
+    },
+  ]),
+);
 
 export function receiverRequirement(id) {
   return RECEIVERS[id]?.requires || null;

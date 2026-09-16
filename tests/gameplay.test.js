@@ -6,6 +6,7 @@ import {
   AIM_SCREEN_FRAC,
   ECONOMY,
   DEATH_HOLD,
+  FLESH_PEN_COST,
   HIT_IMPULSE,
   MAX_DPR,
   PLAYER_SCREEN_X_RATIO,
@@ -17,6 +18,7 @@ import {
   TERRAIN_HEADROOM,
   THREAT,
   TRACK_METERS,
+  V_RETREAT,
   clampShotRange,
   effectiveAimReach,
   effectiveShotRange,
@@ -26,12 +28,13 @@ import {
   threatForDistance,
   usesFullScreenAim,
 } from '../src/config.js';
-import { PARTS, catalogProgressWindow, catalogWindow, partsForSlot } from '../src/data/attachments.js';
+import { PARTS, catalogProgressWindow, catalogWindow, ladderCost, partsForSlot } from '../src/data/attachments.js';
 import { BIOMES, beatenRoadIndexes, biomeFor } from '../src/data/biomes.js';
 import { KINDS } from '../src/data/kinds.js';
-import { RECEIVERS } from '../src/data/receivers.js';
+import { RECEIVERS, RECEIVER_COST_BASE, RECEIVER_COST_RATE, RECEIVER_STAT_RATE } from '../src/data/receivers.js';
+import { CHASE_FLOOR, ROLE_UNLOCK, ROLES, pickRole, roleUnlocked } from '../src/data/roles.js';
 import { SKILLS, emptyRanks, refundRetiredRanks, skillCost } from '../src/data/skills.js';
-import { gunsmithStatRows, resolveStats, shotSpreadDeg, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
+import { formatRpm, gunsmithStatRows, resolveStats, shotSpreadDeg, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
 import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, lethalCircles, lethalHpRatio, limbCircles, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile, buyPart, owns } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
@@ -47,6 +50,7 @@ import { shotEnergy } from '../src/systems/impulse.js';
 import { cullFrozenCorpses, spawnRagdoll } from '../src/systems/ragdoll.js';
 import { stepGibs } from '../src/systems/gibs.js';
 import { createRun, simulate } from '../src/systems/run.js';
+import { stepSpawner } from '../src/systems/spawner.js';
 import { createScore, onHit, onKill, extractBonus } from '../src/systems/scoring.js';
 import { rectCircleOverlap, segmentHitsCircle } from '../src/systems/hits.js';
 import { spawnBullet, stepBullets, rangeDamageMul } from '../src/systems/ballistics.js';
@@ -94,7 +98,7 @@ describe('threat pacing', () => {
     expect(l2s.speed).toBeGreaterThan(threatForDistance(80, 0, false).speed);
   });
 
-  it('makes Endless a steeper curve than campaign, not a 1:1 road map', () => {
+  it('makes Endless twice as hard as the same campaign metres', () => {
     const camp0_80 = threatForDistance(80, 0, false);
     const camp0_250 = threatForDistance(TRACK_METERS, 0, false);
     const camp1_250 = threatForDistance(TRACK_METERS, 1, false);
@@ -103,17 +107,15 @@ describe('threat pacing', () => {
     const end250 = threatForDistance(TRACK_METERS, 0, true);
     const end500 = threatForDistance(500, 0, true);
 
-    expect(end80.hpMul).toBeGreaterThan(camp0_80.hpMul);
+    expect(THREAT.endlessHard).toBe(2);
+    expect(end80.hpMul / camp0_80.hpMul).toBeCloseTo(THREAT.endlessHard);
+    expect(end250.hpMul / camp0_250.hpMul).toBeCloseTo(THREAT.endlessHard);
     expect(end80.spawnInterval).toBeLessThan(camp0_80.spawnInterval);
-    expect(end250.hpMul).toBeGreaterThan(camp0_250.hpMul);
     expect(end250.hpMul).toBeGreaterThan(camp1_250.hpMul);
     expect(end250.spawnInterval).toBeLessThanOrEqual(camp1_250.spawnInterval);
     expect(end500.hpMul).toBeGreaterThan(camp4_250.hpMul);
     expect(end500.hpMul).toBeGreaterThan(end250.hpMul);
     expect(end500.spawnInterval).toBeLessThan(end250.spawnInterval);
-    const campRise = camp0_250.hpMul - threatForDistance(0, 0, false).hpMul;
-    const endRise = end250.hpMul - threatForDistance(0, 0, true).hpMul;
-    expect(endRise).toBeGreaterThan(campRise * 4);
   });
 
   it('ramps Endless toughness with metres including inside the first 250', () => {
@@ -180,21 +182,35 @@ describe('economy & ladders', () => {
     expect(RECEIVERS.t2_tactical.requires).toBe('t1_stock');
     expect(RECEIVERS.t2_tactical.cost).toBe(550);
     expect(RECEIVERS.t3_ordnance.tier).toBe(3);
-    expect(RECEIVERS.t3_ordnance.cost).toBe(1350);
+    expect(RECEIVERS.t3_ordnance.cost).toBe(ladderCost(RECEIVER_COST_BASE, RECEIVER_COST_RATE, 2));
     expect(RECEIVERS.t3_ordnance.cost).toBeGreaterThan(RECEIVERS.t2_tactical.cost);
     expect(RECEIVERS.t4_advanced.requires).toBe('t3_ordnance');
     expect(RECEIVERS.t4_advanced.short).toBe('Advanced');
+    expect(RECEIVERS.t4_advanced.cost).toBe(ladderCost(RECEIVER_COST_BASE, RECEIVER_COST_RATE, 3));
     expect(RECEIVERS.t4_advanced.cost).toBeGreaterThan(RECEIVERS.t3_ordnance.cost);
     expect(Object.keys(RECEIVERS)).toHaveLength(4);
   });
 
-  it('keeps Shoddy slow and steps receiver RoF up the ladder', () => {
+  it('keeps Shoddy slow and grows receiver RoF and damage 1.5× per rank', () => {
     expect(RECEIVERS.t1_stock.base.rof).toBe(0.5);
-    expect(RECEIVERS.t2_tactical.base.rof).toBe(1);
-    expect(RECEIVERS.t3_ordnance.base.rof).toBe(2);
-    expect(RECEIVERS.t4_advanced.base.rof).toBe(3);
+    expect(RECEIVERS.t2_tactical.base.rof).toBeCloseTo(0.5 * RECEIVER_STAT_RATE);
+    expect(RECEIVERS.t3_ordnance.base.rof).toBeCloseTo(0.5 * RECEIVER_STAT_RATE ** 2);
+    expect(RECEIVERS.t4_advanced.base.rof).toBeCloseTo(0.5 * RECEIVER_STAT_RATE ** 3);
+    expect(RECEIVERS.t2_tactical.base.damage).toBeCloseTo(13 * RECEIVER_STAT_RATE, 1);
+    expect(RECEIVERS.t4_advanced.base.damage).toBeGreaterThan(RECEIVERS.t3_ordnance.base.damage);
+    expect(RECEIVERS.t4_advanced.base.pen).toBeGreaterThan(RECEIVERS.t3_ordnance.base.pen);
     expect(STAT_BY_ID.rof.min).toBeLessThanOrEqual(0.5);
     expect(resolveStats(defaultProfile()).rof).toBe(0.5);
+    const starter = resolveStats(defaultProfile());
+    expect(starter.magSize).toBe(1);
+    expect(formatRpm(starter)).toBe(String(Math.round((1 / starter.reload) * 60)));
+    expect(Number(formatRpm(starter))).toBeLessThan(Math.round(starter.rof * 60));
+    const mag2 = defaultProfile();
+    mag2.owned.push('mag_2');
+    mag2.loadout.magazine = 'mag_2';
+    expect(Number(formatRpm(resolveStats(mag2)))).toBeGreaterThan(Number(formatRpm(starter)));
+    expect(starter.pen).toBeGreaterThanOrEqual(FLESH_PEN_COST);
+    expect(PARTS.barrel_stub.mods.pen).toBeUndefined();
   });
 
   it('pays modest XP from distance, kills, heads, and extract', () => {
@@ -261,6 +277,47 @@ describe('gunsmith catalog', () => {
     for (const slot of ['barrel', 'magazine', 'springs', 'optic', 'stock', 'muzzle', 'trigger', 'gasBlock']) {
       expect(partsForSlot(slot).length).toBeGreaterThanOrEqual(4);
     }
+  });
+
+  it('prices later rungs from a base cost and a rate', () => {
+    expect(PARTS.trigger_match.cost).toBe(400);
+    expect(PARTS.trigger_binary.cost).toBe(ladderCost(400, 1.9, 2));
+    expect(PARTS.trigger_volt.cost).toBeGreaterThan(PARTS.trigger_binary.cost);
+    expect(PARTS.muzzle_brake.cost).toBeGreaterThan(PARTS.muzzle_comp.cost);
+    expect(PARTS.muzzle_hybrid.cost).toBeGreaterThan(PARTS.muzzle_ported.cost);
+  });
+
+  it('replaces the suppressor line with recoil/spread muzzle devices', () => {
+    expect(PARTS.muzzle_can).toBeUndefined();
+    expect(PARTS.muzzle_flash).toBeUndefined();
+    expect(partsForSlot('muzzle').map((p) => p.id)).toEqual([
+      'muzzle_none',
+      'muzzle_comp',
+      'muzzle_brake',
+      'muzzle_ported',
+      'muzzle_hybrid',
+    ]);
+    const comp = PARTS.muzzle_comp.mods;
+    const brake = PARTS.muzzle_brake.mods;
+    const ported = PARTS.muzzle_ported.mods;
+    const hybrid = PARTS.muzzle_hybrid.mods;
+    expect(brake.bloomPerShot).toBeLessThan(comp.bloomPerShot);
+    expect(hybrid.bloomPerShot).toBeLessThan(brake.bloomPerShot);
+    expect(ported.baseSpread).toBeLessThan(brake.baseSpread);
+    expect(hybrid.baseSpread).toBe(ported.baseSpread);
+    expect(hybrid.bloomPerShot).toBeLessThan(ported.bloomPerShot);
+  });
+
+  it('keeps Piston Drive a cycle upgrade over Overgassed', () => {
+    const profile = defaultProfile();
+    profile.owned.push('t2_tactical', 't3_ordnance', 'gas_adjust', 'gas_over', 'gas_piston');
+    profile.loadout.receiver = 't3_ordnance';
+    profile.loadout.gasBlock = 'gas_over';
+    const over = resolveStats(profile);
+    profile.loadout.gasBlock = 'gas_piston';
+    const piston = resolveStats(profile);
+    expect(piston.rof).toBeGreaterThan(over.rof);
+    expect(piston.heatBuild).toBeLessThan(over.heatBuild);
   });
 });
 
@@ -666,6 +723,7 @@ describe('kinds & stats schema', () => {
     const rows = gunsmithStatRows(resolveStats(defaultProfile()));
     expect(rows.map((r) => r[0])).toEqual(STATS.filter((s) => s.gunsmith).map((s) => s.gunsmithLabel));
     expect(rows.map((r) => r[0])).toEqual(['DMG', 'ROF', 'MAG', 'VEL', 'PEN', 'RLD', 'Range', 'Sight', 'SPRD']);
+    expect(rows.find((r) => r[0] === 'ROF')[1]).toBe(formatRpm(resolveStats(defaultProfile())));
     expect(rows.every((r) => r[2])).toBe(true);
     expect(rows.length).toBeGreaterThanOrEqual(8);
   });
@@ -687,6 +745,63 @@ describe('kinds & stats schema', () => {
     } finally {
       delete PARTS.barrel_stub.mods.notAStat;
     }
+  });
+});
+
+describe('walker roles', () => {
+  const terrain = { height: () => 400 };
+
+  it('gates tank, heavy, and behemoth by road and endless metres', () => {
+    expect(roleUnlocked('tank', { levelIndex: 3 })).toBe(false);
+    expect(roleUnlocked('tank', { levelIndex: 4 })).toBe(true);
+    expect(roleUnlocked('heavy', { levelIndex: ROLE_UNLOCK.heavy.road - 1 })).toBe(false);
+    expect(roleUnlocked('heavy', { levelIndex: ROLE_UNLOCK.heavy.road })).toBe(true);
+    expect(roleUnlocked('behemoth', { levelIndex: 18 })).toBe(false);
+    expect(roleUnlocked('behemoth', { levelIndex: 19 })).toBe(true);
+    expect(roleUnlocked('behemoth', { endless: true, meters: 999 })).toBe(false);
+    expect(roleUnlocked('behemoth', { endless: true, meters: 1000 })).toBe(true);
+    expect(Object.keys(ROLES)).toEqual(['grunt', 'tank', 'heavy', 'behemoth']);
+  });
+
+  it('makes tanks slower, tougher, and larger than grunts', () => {
+    const chase = THREAT.chill.speed;
+    const grunt = createEnemy(0, terrain, 1, chase, 'zombie', 'grunt');
+    const tank = createEnemy(0, terrain, 1, chase, 'zombie', 'tank');
+    const heavy = createEnemy(0, terrain, 1, chase, 'zombie', 'heavy');
+    const boss = createEnemy(0, terrain, 1, chase, 'zombie', 'behemoth');
+    expect(tank.hp.torso).toBeGreaterThan(grunt.hp.torso);
+    expect(heavy.hp.torso).toBeGreaterThan(tank.hp.torso);
+    expect(boss.hp.torso).toBeGreaterThan(heavy.hp.torso);
+    expect(tank.speed).toBeLessThan(grunt.speed);
+    expect(heavy.speed).toBeLessThan(tank.speed);
+    expect(boss.speed).toBeLessThan(heavy.speed);
+    expect(boss.speed).toBeGreaterThan(V_RETREAT);
+    expect(boss.speed).toBeGreaterThanOrEqual(CHASE_FLOOR);
+    expect(limbCircles(boss).head.r).toBeGreaterThan(limbCircles(grunt).head.r);
+    expect(poseEnemyLocal(boss).scale).toBeCloseTo(ROLES.behemoth.scale);
+  });
+
+  it('guarantees a behemoth on Road 20 and Endless 1km', () => {
+    const viewport = { w: 1280, h: 720 };
+    const road = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: 19, seed: 1 });
+    road.player.worldX = -40 * PX_PER_M;
+    road.spawnTimer = 0;
+    stepSpawner(road, 0.016, viewport);
+    expect(road.enemies.some((e) => e.role === 'behemoth')).toBe(true);
+    expect(road.spawnedBehemoth).toBe(true);
+
+    const endless = createRun({ profile: defaultProfile(), viewport, type: 'endless', levelIndex: 0, seed: 1 });
+    endless.player.worldX = -1000 * PX_PER_M;
+    endless.spawnTimer = 0;
+    stepSpawner(endless, 0.016, viewport);
+    expect(endless.enemies.some((e) => e.role === 'behemoth')).toBe(true);
+  });
+
+  it('forces the first late-road pick to be a behemoth', () => {
+    const run = { endless: false, levelIndex: 19, spawnedBehemoth: false, rng: () => 0.99 };
+    expect(pickRole(run, 40, [])).toBe('behemoth');
+    expect(run.spawnedBehemoth).toBe(true);
+    expect(pickRole(run, 80, [{ role: 'behemoth' }])).toBe('grunt');
   });
 });
 
@@ -887,6 +1002,22 @@ describe('simulate loop', () => {
     expect(Math.hypot(run.bullets[0].x - b.ox, run.bullets[0].y - b.oy)).toBeGreaterThan(maxDist);
     expect(clampShotRange(4000, viewport)).toBeLessThan(viewport.w * (1 - PLAYER_SCREEN_X_RATIO));
     expect(AIM_REACH_MAX).toBeLessThan(clampShotRange(4000, viewport));
+  });
+
+  it('spent rounds still wound a body they geometrically hit', () => {
+    const run = liveRun();
+    run.spawnTimer = 1e9;
+    const foe = createEnemy(run.player.worldX + 320, run.terrain, 1, 80, 'zombie');
+    cacheEnemyPose(foe);
+    run.enemies = [foe];
+    const y = foe.y + foe.pose.rib.y;
+    const b = spawnBullet(run.player.worldX, y, 0, { ...run.stats, bulletSpeed: 900, pen: 2 }, false, 48);
+    run.bullets = [b];
+    run.pendingHits = [];
+    for (let i = 0; i < 30; i++) stepBullets(run, dt, viewport);
+    expect(run.pendingHits.length).toBeGreaterThan(0);
+    expect(run.pendingHits[0].enemy).toBe(foe);
+    expect(run.pendingHits[0].rangeMul).toBeLessThan(0.05);
   });
 
   it('keeps an on-screen round after 1.6s', () => {

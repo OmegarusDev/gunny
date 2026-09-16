@@ -225,6 +225,57 @@ export function offsetPose(p, ox, oy) {
   };
 }
 
+function scalePt(q, s) {
+  return { x: q.x * s, y: q.y * s };
+}
+
+function scaleLeg(leg, s) {
+  return {
+    ...leg,
+    hip: scalePt(leg.hip, s),
+    knee: scalePt(leg.knee, s),
+    ankle: scalePt(leg.ankle, s),
+    heel: scalePt(leg.heel, s),
+    toe: scalePt(leg.toe, s),
+  };
+}
+
+function scaleArm(arm, s) {
+  return {
+    shoulder: scalePt(arm.shoulder, s),
+    elbow: scalePt(arm.elbow, s),
+    hand: scalePt(arm.hand, s),
+  };
+}
+
+/** Scale a feet-origin local pose. Hit radii read `scale` separately. */
+export function scaleLocalPose(p, s) {
+  const scale = Number(s) > 0 ? Number(s) : 1;
+  if (scale === 1) return { ...p, scale: 1 };
+  return {
+    ...p,
+    scale,
+    pelvis: scalePt(p.pelvis, scale),
+    gut: scalePt(p.gut, scale),
+    rib: scalePt(p.rib, scale),
+    junction: scalePt(p.junction, scale),
+    head: scalePt(p.head, scale),
+    gun: scalePt(p.gun, scale),
+    jL: scalePt(p.jL, scale),
+    jR: scalePt(p.jR, scale),
+    pL: scalePt(p.pL, scale),
+    pR: scalePt(p.pR, scale),
+    shL: scalePt(p.shL, scale),
+    shR: scalePt(p.shR, scale),
+    hipBL: scalePt(p.hipBL, scale),
+    hipBR: scalePt(p.hipBR, scale),
+    l: scaleLeg(p.l, scale),
+    r: scaleLeg(p.r, scale),
+    armL: scaleArm(p.armL, scale),
+    armR: scaleArm(p.armR, scale),
+  };
+}
+
 export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aimAngle = 0, lean = 0 }) {
   const chase = kind !== 'gunner';
   const locDir = -1;
@@ -347,13 +398,14 @@ export function enemyTime(worldX) {
 }
 
 export function poseEnemyLocal(enemy, { flinch = true } = {}) {
-  return poseLocal({
+  const pose = poseLocal({
     kind: enemy.kind || 'zombie',
     seed: enemy.id || 1,
     t: enemyTime(enemy.worldX),
     crawl: !!enemy.crawling,
     lean: flinch ? enemy.flinchLean || 0 : 0,
   });
+  return scaleLocalPose(pose, enemy.scale || 1);
 }
 
 export function poseEnemy(enemy, opts) {
@@ -398,21 +450,22 @@ export function limbCirclesFromPose(p) {
   const crawl = p.crawl;
   const l = p.l;
   const rleg = p.r;
+  const s = p.scale || 1;
   return {
-    head: vol(p.head, (crawl ? 13 : 16) * S, 'head'),
-    upper: vol(p.rib, (crawl ? 14 : 18) * S, 'upper'),
-    lower: vol(p.gut, (crawl ? 13 : 16) * S, 'lower'),
-    pelvis: vol(p.pelvis, (crawl ? 12 : 14) * S, 'lower'),
-    shL: vol(p.shL, 8 * S, 'upper'),
-    shR: vol(p.shR, 8 * S, 'upper'),
-    lUpp: vol(mid(p.armL.shoulder, p.armL.elbow), 8 * S, 'upper'),
-    lFore: vol(mid(p.armL.elbow, p.armL.hand), 7 * S, 'upper'),
-    rUpp: vol(mid(p.armR.shoulder, p.armR.elbow), 8 * S, 'upper'),
-    rFore: vol(mid(p.armR.elbow, p.armR.hand), 7 * S, 'upper'),
-    lThigh: vol(mid(l.hip, l.knee), 13 * S, 'lLeg'),
-    rThigh: vol(mid(rleg.hip, rleg.knee), 13 * S, 'rLeg'),
-    lLeg: vol(mid(l.knee, l.ankle), 12 * S, 'lLeg'),
-    rLeg: vol(mid(rleg.knee, rleg.ankle), 12 * S, 'rLeg'),
+    head: vol(p.head, (crawl ? 13 : 16) * S * s, 'head'),
+    upper: vol(p.rib, (crawl ? 14 : 18) * S * s, 'upper'),
+    lower: vol(p.gut, (crawl ? 13 : 16) * S * s, 'lower'),
+    pelvis: vol(p.pelvis, (crawl ? 12 : 14) * S * s, 'lower'),
+    shL: vol(p.shL, 8 * S * s, 'upper'),
+    shR: vol(p.shR, 8 * S * s, 'upper'),
+    lUpp: vol(mid(p.armL.shoulder, p.armL.elbow), 8 * S * s, 'upper'),
+    lFore: vol(mid(p.armL.elbow, p.armL.hand), 7 * S * s, 'upper'),
+    rUpp: vol(mid(p.armR.shoulder, p.armR.elbow), 8 * S * s, 'upper'),
+    rFore: vol(mid(p.armR.elbow, p.armR.hand), 7 * S * s, 'upper'),
+    lThigh: vol(mid(l.hip, l.knee), 13 * S * s, 'lLeg'),
+    rThigh: vol(mid(rleg.hip, rleg.knee), 13 * S * s, 'rLeg'),
+    lLeg: vol(mid(l.knee, l.ankle), 12 * S * s, 'lLeg'),
+    rLeg: vol(mid(rleg.knee, rleg.ankle), 12 * S * s, 'rLeg'),
   };
 }
 

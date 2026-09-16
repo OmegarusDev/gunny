@@ -101,23 +101,22 @@ export const TRACK_METERS = 250;
 export const THREAT = {
   step: 0.35,
   span: 1,
-  chill: { spawn: 3.4, max: 1, speed: 124, packChance: 0.02 },
-  hectic: { spawn: 1.05, max: 7, speed: 186, packChance: 0.45 },
+  chill: { spawn: 3.4, max: 1, speed: 138, packChance: 0.02 },
+  hectic: { spawn: 1.05, max: 7, speed: 202, packChance: 0.45 },
   /** Campaign L0 grunt toughness at 0m. */
   gruntHp: 1,
   /** Each later road’s baseline HP. */
   roadHpStep: 0.18,
   /** Subtle extra HP across one 250m extract (~10%). */
   roadHpRamp: 0.1,
-  /** Endless starts tougher than Forest open, then climbs with metres. */
-  endlessHp: 1.24,
-  endlessHpPerM: 0.00215,
-  /** 0 = Forest open; 1 = Forest extract swarm. Endless opens already mid-hectic. */
-  endlessOpen: 0.52,
+  /** Endless HP and swarm vs the same campaign metres. */
+  endlessHard: 2,
+  /** Extra swarm so Endless 0m is not an empty road. */
+  endlessOpen: 0.45,
   /** Determined chase. Below a sprint for almost the whole game. */
-  speedCap: 204,
+  speedCap: 222,
   /** Late-campaign / deep-endless only — urgent, not a blur. */
-  speedSprint: 236,
+  speedSprint: 252,
   speedOver: 0.1,
   /** Campaign `over` before the sprint band. ~road 13 finale. */
   sprintOver: 4.5,
@@ -205,8 +204,23 @@ function swarmFromPressure(pressure) {
 }
 
 /**
+ * Map total metres onto a campaign road + extract t, so Endless can be
+ * twice this distance of campaign rather than a separate HP formula.
+ */
+export function campaignProgress(meters) {
+  const m = Math.max(0, meters || 0);
+  if (m > 0 && m % TRACK_METERS === 0) {
+    return { levelIndex: m / TRACK_METERS - 1, trackT: 1 };
+  }
+  return {
+    levelIndex: Math.floor(m / TRACK_METERS),
+    trackT: TRACK_METERS > 0 ? (m % TRACK_METERS) / TRACK_METERS : 0,
+  };
+}
+
+/**
  * Campaign: per-road HP baseline, plus a small climb toward extract.
- * Endless: steeper HP/swarm with metres, not campaign `levelIndex`.
+ * Endless: twice that campaign-at-the-same-metres curve, plus a little open swarm.
  */
 export function threatForDistance(meters, levelIndex, endless) {
   const m = Math.max(0, meters || 0);
@@ -216,8 +230,15 @@ export function threatForDistance(meters, levelIndex, endless) {
   let pressure;
   let hpMul;
   if (endless) {
-    pressure = THREAT.endlessOpen * THREAT.span + (m / TRACK_METERS) * THREAT.span;
-    hpMul = THREAT.endlessHp * (1 + m * THREAT.endlessHpPerM);
+    const prog = campaignProgress(m);
+    pressure =
+      THREAT.endlessHard * (prog.levelIndex * THREAT.step + prog.trackT * THREAT.span) +
+      THREAT.endlessOpen * THREAT.span;
+    hpMul =
+      THREAT.endlessHard *
+      THREAT.gruntHp *
+      (1 + prog.levelIndex * THREAT.roadHpStep) *
+      (1 + prog.trackT * THREAT.roadHpRamp);
   } else {
     pressure = L * THREAT.step + trackT * THREAT.span;
     hpMul = THREAT.gruntHp * (1 + L * THREAT.roadHpStep) * (1 + trackT * THREAT.roadHpRamp);

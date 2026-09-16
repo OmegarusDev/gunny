@@ -61,28 +61,26 @@ export function stepBullets(run, dt, viewport) {
       const travelled = Math.hypot(best.hit.x - b.ox, best.hit.y - b.oy);
       const rangeMul = rangeDamageMul(travelled, b.maxDist);
       b.hitIds.add(best.enemy.id);
-      if (rangeMul > 0.05) {
-        const penBefore = b.pen;
-        b.pen -= FLESH_PEN_COST;
-        const stopped = b.pen <= 0;
-        run.pendingHits.push({
-          bullet: b,
-          enemy: best.enemy,
-          zone: best.zone,
-          x: best.hit.x,
-          y: best.hit.y,
-          locational: locationalOf(best.zone),
-          nx: nxDir,
-          ny: nyDir,
-          rangeMul,
-          energy: shotEnergy(Math.hypot(b.vx, b.vy), stopped, penBefore) * rangeMul,
-        });
-        if (stopped) {
-          b.alive = false;
-          b.x = best.hit.x;
-          b.y = best.hit.y;
-          continue;
-        }
+      const penBefore = b.pen;
+      b.pen -= FLESH_PEN_COST;
+      const stopped = b.pen <= 0;
+      run.pendingHits.push({
+        bullet: b,
+        enemy: best.enemy,
+        zone: best.zone,
+        x: best.hit.x,
+        y: best.hit.y,
+        locational: locationalOf(best.zone),
+        nx: nxDir,
+        ny: nyDir,
+        rangeMul,
+        energy: shotEnergy(Math.hypot(b.vx, b.vy), stopped, penBefore) * rangeMul,
+      });
+      if (stopped) {
+        b.alive = false;
+        b.x = best.hit.x;
+        b.y = best.hit.y;
+        continue;
       }
       b.x = best.hit.x;
       b.y = best.hit.y;

@@ -3,13 +3,25 @@ import { RECEIVERS, SLOT_MIN_TIER, SLOTS } from '../data/receivers.js';
 import { PARTS } from '../data/attachments.js';
 import { SKILLS } from '../data/skills.js';
 
+export function effectiveRps(stats) {
+  const rof = Math.max(0.01, stats?.rof || 0);
+  const mag = Math.max(1, Math.round(stats?.magSize || 1));
+  const reload = Math.max(0, stats?.reload || 0);
+  const cycle = (mag - 1) / rof + reload;
+  return mag / Math.max(1e-6, cycle);
+}
+
+export function formatRpm(stats) {
+  return String(Math.round(effectiveRps(stats) * 60));
+}
+
 /**
  * Gun stats. `stack: 'add'` sums onto the receiver base (Mul keys still start at 1 and add).
  * `stack: 'mul'` multiplies the running value. Unknown part keys are ignored.
  */
 export const STATS = [
   { id: 'damage', stack: 'add', min: 6, gunsmith: true, gunsmithLabel: 'DMG', format: (v) => v.toFixed(1), hint: 'Damage per shot, before crits and range falloff.' },
-  { id: 'rof', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => v.toFixed(1), hint: 'Rounds fired per second.' },
+  { id: 'rof', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => String(Math.round((v || 0) * 60)), hint: 'Rounds fired per minute, including the empty-mag reload.' },
   { id: 'magSize', stack: 'add', min: 1, round: true, gunsmith: true, gunsmithLabel: 'MAG', format: (v) => String(v), hint: 'Rounds in the magazine.' },
   { id: 'bulletSpeed', stack: 'add', min: 280, gunsmith: true, gunsmithLabel: 'VEL', format: (v) => v.toFixed(0), hint: 'Muzzle velocity. Faster rounds hit harder at range and fly farther before drop-off.' },
   { id: 'pen', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2), hint: 'How many bodies a round can punch through.' },
@@ -38,6 +50,7 @@ export const STAT_BY_ID = Object.fromEntries(STATS.map((s) => [s.id, s]));
 export function gunsmithStatRows(stats) {
   return STATS.filter((s) => s.gunsmith).map((s) => {
     if (s.id === 'aimReach' && stats.fullScreenAim) return [s.gunsmithLabel, 'Full', s.hint];
+    if (s.id === 'rof') return [s.gunsmithLabel, formatRpm(stats), s.hint];
     return [s.gunsmithLabel, s.format(stats[s.id]), s.hint];
   });
 }

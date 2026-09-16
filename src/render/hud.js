@@ -271,10 +271,7 @@ export function drawReloadGauge(ctx, run, viewport) {
 }
 
 export function drawHud(ctx, run, viewport, profile) {
-  if (run.dying) {
-    drawPause(ctx, run, viewport, layout(viewport));
-    return;
-  }
+  if (run.dying) return;
   const m = layout(viewport);
   ctx.save();
   ctx.textAlign = 'left';
