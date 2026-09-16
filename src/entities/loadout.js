@@ -8,15 +8,15 @@ import { SKILLS } from '../data/skills.js';
  * `stack: 'mul'` multiplies the running value. Unknown part keys are ignored.
  */
 export const STATS = [
-  { id: 'damage', stack: 'add', min: 6, gunsmith: true, gunsmithLabel: 'DMG', format: (v) => v.toFixed(1) },
-  { id: 'rof', stack: 'add', min: 1.5, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => v.toFixed(1) },
-  { id: 'magSize', stack: 'add', min: 1, round: true, gunsmith: true, gunsmithLabel: 'MAG', format: (v) => String(v) },
-  { id: 'bulletSpeed', stack: 'add', min: 280, gunsmith: true, gunsmithLabel: 'MV', format: (v) => v.toFixed(0) },
-  { id: 'pen', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2) },
-  { id: 'reload', stack: 'add', min: 0.7, gunsmith: true, gunsmithLabel: 'Reload', format: (v) => `${v.toFixed(2)}s` },
-  { id: 'shotRange', stack: 'add', min: SHOT_REACH_MIN, max: SHOT_REACH_MAX, gunsmith: true, gunsmithLabel: 'Range', format: (v) => String(Math.round(v)) },
-  { id: 'aimReach', stack: 'add', min: AIM_REACH_MIN, max: AIM_REACH_MAX, gunsmith: true, gunsmithLabel: 'Sight', format: (v) => String(Math.round(v)) },
-  { id: 'baseSpread', stack: 'add', min: 0.2, max: 4.5, gunsmith: true, gunsmithLabel: 'Spread', format: (v) => `${v.toFixed(2)}°` },
+  { id: 'damage', stack: 'add', min: 6, gunsmith: true, gunsmithLabel: 'DMG', format: (v) => v.toFixed(1), hint: 'Damage per shot, before crits and range falloff.' },
+  { id: 'rof', stack: 'add', min: 1.5, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => v.toFixed(1), hint: 'Rounds fired per second.' },
+  { id: 'magSize', stack: 'add', min: 1, round: true, gunsmith: true, gunsmithLabel: 'MAG', format: (v) => String(v), hint: 'Rounds in the magazine.' },
+  { id: 'bulletSpeed', stack: 'add', min: 280, gunsmith: true, gunsmithLabel: 'VEL', format: (v) => v.toFixed(0), hint: 'Muzzle velocity. Faster rounds hit harder at range and fly farther before drop-off.' },
+  { id: 'pen', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2), hint: 'How many bodies a round can punch through.' },
+  { id: 'reload', stack: 'add', min: 0.7, gunsmith: true, gunsmithLabel: 'RLD', format: (v) => `${v.toFixed(2)}s`, hint: 'Seconds to reload an empty mag.' },
+  { id: 'shotRange', stack: 'add', min: SHOT_REACH_MIN, max: SHOT_REACH_MAX, gunsmith: true, gunsmithLabel: 'Range', format: (v) => String(Math.round(v)), hint: 'Distance before damage starts to fall off.' },
+  { id: 'aimReach', stack: 'add', min: AIM_REACH_MIN, max: AIM_REACH_MAX, gunsmith: true, gunsmithLabel: 'Sight', format: (v) => String(Math.round(v)), hint: 'How far you can hold the reticle. Optics only.' },
+  { id: 'baseSpread', stack: 'add', min: 0.2, max: 4.5, gunsmith: true, gunsmithLabel: 'SPRD', format: (v) => `${v.toFixed(2)}°`, hint: 'Starting cone of fire, in degrees. Bloom stacks on top.' },
   { id: 'perfectWidth', stack: 'add', min: 0.04, max: 0.28 },
   { id: 'penDecay', stack: 'add', min: 0 },
   { id: 'bloomPerShot', stack: 'add', min: 0.25 },
@@ -37,8 +37,8 @@ export const STAT_BY_ID = Object.fromEntries(STATS.map((s) => [s.id, s]));
 
 export function gunsmithStatRows(stats) {
   return STATS.filter((s) => s.gunsmith).map((s) => {
-    if (s.id === 'aimReach' && stats.fullScreenAim) return [s.gunsmithLabel, 'Full'];
-    return [s.gunsmithLabel, s.format(stats[s.id])];
+    if (s.id === 'aimReach' && stats.fullScreenAim) return [s.gunsmithLabel, 'Full', s.hint];
+    return [s.gunsmithLabel, s.format(stats[s.id]), s.hint];
   });
 }
 

@@ -22,10 +22,7 @@ export function onHit(score, zone, crit) {
   if (zone === 'head') {
     score.headshots += 1;
     score.xp += ECONOMY.xpPerHeadshot;
-  } else if (zone === 'lLeg' || zone === 'rLeg') {
-    score.xp += 1;
   }
-  if (crit) score.xp += 1;
 }
 
 export function onKill(score, cashMul) {
@@ -36,7 +33,7 @@ export function onKill(score, cashMul) {
 
 export function onPerfect(score) {
   score.perfects += 1;
-  score.xp += 3;
+  score.xp += ECONOMY.xpPerPerfect;
 }
 
 export function extractBonus(score) {

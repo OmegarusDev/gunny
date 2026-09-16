@@ -68,7 +68,7 @@ const handlers = {
 };
 
 function syncCursor() {
-  if (mode === 'run' && run && !run.ended) softCursor.setMode('hidden');
+  if (mode === 'run' && run && !run.ended && !run.escaping) softCursor.setMode('hidden');
   else softCursor.setMode('menu');
 }
 
@@ -149,7 +149,7 @@ function frame(now) {
     queuedReloadTap = queuedReloadTap || input.consume('reloadTap');
     let skipSim = false;
 
-    if (!run.ended) {
+    if (!run.ended && !run.escaping) {
       if (run.paused) {
         if (queuedPointerTap || pauseTap) {
           run.paused = false;

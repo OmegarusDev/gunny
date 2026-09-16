@@ -271,6 +271,9 @@ html:-webkit-full-screen::backdrop,
 #overlay-root .page-head .back {
   flex: 0 0 auto;
   align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 42px;
   min-width: 42px;
   height: auto;
@@ -285,9 +288,8 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .back-arrow {
   display: block;
-  font-size: 22px;
-  line-height: 1;
-  font-weight: 700;
+  width: 20px;
+  height: 20px;
 }
 
 #overlay-root button:focus-visible,
@@ -602,8 +604,12 @@ html:-webkit-full-screen::backdrop,
 #overlay-root .stats div span {
   color: var(--gunny-muted);
   font-size: 11px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+#overlay-root .stats [data-tip] {
+  cursor: help;
 }
 
 #overlay-root .chips {
@@ -944,12 +950,20 @@ html:-webkit-full-screen::backdrop,
   display: none !important;
 }
 
-#overlay-root .opt-fab {
+#overlay-root .opt-fabs {
   pointer-events: auto;
   position: absolute;
   top: max(10px, env(safe-area-inset-top, 0px));
   right: max(8px, env(safe-area-inset-right, 0px));
   z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#overlay-root .opt-fab {
+  pointer-events: auto;
+  position: relative;
   width: 42px;
   height: 42px;
   min-height: 42px;
@@ -1010,6 +1024,28 @@ html:-webkit-full-screen::backdrop,
   margin: 0;
   text-align: left;
   max-width: none;
+}
+
+#overlay-root .opt-sheet-wide {
+  width: min(100%, 420px);
+}
+
+#overlay-root .opt-install {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#overlay-root .opt-install p {
+  margin: 0;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--gunny-muted);
+}
+
+#overlay-root .opt-install strong {
+  color: var(--gunny-gold);
 }
 
 #overlay-root .opt-volume {

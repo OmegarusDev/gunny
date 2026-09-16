@@ -428,6 +428,16 @@ export function catalogWindow(items, { focusId, start = 0, size = CATALOG_WINDOW
   return { items: items.slice(s, s + size), start: s, total: items.length };
 }
 
+/** Four chips, chunked to the next purchasable rung. No skip-ahead, no pager. */
+export function catalogProgressWindow(items, { nextId, size = CATALOG_WINDOW } = {}) {
+  if (!items.length) return { items: [], start: 0, total: 0 };
+  if (items.length <= size) return { items, start: 0, total: items.length };
+  let focus = items.findIndex((i) => i.id === nextId);
+  if (focus < 0) focus = items.length - 1;
+  const start = Math.min(Math.floor(focus / size) * size, items.length - size);
+  return { items: items.slice(start, start + size), start, total: items.length };
+}
+
 export function partRequirement(id) {
   return PARTS[id]?.requires || null;
 }

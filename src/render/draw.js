@@ -68,8 +68,9 @@ export function drawWorld(ctx, run, viewport) {
 }
 
 function drawPlayer(ctx, run, viewport) {
-  const sx = viewport.w * PLAYER_SCREEN_X_RATIO;
+  const sx = viewport.w * PLAYER_SCREEN_X_RATIO + (run.player.escapeSx || 0);
   drawSurvivor(ctx, run.player, sx);
+  if (run.escaping || run.player.crawling) return;
   const p = run.player;
   const w = run.weapon;
   const gun = gunWorld(p);
@@ -103,7 +104,7 @@ function drawPlayer(ctx, run, viewport) {
 
 function drawAimCrosshair(ctx, run) {
   const aim = run.aim;
-  if (!aim || run.ended) return;
+  if (!aim || run.ended || run.escaping) return;
   const { x, y, anchorX, anchorY, reach, clamped, fullScreen } = aim;
   const spread = shotSpreadDeg(run.stats, run.weapon);
   const cone = 7 + spread * 1.85;
@@ -262,7 +263,7 @@ function drawParticles(ctx, run, viewport) {
 
 function drawReloadGauge(ctx, run, viewport) {
   const w = run.weapon;
-  if (!w.reloading) return;
+  if (!w.reloading || run.escaping) return;
   const { barX: x, barY: y, barW, barH } = reloadGaugeBounds(viewport);
   const t = reloadNorm(w);
   const band = perfectBand(run.stats);

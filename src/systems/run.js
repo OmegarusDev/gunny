@@ -1,4 +1,15 @@
-import { effectiveAimReach, effectiveShotRange, HIT_IMPULSE, PERFECT_MAG_MULT, TRACK_METERS, usesFullScreenAim, V_RETREAT } from '../config.js';
+import {
+  ESCAPE_CRAWL_PPS,
+  ESCAPE_DROP,
+  ESCAPE_DURATION,
+  effectiveAimReach,
+  effectiveShotRange,
+  HIT_IMPULSE,
+  PERFECT_MAG_MULT,
+  TRACK_METERS,
+  usesFullScreenAim,
+  V_RETREAT,
+} from '../config.js';
 import { randomSeed, seedForLevel, seedFromUint32 } from '../engine/rng.js';
 import { biomeFor } from '../data/biomes.js';
 import { createTerrain } from '../world/terrain.js';
@@ -55,6 +66,8 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     threat: null,
     paused: false,
     ended: null,
+    escaping: false,
+    escapeT: 0,
     weapon: {
       ammo: stats.magSize,
       cooldown: 0,
@@ -168,13 +181,47 @@ function playerCore(player) {
   return playerCoreFromPose(player);
 }
 
+function beginEscape(run) {
+  if (run.escaping || run.ended) return;
+  run.escaping = true;
+  run.escapeT = 0;
+  run.player.flinchLean = -0.55;
+  run.player.crawling = false;
+  run.player.escapeSx = 0;
+  run.weapon.firing = false;
+  run.weapon.suppressFire = true;
+  run.aim = null;
+}
+
+function stepEscape(run, dt) {
+  const p = run.player;
+  run.escapeT += dt;
+  p.flinchLean = (p.flinchLean || 0) * Math.exp(-dt * 3.2);
+  p.crawling = run.escapeT >= ESCAPE_DROP * 0.55;
+  const crawl = run.escapeT >= ESCAPE_DROP ? ESCAPE_CRAWL_PPS : 48;
+  p.escapeSx = (p.escapeSx || 0) - crawl * dt;
+  run.weapon.firing = false;
+  for (const enemy of run.enemies) {
+    if (!enemy.alive) continue;
+    stepFlinch(enemy, dt);
+    cacheEnemyPose(enemy);
+  }
+  stepRagdolls(run, dt);
+  stepGibs(run, dt);
+  if (run.escapeT >= ESCAPE_DURATION) {
+    run.escaping = false;
+    run.ended = 'death';
+  }
+}
+
 function checkContact(run) {
+  if (run.escaping || run.ended) return;
   const core = playerCore(run.player);
   for (const enemy of run.enemies) {
     if (!enemy.alive) continue;
     for (const c of lethalCircles(enemy)) {
       if (rectCircleOverlap(core.x, core.y, core.w, core.h, c.x, c.y, c.r)) {
-        run.ended = 'death';
+        beginEscape(run);
         return;
       }
     }
@@ -183,6 +230,10 @@ function checkContact(run) {
 
 export function simulate(run, dt, viewport, input) {
   if (run.ended || run.paused) return;
+  if (run.escaping) {
+    stepEscape(run, dt);
+    return;
+  }
 
   const { player, weapon, stats } = run;
   player.worldX -= V_RETREAT * dt;
@@ -264,7 +315,7 @@ export function simulate(run, dt, viewport, input) {
   tickDistance(run.score, runMeters(run));
   checkContact(run);
 
-  if (!run.endless && runMeters(run) >= TRACK_METERS && !run.ended) {
+  if (!run.endless && runMeters(run) >= TRACK_METERS && !run.ended && !run.escaping) {
     extractBonus(run.score);
     run.ended = 'extract';
   }

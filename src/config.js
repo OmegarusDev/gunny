@@ -139,15 +139,25 @@ export const LOCATIONAL = {
 export const BASE_CRIT_CHANCE = 0.05;
 export const BASE_CRIT_MULT = 1.1;
 
-/** Kill cash is the only early store fuel. mag_2 costs 100 ≈ 10 kills. */
+/** Kill cash is the only early store fuel. mag_2 costs 100 ≈ 10 kills.
+ * XP is distance + kills + heads + extract. First skill ranks cost 30–50. */
 export const ECONOMY = {
   cashPerKill: 10,
-  xpPerMeter: 0.1,
-  xpPerKill: 8,
-  xpPerHeadshot: 5,
+  xpPerMeter: 0.05,
+  xpPerKill: 3,
+  xpPerHeadshot: 2,
+  xpPerPerfect: 1,
   extractBonus: 40,
-  extractXp: 45,
+  extractXp: 18,
 };
+
+/** Struck, drop, crawl off the left, then the end screen. Flavour is escape, not death. */
+export const ESCAPE_DURATION = 1.05;
+export const ESCAPE_DROP = 0.22;
+export const ESCAPE_CRAWL_PPS = 340;
+
+/** Cached WebAPK / home-screen payload. JS + icons, no extra asset packs. */
+export const INSTALL_DOWNLOAD = 'about 1 MB';
 
 function swarmFromPressure(pressure) {
   const { chill, hectic } = THREAT;

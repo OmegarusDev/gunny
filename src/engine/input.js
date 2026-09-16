@@ -1,6 +1,6 @@
 import { DESIGN_H } from '../config.js';
 
-const HUD = '#overlay-root .panel, #overlay-root .opt-fab, #overlay-root .opt-layer';
+const HUD = '#overlay-root .panel, #overlay-root .opt-fabs, #overlay-root .opt-fab, #overlay-root .opt-layer';
 
 export function createInput(canvas) {
   const state = {

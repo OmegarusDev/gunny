@@ -56,12 +56,21 @@ export function ledgerBlock(profile) {
 
 export function statsGrid(rows, extraClass = '') {
   return `<div class="stats ${extraClass}">${rows
-    .map(([label, value]) => `<div><span>${label}</span>${value}</div>`)
+    .map(([label, value, hint]) => {
+      const tip = hint ? ` data-tip="${escapeAttr(hint)}" data-tip-title="${escapeAttr(label)}"` : '';
+      return `<div${tip}><span>${label}</span>${value}</div>`;
+    })
     .join('')}</div>`;
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
 export function backButton(label = 'Back') {
   return `<button class="back" type="button" data-act="hub" aria-label="${label}">
-    <span class="back-arrow" aria-hidden="true">←</span>
+    <svg class="back-arrow" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M14.5 5 L7 12 l7.5 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
   </button>`;
 }

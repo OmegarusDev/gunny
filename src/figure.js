@@ -264,14 +264,7 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
   let armL;
   let armR;
   const gun = { x: rib.x + 10 * S, y: rib.y + 10 * S };
-  if (!chase) {
-    const ca = Math.cos(aimAngle);
-    const sa = Math.sin(aimAngle);
-    const grip = { x: gun.x + ca * 4 * S, y: gun.y + sa * 4 * S };
-    const forend = { x: gun.x + ca * 16 * S, y: gun.y + sa * 16 * S };
-    armR = { shoulder: shR, elbow: ikElbow(shR, grip, shR.x + 6 * S), hand: grip };
-    armL = { shoulder: shL, elbow: ikElbow(shL, forend, shL.x - 2 * S), hand: forend };
-  } else if (crawl) {
+  if (crawl) {
     const frontHand = { x: shL.x + locDir * 28 * S, y: 2 * S };
     const rearHand = { x: pelvis.x - locDir * 6 * S, y: pelvis.y + 4 * S };
     armL = {
@@ -284,6 +277,13 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
       elbow: { x: shR.x - locDir * 6 * S, y: shR.y + 12 * S },
       hand: rearHand,
     };
+  } else if (!chase) {
+    const ca = Math.cos(aimAngle);
+    const sa = Math.sin(aimAngle);
+    const grip = { x: gun.x + ca * 4 * S, y: gun.y + sa * 4 * S };
+    const forend = { x: gun.x + ca * 16 * S, y: gun.y + sa * 16 * S };
+    armR = { shoulder: shR, elbow: ikElbow(shR, grip, shR.x + 6 * S), hand: grip };
+    armL = { shoulder: shL, elbow: ikElbow(shL, forend, shL.x - 2 * S), hand: forend };
   } else {
     const frontHand = {
       x: shL.x + locDir * (21 + cycle * 2 * g.arm) * S,
@@ -365,7 +365,9 @@ export function posePlayerLocal(player) {
     kind: 'gunner',
     seed: 1,
     t: enemyTime(player.worldX),
-    aimAngle: player.aimAngle || 0,
+    aimAngle: player.crawling ? 0 : player.aimAngle || 0,
+    crawl: !!player.crawling,
+    lean: player.flinchLean || 0,
   });
 }
 
@@ -422,7 +424,7 @@ export function playerCoreFromPose(player) {
   const left = Math.min(p.shL.x, p.pL.x) - 2 * S;
   const right = Math.max(p.shR.x, p.pR.x) + 2 * S;
   const top = Math.min(p.rib.y, p.shL.y) - 4 * S;
-  const bot = p.pelvis.y + 8 * S;
+  const bot = Math.max(p.pelvis.y + 8 * S, p.l.ankle.y, p.r.ankle.y, p.l.toe.y, p.r.toe.y);
   return { x: left, y: top, w: right - left, h: bot - top };
 }
 

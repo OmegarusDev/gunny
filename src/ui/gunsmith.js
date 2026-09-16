@@ -1,5 +1,5 @@
 import { RECEIVERS, SLOTS, SLOT_MIN_TIER } from '../data/receivers.js';
-import { CATALOG_WINDOW, catalogWindow, partsForSlot } from '../data/attachments.js';
+import { catalogProgressWindow, partsForSlot } from '../data/attachments.js';
 import { resolveStats, slotUnlockedFor, gunsmithStatRows } from '../entities/loadout.js';
 import { buyBlockedReason, buyPart, equipPart, owns } from '../state/profile.js';
 import { fmtMoney, backButton, ledgerBlock, statsGrid } from './overlays.js';
@@ -25,13 +25,17 @@ export function renderGunsmith(el, profile, handlers) {
   const rows = SLOTS.map((slot) => {
     const locked = slot !== 'receiver' && !slotUnlockedFor(recId, slot);
     const items = locked ? [] : catalog(slot, recId);
-    return { slot, locked, items };
+    return { slot, locked, items, win: visibleWindow(profile, items) };
   });
 
   let picked = el.dataset.part;
   const selectedRow = rows.find((r) => r.slot === selected);
-  if (!picked || !selectedRow?.items.some((i) => i.id === picked)) {
-    picked = selectedRow?.items.find((i) => isEquipped(profile, selected, i.id))?.id || selectedRow?.items[0]?.id;
+  const visible = selectedRow?.win.items || [];
+  if (!picked || !visible.some((i) => i.id === picked)) {
+    picked =
+      visible.find((i) => !owns(profile, i.id))?.id ||
+      visible.find((i) => isEquipped(profile, selected, i.id))?.id ||
+      visible[0]?.id;
   }
   const item = selectedRow?.items.find((i) => i.id === picked);
   el.dataset.prevSlot = selected;
@@ -54,7 +58,7 @@ export function renderGunsmith(el, profile, handlers) {
       ${statsGrid(gunsmithStatRows(stats), 'stats-wide')}
       <div class="gs-scroll-wrap">
         <div class="slot-matrix">
-          ${rows.map(({ slot, locked, items }) => slotRow(el, profile, slot, locked, items, selected, picked)).join('')}
+          ${rows.map(({ slot, locked, win }) => slotRow(profile, slot, locked, win.items, selected, picked)).join('')}
         </div>
         <div class="gs-scroll" role="scrollbar" aria-label="Gunsmith parts">
           <div class="scroll-thumb"></div>
@@ -69,7 +73,6 @@ export function renderGunsmith(el, profile, handlers) {
     n.onclick = () => {
       el.dataset.slot = n.dataset.slot;
       el.dataset.part = n.dataset.id;
-      if (el.dataset.winKeep !== n.dataset.slot) el.dataset.winKeep = '';
       renderGunsmith(el, profile, handlers);
     };
   });
@@ -77,36 +80,22 @@ export function renderGunsmith(el, profile, handlers) {
     label.addEventListener('click', () => {
       el.dataset.slot = label.dataset.slot;
       el.dataset.part = '';
-      el.dataset.winKeep = '';
       renderGunsmith(el, profile, handlers);
     });
   });
-  el.querySelectorAll('.pager').forEach((btn) => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      const slot = btn.dataset.slot;
-      const dir = Number(btn.dataset.dir);
-      const key = winKey(slot);
-      const row = rows.find((r) => r.slot === slot);
-      const win = catalogWindow(row?.items || [], {
-        start: Number(el.dataset[key] || 0) + dir,
-        keepStart: true,
-      });
-      el.dataset[key] = String(win.start);
-      el.dataset.slot = slot;
-      el.dataset.winKeep = slot;
-      el.dataset.part = win.items[0]?.id || '';
-      renderGunsmith(el, profile, handlers);
-    };
-  });
 
   const actions = el.querySelector('#gs-actions');
+  const hint = document.createElement('p');
+  hint.className = 'muted foot-hint';
+  const setHint = (text) => {
+    hint.textContent = text || '';
+  };
+  const partHint = item ? `${item.name}${item.desc ? ' · ' + item.desc : ''}` : '';
   if (lockedSlot) {
-    actions.innerHTML = `<p class="muted foot-hint">Needs a T${SLOT_MIN_TIER[selected]} receiver.</p>`;
+    setHint(`Needs a T${SLOT_MIN_TIER[selected]} receiver.`);
+    actions.appendChild(hint);
   } else if (item) {
-    const hint = document.createElement('p');
-    hint.className = 'muted foot-hint';
-    hint.textContent = `${item.name}${item.desc ? ' · ' + item.desc : ''}`;
+    setHint(partHint);
     actions.appendChild(hint);
     const b = document.createElement('button');
     b.className = 'primary';
@@ -129,7 +118,23 @@ export function renderGunsmith(el, profile, handlers) {
       };
     }
     actions.appendChild(b);
+  } else {
+    actions.appendChild(hint);
   }
+
+  el.querySelectorAll('.stats [data-tip]').forEach((n) => {
+    const text = `${n.dataset.tipTitle} · ${n.dataset.tip}`;
+    n.addEventListener('pointerenter', () => setHint(text));
+    n.addEventListener('focusin', () => setHint(text));
+    n.addEventListener('pointerleave', () => setHint(partHint));
+  });
+  el.querySelectorAll('[data-id]').forEach((n) => {
+    const it = selectedRow?.items.find((i) => i.id === n.dataset.id) || rows.find((r) => r.slot === n.dataset.slot)?.items.find((i) => i.id === n.dataset.id);
+    if (!it) return;
+    const text = `${it.name}${it.desc ? ' · ' + it.desc : ''}`;
+    n.addEventListener('pointerenter', () => setHint(text));
+    n.addEventListener('focusin', () => setHint(text));
+  });
 
   const matrix = el.querySelector('.slot-matrix');
   const track = el.querySelector('.gs-scroll');
@@ -146,34 +151,21 @@ export function renderGunsmith(el, profile, handlers) {
   }
 }
 
-function winKey(slot) {
-  return `win${slot[0].toUpperCase()}${slot.slice(1)}`;
+function visibleWindow(profile, items) {
+  const next = items.find((i) => !owns(profile, i.id)) || items[items.length - 1];
+  return catalogProgressWindow(items, { nextId: next?.id });
 }
 
-function slotRow(el, profile, slot, locked, items, selected, picked) {
-  const focusId = slot === selected && picked ? picked : profile.loadout[slot];
-  const win = catalogWindow(items, {
-    focusId,
-    start: Number(el.dataset[winKey(slot)] || 0),
-    size: CATALOG_WINDOW,
-    keepStart: el.dataset.winKeep === slot,
-  });
-  el.dataset[winKey(slot)] = String(win.start);
-  const paged = win.total > CATALOG_WINDOW;
+function slotRow(profile, slot, locked, items, selected, picked) {
   return `<div class="slot-row ${locked ? 'locked' : ''} ${slot === selected ? 'is-active' : ''}">
     <div class="slot-meta">
       <span class="slot-label" data-slot="${slot}">${SLOT_LABEL[slot]}</span>
     </div>
-    <div class="chips ${paged ? 'chips-window' : ''}" role="listbox" style="--chip-cols: ${Math.max(win.items.length, 1)}">
-      ${
-        paged
-          ? `<button class="pager" type="button" data-slot="${slot}" data-dir="-1" ${win.start <= 0 ? 'disabled' : ''} aria-label="Previous ${SLOT_LABEL[slot]}">‹</button>`
-          : ''
-      }
+    <div class="chips" role="listbox" style="--chip-cols: ${Math.max(items.length, 1)}">
       ${
         locked
           ? `<span class="muted slot-lock">T${SLOT_MIN_TIER[slot]} receiver</span>`
-          : win.items
+          : items
               .map((it) => {
                 const on = slot === selected && it.id === picked;
                 const eq = isEquipped(profile, slot, it.id);
@@ -181,11 +173,6 @@ function slotRow(el, profile, slot, locked, items, selected, picked) {
                 return `<button class="chip part-chip ${on ? 'selected' : ''} ${eq ? 'equipped-chip' : ''} ${own ? '' : 'unowned'}" data-slot="${slot}" data-id="${it.id}">${it.short || it.name}</button>`;
               })
               .join('')
-      }
-      ${
-        paged
-          ? `<button class="pager" type="button" data-slot="${slot}" data-dir="1" ${win.start + CATALOG_WINDOW >= win.total ? 'disabled' : ''} aria-label="Next ${SLOT_LABEL[slot]}">›</button>`
-          : ''
       }
     </div>
   </div>`;

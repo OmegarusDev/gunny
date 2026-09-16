@@ -5,6 +5,7 @@ import {
   AIM_REACH_MIN,
   AIM_SCREEN_FRAC,
   ECONOMY,
+  ESCAPE_DURATION,
   HIT_IMPULSE,
   MAX_DPR,
   PLAYER_SCREEN_X_RATIO,
@@ -23,13 +24,13 @@ import {
   threatForDistance,
   usesFullScreenAim,
 } from '../src/config.js';
-import { PARTS, catalogWindow, partsForSlot } from '../src/data/attachments.js';
+import { PARTS, catalogProgressWindow, catalogWindow, partsForSlot } from '../src/data/attachments.js';
 import { BIOMES, beatenRoadIndexes, biomeFor } from '../src/data/biomes.js';
 import { KINDS } from '../src/data/kinds.js';
 import { RECEIVERS } from '../src/data/receivers.js';
 import { SKILLS, emptyRanks, refundRetiredRanks, skillCost } from '../src/data/skills.js';
 import { gunsmithStatRows, resolveStats, shotSpreadDeg, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
-import { applyFlinch, createEnemy, enemyIsHurt, lethalHpRatio, limbCircles, stepFlinch } from '../src/entities/enemy.js';
+import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, lethalCircles, lethalHpRatio, limbCircles, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
 import { wantsImmersive, usesHtmlFullscreen } from '../src/engine/immersive.js';
@@ -39,11 +40,13 @@ import { uhash } from '../src/util/hash.js';
 import { mixHex, mixTone } from '../src/util/color.js';
 import { createTerrain } from '../src/world/terrain.js';
 import { createPlayer } from '../src/entities/player.js';
-import { playerHeadClearance, poseEnemyLocal } from '../src/figure.js';
+import { playerCoreFromPose, playerHeadClearance, poseEnemyLocal, posePlayerLocal } from '../src/figure.js';
 import { shotEnergy } from '../src/systems/impulse.js';
 import { spawnRagdoll } from '../src/systems/ragdoll.js';
 import { stepGibs } from '../src/systems/gibs.js';
 import { createRun, simulate } from '../src/systems/run.js';
+import { createScore, onHit, onKill, extractBonus } from '../src/systems/scoring.js';
+import { rectCircleOverlap } from '../src/systems/hits.js';
 import { spawnBullet, stepBullets, rangeDamageMul } from '../src/systems/ballistics.js';
 import { capDpr, createQuality } from '../src/engine/quality.js';
 import { deciduousH, pineH } from '../src/render/scenery/util.js';
@@ -170,11 +173,28 @@ describe('economy & ladders', () => {
 
   it('exposes receivers with rising cost and tier', () => {
     expect(RECEIVERS.t1_stock.cost).toBe(0);
+    expect(RECEIVERS.t1_stock.short).toBe('Shoddy');
     expect(RECEIVERS.t2_tactical.requires).toBe('t1_stock');
     expect(RECEIVERS.t2_tactical.cost).toBe(550);
     expect(RECEIVERS.t3_ordnance.tier).toBe(3);
     expect(RECEIVERS.t3_ordnance.cost).toBe(1350);
     expect(RECEIVERS.t3_ordnance.cost).toBeGreaterThan(RECEIVERS.t2_tactical.cost);
+    expect(RECEIVERS.t4_advanced.requires).toBe('t3_ordnance');
+    expect(RECEIVERS.t4_advanced.short).toBe('Advanced');
+    expect(RECEIVERS.t4_advanced.cost).toBeGreaterThan(RECEIVERS.t3_ordnance.cost);
+    expect(Object.keys(RECEIVERS)).toHaveLength(4);
+  });
+
+  it('pays modest XP from distance, kills, heads, and extract', () => {
+    expect(ECONOMY.xpPerMeter).toBe(0.05);
+    expect(ECONOMY.xpPerKill).toBe(3);
+    expect(ECONOMY.xpPerHeadshot).toBe(2);
+    expect(ECONOMY.extractXp).toBe(18);
+    const score = createScore();
+    onKill(score, 1);
+    onHit(score, 'head', false);
+    extractBonus(score);
+    expect(score.xp).toBe(ECONOMY.xpPerKill + ECONOMY.xpPerHeadshot + ECONOMY.extractXp);
   });
 
   it('wipes a live profile back to camp defaults', () => {
@@ -194,8 +214,10 @@ describe('gunsmith catalog', () => {
     expect(mags[0].id).toBe('mag_1');
     expect(mags.find((p) => p.id === 'mag_40').requires).toBe('mag_35');
     expect(mags.find((p) => p.id === 'mag_80').requires).toBe('mag_75');
-    expect(RECEIVERS.t1_stock.short).toBe('Stock');
+    expect(RECEIVERS.t1_stock.short).toBe('Shoddy');
     expect(RECEIVERS.t2_tactical.short).toBe('Tactical');
+    expect(RECEIVERS.t3_ordnance.short).toBe('Ordnance');
+    expect(RECEIVERS.t4_advanced.short).toBe('Advanced');
   });
 
   it('windows long catalogs to four visible rungs', () => {
@@ -208,6 +230,9 @@ describe('gunsmith catalog', () => {
     expect(later.items).toHaveLength(4);
     const paged = catalogWindow(mags, { focusId: 'mag_1', start: 8, keepStart: true });
     expect(paged.start).toBe(8);
+    expect(paged.items[0].id).not.toBe('mag_1');
+    expect(catalogProgressWindow(mags, { nextId: mags[3].id }).items.map((p) => p.id)).toEqual(mags.slice(0, 4).map((p) => p.id));
+    expect(catalogProgressWindow(mags, { nextId: mags[4].id }).items.map((p) => p.id)).toEqual(mags.slice(4, 8).map((p) => p.id));
     expect(paged.items[0].id).not.toBe('mag_1');
   });
 
@@ -579,6 +604,8 @@ describe('kinds & stats schema', () => {
   it('exposes gunsmith rails from STATS clamps', () => {
     const rows = gunsmithStatRows(resolveStats(defaultProfile()));
     expect(rows.map((r) => r[0])).toEqual(STATS.filter((s) => s.gunsmith).map((s) => s.gunsmithLabel));
+    expect(rows.map((r) => r[0])).toEqual(['DMG', 'ROF', 'MAG', 'VEL', 'PEN', 'RLD', 'Range', 'Sight', 'SPRD']);
+    expect(rows.every((r) => r[2])).toBe(true);
     expect(rows.length).toBeGreaterThanOrEqual(8);
   });
 
@@ -637,7 +664,7 @@ describe('simulate loop', () => {
     expect(run.ended).not.toBe('extract');
   });
 
-  it('starts reload after the last round and dies on torso contact', () => {
+  it('starts reload after the last round and crawls off on torso contact', () => {
     const run = liveRun();
     run.weapon.ammo = 1;
     run.weapon.cooldown = 0;
@@ -648,7 +675,36 @@ describe('simulate loop', () => {
     const foe = createEnemy(run2.player.worldX, run2.terrain, 1, 80, 'zombie');
     run2.enemies.push(foe);
     simulate(run2, dt, viewport, idle);
+    expect(run2.escaping).toBe(true);
+    expect(run2.ended).toBeNull();
+    expect(run2.player.flinchLean).toBeLessThan(0);
+    const steps = Math.ceil(ESCAPE_DURATION / dt) + 2;
+    for (let i = 0; i < steps; i++) simulate(run2, dt, viewport, idle);
     expect(run2.ended).toBe('death');
+    expect(run2.player.crawling).toBe(true);
+    expect(run2.player.escapeSx).toBeLessThan(-40);
+  });
+
+  it('lets a crawler finish a contact kill', () => {
+    const run = liveRun();
+    const crawler = createEnemy(run.player.worldX, run.terrain, 1, 80, 'zombie');
+    crawler.hp.lLeg = 0;
+    updateLocomotion(crawler);
+    cacheEnemyPose(crawler);
+    run.enemies = [crawler];
+    const core = playerCoreFromPose(run.player);
+    const hit = lethalCircles(crawler).some((c) => rectCircleOverlap(core.x, core.y, core.w, core.h, c.x, c.y, c.r));
+    expect(hit).toBe(true);
+    simulate(run, dt, viewport, idle);
+    expect(run.escaping).toBe(true);
+  });
+
+  it('uses crawl arms when the gunner is down', () => {
+    const standing = posePlayerLocal({ worldX: 0, crawling: false, aimAngle: 0 });
+    const crawling = posePlayerLocal({ worldX: 0, crawling: true, aimAngle: 0 });
+    expect(crawling.crawl).toBe(true);
+    expect(crawling.pelvis.y).toBeGreaterThan(standing.pelvis.y);
+    expect(crawling.armL.hand.y).toBeGreaterThan(standing.armL.hand.y);
   });
 
   it('forgives fire-spam taps at the start of reload so they do not jam', () => {
