@@ -385,22 +385,34 @@ export function playerHeadClearance() {
   return span;
 }
 
+function mid(a, b) {
+  return { x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5 };
+}
+
+function vol(pt, r, zone) {
+  return { x: pt.x, y: pt.y, r, zone };
+}
+
+/** Circles that cover the cut-paper silhouette, not just five body dots. */
 export function limbCirclesFromPose(p) {
   const crawl = p.crawl;
+  const l = p.l;
+  const rleg = p.r;
   return {
-    head: { x: p.head.x, y: p.head.y, r: (crawl ? 11 : 13) * S },
-    upper: { x: p.rib.x, y: p.rib.y, r: (crawl ? 12 : 16) * S },
-    lower: { x: p.gut.x, y: p.gut.y, r: (crawl ? 11 : 14) * S },
-    lLeg: {
-      x: (p.l.knee.x + p.l.ankle.x) * 0.5,
-      y: (p.l.knee.y + p.l.ankle.y) * 0.5,
-      r: 13 * S,
-    },
-    rLeg: {
-      x: (p.r.knee.x + p.r.ankle.x) * 0.5,
-      y: (p.r.knee.y + p.r.ankle.y) * 0.5,
-      r: 13 * S,
-    },
+    head: vol(p.head, (crawl ? 13 : 16) * S, 'head'),
+    upper: vol(p.rib, (crawl ? 14 : 18) * S, 'upper'),
+    lower: vol(p.gut, (crawl ? 13 : 16) * S, 'lower'),
+    pelvis: vol(p.pelvis, (crawl ? 12 : 14) * S, 'lower'),
+    shL: vol(p.shL, 8 * S, 'upper'),
+    shR: vol(p.shR, 8 * S, 'upper'),
+    lUpp: vol(mid(p.armL.shoulder, p.armL.elbow), 8 * S, 'upper'),
+    lFore: vol(mid(p.armL.elbow, p.armL.hand), 7 * S, 'upper'),
+    rUpp: vol(mid(p.armR.shoulder, p.armR.elbow), 8 * S, 'upper'),
+    rFore: vol(mid(p.armR.elbow, p.armR.hand), 7 * S, 'upper'),
+    lThigh: vol(mid(l.hip, l.knee), 13 * S, 'lLeg'),
+    rThigh: vol(mid(rleg.hip, rleg.knee), 13 * S, 'rLeg'),
+    lLeg: vol(mid(l.knee, l.ankle), 12 * S, 'lLeg'),
+    rLeg: vol(mid(rleg.knee, rleg.ankle), 12 * S, 'rLeg'),
   };
 }
 

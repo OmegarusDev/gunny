@@ -48,12 +48,10 @@ export function stepBullets(run, dt, viewport) {
     for (const enemy of enemies) {
       if (!enemy.alive) continue;
       if (b.hitIds.has(enemy.id)) continue;
-      const limbs = limbCircles(enemy);
-      for (const zone of ['head', 'upper', 'lower', 'lLeg', 'rLeg']) {
-        const c = limbs[zone];
+      for (const c of Object.values(limbCircles(enemy))) {
         const hit = segmentHitsCircle(b.x, b.y, nx, ny, c.x, c.y, c.r);
         if (!hit || hit.t > maxT) continue;
-        if (!best || hit.t < best.t) best = { enemy, zone, hit };
+        if (!best || hit.t < best.t) best = { enemy, zone: c.zone, hit };
       }
     }
 

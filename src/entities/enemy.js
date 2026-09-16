@@ -55,8 +55,9 @@ export function limbCircles(enemy) {
 }
 
 export function lethalCircles(enemy) {
-  const c = limbCircles(enemy);
-  return [c.head, c.upper, c.lower];
+  return Object.values(limbCircles(enemy)).filter(
+    (c) => c.zone === 'head' || c.zone === 'upper' || c.zone === 'lower',
+  );
 }
 
 export function updateLocomotion(enemy) {

@@ -48,7 +48,7 @@ import { cullFrozenCorpses, spawnRagdoll } from '../src/systems/ragdoll.js';
 import { stepGibs } from '../src/systems/gibs.js';
 import { createRun, simulate } from '../src/systems/run.js';
 import { createScore, onHit, onKill, extractBonus } from '../src/systems/scoring.js';
-import { rectCircleOverlap } from '../src/systems/hits.js';
+import { rectCircleOverlap, segmentHitsCircle } from '../src/systems/hits.js';
 import { spawnBullet, stepBullets, rangeDamageMul } from '../src/systems/ballistics.js';
 import { capDpr, createQuality } from '../src/engine/quality.js';
 import { pwaUpdateBlocked } from '../src/engine/pwaBusy.js';
@@ -602,6 +602,23 @@ describe('hit impulse', () => {
     expect(drawn.head.x).not.toBe(combat.head.x);
     const circles = limbCircles(pose);
     expect(circles.head.x).toBe(drawn.head.x);
+    expect(circles.lUpp.zone).toBe('upper');
+    expect(circles.lThigh.zone).toBe('lLeg');
+  });
+
+  it('cannot thread a horizontal round through a standing torso', () => {
+    const foe = createEnemy(400, { height: () => 400 }, 1, 80, 'zombie');
+    cacheEnemyPose(foe);
+    const c = limbCircles(foe);
+    const vols = Object.values(c);
+    const left = Math.min(...vols.map((v) => v.x - v.r)) - 40;
+    const right = Math.max(...vols.map((v) => v.x + v.r)) + 40;
+    const top = c.head.y - c.head.r + 2;
+    const bot = c.pelvis.y + c.pelvis.r - 2;
+    for (let y = top; y <= bot; y += 5) {
+      const hit = vols.some((v) => segmentHitsCircle(left, y, right, y, v.x, v.y, v.r));
+      expect(hit).toBe(true);
+    }
   });
 
   it('drops lethal hp on the bar and springs damage floaters', () => {
