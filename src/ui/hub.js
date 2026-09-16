@@ -2,7 +2,7 @@ import { TRACK_METERS } from '../config.js';
 import { beatenRoadIndexes, biomeFor } from '../data/biomes.js';
 import { PARTS } from '../data/attachments.js';
 import { equippedLabel, resolveStats } from '../entities/loadout.js';
-import { ledgerBlock, statsGrid } from './overlays.js';
+import { backButton, ledgerBlock, statsGrid } from './overlays.js';
 import { facilityButton } from './icons.js';
 
 export function renderHub(el, profile, handlers) {
@@ -87,11 +87,14 @@ export function renderHub(el, profile, handlers) {
 export function renderEnd(el, { title, run, profile, handlers, extract }) {
   const biome = run.biome;
   el.innerHTML = `
-    <div class="panel-stack camp-stack">
-      ${ledgerBlock(profile)}
-      <header class="camp-brand">
-        <p class="kicker">${biome ? biome.place : 'The road'}</p>
-        <h2>${title}</h2>
+    <div class="panel-stack end-stack">
+      <div class="page-head">
+        ${backButton()}
+        ${ledgerBlock(profile)}
+      </div>
+      <header class="camp-brand workshop-brand">
+        <h2>${biome ? biome.place : 'The road'}</h2>
+        <p class="end-verdict">${title}</p>
       </header>
       ${statsGrid([
         ['Distance', `${run.score.lastMetersPaid.toFixed(1)}m`],
@@ -139,7 +142,9 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
   `;
   const retry = el.querySelector('[data-act="retry"]');
   if (retry) retry.onclick = () => handlers.retry();
-  el.querySelector('[data-act="hub"]').onclick = () => handlers.hub();
+  el.querySelectorAll('[data-act="hub"]').forEach((btn) => {
+    btn.onclick = () => handlers.hub();
+  });
   el.querySelector('[data-act="gunsmith"]').onclick = () => handlers.gunsmith();
   el.querySelector('[data-act="training"]').onclick = () => handlers.training();
 }

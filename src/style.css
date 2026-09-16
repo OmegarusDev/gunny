@@ -349,6 +349,29 @@ html:-webkit-full-screen::backdrop,
   font-size: clamp(20px, 5.2vmin, 30px);
 }
 
+#panel-end .workshop-brand h2 {
+  font-size: clamp(28px, 7.2vmin, 44px);
+}
+
+#overlay-root .end-verdict {
+  margin: 6px 0 0;
+  font-family: Georgia, "Iowan Old Style", Palatino, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(14px, 3.1vmin, 18px);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--gunny-muted);
+  text-transform: none;
+}
+
+#panel-gunsmith .panel-stack,
+#panel-training .panel-stack,
+#panel-end .panel-stack {
+  gap: 8px;
+  justify-content: flex-start;
+}
+
 #overlay-root .lede {
   color: var(--gunny-muted);
   font-size: clamp(13px, 2.6vmin, 16px);
@@ -560,12 +583,6 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .stats.stats-wide {
   grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-#panel-gunsmith .panel-stack,
-#panel-training .panel-stack {
-  gap: 8px;
-  justify-content: flex-start;
 }
 
 #overlay-root .stats div {
