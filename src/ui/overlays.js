@@ -38,7 +38,7 @@ export function fmtMoney(n) {
 }
 
 export function ledgerBlock(profile) {
-  return `<div class="ledger">
+  return `<div class="ledger" role="group" aria-label="Ledger">
     <div>
       <span class="ledger-label">Cash</span>
       <span class="ledger-value">${fmtMoney(profile.cash)}</span>
@@ -60,7 +60,7 @@ export function statsGrid(rows, extraClass = '') {
       const tip = hint
         ? ` data-tip="${escapeAttr(hint)}" data-tip-title="${escapeAttr(label)}" tabindex="0" role="button"`
         : '';
-      return `<div${tip}><span>${label}</span>${value}</div>`;
+      return `<div${tip}><span>${label}</span><b>${value}</b></div>`;
     })
     .join('')}</div>`;
 }

@@ -97,7 +97,7 @@ function applyHits(run) {
   for (const hit of run.pendingHits) {
     const enemy = hit.enemy;
     if (!enemy.alive) continue;
-    const crit = run.rng() < stats.critChance;
+    const crit = hit.crit ?? (run.rng() < stats.critChance);
     const loc = hit.locational;
     const perfect = hit.bullet?.perfect ? PERFECT_MAG_MULT : 1;
     const critMul = crit ? stats.critMult : 1;

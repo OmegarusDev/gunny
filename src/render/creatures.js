@@ -340,14 +340,23 @@ export function drawEnemyVitals(ctx, enemy, w2s) {
   const y = origin.y + local.head.y - 28 * S * s;
   ctx.save();
   ctx.fillStyle = 'rgba(8,4,2,0.72)';
-  ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x - 1, y - 1, w + 2, h + 2, 2);
+  else ctx.rect(x - 1, y - 1, w + 2, h + 2);
+  ctx.fill();
   if (fill > 0) {
     ctx.fillStyle = fill > 0.34 ? '#c44536' : '#6a1818';
-    ctx.fillRect(x, y, w * fill, h);
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w * fill, h, 1.5);
+    else ctx.rect(x, y, w * fill, h);
+    ctx.fill();
   }
   ctx.strokeStyle = 'rgba(224, 163, 58, 0.55)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x - 0.5, y - 0.5, w + 1, h + 1, 2);
+  else ctx.rect(x - 0.5, y - 0.5, w + 1, h + 1);
+  ctx.stroke();
   ctx.restore();
 }
 

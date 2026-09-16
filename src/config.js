@@ -82,6 +82,10 @@ export const RAGDOLL_FREEZE_SPEED = 0.05;
 export const MAX_FROZEN = 28;
 export const GRAVITY = 980;
 export const FLESH_PEN_COST = 1;
+/** Flat pen added on a head hit. Stacks with crit pen. */
+export const HEADSHOT_PEN = 0.12;
+/** Flat pen added on a crit. Stacks with headshot pen. */
+export const CRIT_PEN = 0.12;
 /** Pen × speed → hit impulse. No extra ammo mass stat. */
 export const HIT_IMPULSE = {
   refSpeed: 820,

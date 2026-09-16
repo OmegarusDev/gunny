@@ -1,4 +1,4 @@
-import { FLESH_PEN_COST, PERFECT_MAG_MULT, SHOT_EDGE_PAD } from '../config.js';
+import { CRIT_PEN, FLESH_PEN_COST, HEADSHOT_PEN, SHOT_EDGE_PAD } from '../config.js';
 import { limbCircles, locationalOf } from '../entities/enemy.js';
 import { cameraX } from '../entities/player.js';
 import { segmentHitsTerrain } from '../world/terrain.js';
@@ -12,6 +12,10 @@ export function rangeDamageMul(travelled, maxDist) {
   return (r / travelled) ** 2;
 }
 
+export function hitPenBonus(zone, crit) {
+  return (zone === 'head' ? HEADSHOT_PEN : 0) + (crit ? CRIT_PEN : 0);
+}
+
 export function spawnBullet(x, y, angle, stats, perfectMag, maxDist) {
   const speed = stats.bulletSpeed;
   const range = Math.max(1, maxDist ?? stats.shotRange ?? stats.aimReach);
@@ -22,7 +26,7 @@ export function spawnBullet(x, y, angle, stats, perfectMag, maxDist) {
     oy: y,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
-    pen: stats.pen * (perfectMag ? PERFECT_MAG_MULT : 1),
+    pen: stats.pen,
     perfect: !!perfectMag,
     maxDist: range,
     alive: true,
@@ -61,6 +65,8 @@ export function stepBullets(run, dt, viewport) {
       const travelled = Math.hypot(best.hit.x - b.ox, best.hit.y - b.oy);
       const rangeMul = rangeDamageMul(travelled, b.maxDist);
       b.hitIds.add(best.enemy.id);
+      const crit = run.rng() < (stats.critChance ?? 0);
+      b.pen += hitPenBonus(best.zone, crit);
       const penBefore = b.pen;
       b.pen -= FLESH_PEN_COST;
       const stopped = b.pen <= 0;
@@ -71,6 +77,7 @@ export function stepBullets(run, dt, viewport) {
         x: best.hit.x,
         y: best.hit.y,
         locational: locationalOf(best.zone),
+        crit,
         nx: nxDir,
         ny: nyDir,
         rangeMul,

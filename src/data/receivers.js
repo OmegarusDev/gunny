@@ -25,10 +25,12 @@ export const SLOT_MIN_TIER = {
   gasBlock: 3,
 };
 
-/** Combat stats grow by this each receiver rank. Shoddy is rank 0. */
+/** Damage and RoF grow by this each receiver rank. Shoddy is rank 0. Pen is special-cased. */
 export const RECEIVER_STAT_RATE = 1.5;
 export const RECEIVER_COST_BASE = 550;
 export const RECEIVER_COST_RATE = 2;
+/** Militia (rank 1) pen. Later ranks still 1.5× from here so they can punch through. */
+export const MILITIA_PEN = 0.9;
 
 const SHODDY_BASE = {
   damage: 13,
@@ -37,7 +39,7 @@ const SHODDY_BASE = {
   reload: 2.55,
   perfectWidth: 0.07,
   bulletSpeed: 820,
-  pen: 1.05,
+  pen: 0.5,
   penDecay: 0.0009,
   bloomPerShot: 1.85,
   bloomRecover: 5.2,
@@ -51,7 +53,7 @@ const SHODDY_BASE = {
   weight: 1.15,
 };
 
-/** Linear add per rank on top of Shoddy. Combat (dmg/rof/pen) uses STAT_RATE instead. */
+/** Linear add per rank on top of Shoddy. Damage and RoF use STAT_RATE instead. */
 const RECEIVER_PER_RANK = {
   reload: -0.15,
   perfectWidth: 0.01,
@@ -83,7 +85,7 @@ export function receiverBase(rank) {
   const base = { ...SHODDY_BASE };
   base.damage = roundTo(SHODDY_BASE.damage * g, 1);
   base.rof = SHODDY_BASE.rof * g;
-  base.pen = roundTo(SHODDY_BASE.pen * g, 2);
+  base.pen = rank <= 0 ? SHODDY_BASE.pen : roundTo(MILITIA_PEN * RECEIVER_STAT_RATE ** (rank - 1), 2);
   for (const [k, v] of Object.entries(RECEIVER_PER_RANK)) {
     if (k === 'shotRange') {
       base[k] = SHODDY_BASE[k] + v * rank;
@@ -106,9 +108,9 @@ const META = [
   },
   {
     id: 't2_tactical',
-    name: 'Tactical Receiver',
-    short: 'Tactical',
-    desc: 'Opens optic, stock, and muzzle. Better heat path.',
+    name: 'Militia Receiver',
+    short: 'Militia',
+    desc: 'Militia-grade. Opens optic, stock, and muzzle. Better heat path.',
   },
   {
     id: 't3_ordnance',

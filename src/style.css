@@ -128,14 +128,26 @@ canvas {
 }
 
 #rotate-overlay h1 {
-  font-family: Georgia, "Iowan Old Style", serif;
+  font-family: Georgia, "Iowan Old Style", Palatino, serif;
   color: #c44536;
-  letter-spacing: 0.12em;
+  font-size: clamp(40px, 12vmin, 72px);
+  letter-spacing: 0.1em;
+  text-shadow: 0 2px 0 #1a0c08;
+  line-height: 0.92;
 }
 
-#rotate-overlay .rotate-hint {
-  color: rgba(243, 230, 208, 0.55);
-  font-size: 13px;
+#rotate-overlay .rotate-kicker {
+  font-family: Georgia, "Iowan Old Style", Palatino, serif;
+  color: #e0a33a;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+#rotate-overlay p {
+  color: #c4a990;
+  font-size: clamp(14px, 3vmin, 16px);
+  letter-spacing: 0.04em;
 }
 
 @media (orientation: portrait) {
@@ -165,7 +177,7 @@ canvas {
   align-items: center;
   justify-content: center;
   z-index: 20;
-  padding: max(12px, env(safe-area-inset-top, 0px)) max(52px, env(safe-area-inset-right, 0px))
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px))
     max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
   touch-action: auto;
   -webkit-touch-callout: none;
@@ -221,10 +233,12 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .panel-hero {
-  width: 100%;
-  height: 100%;
+  width: min(100%, 1080px);
+  height: min(100%, 660px);
   max-width: 100%;
   max-height: 100%;
+  margin: 0 auto;
+  flex: 0 0 auto;
 }
 
 #overlay-root .panel-stack {
@@ -233,16 +247,25 @@ html:-webkit-full-screen::backdrop,
   gap: clamp(8px, 1.8vmin, 14px);
   flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
 }
 
 #overlay-root .camp-stack {
   justify-content: flex-start;
 }
 
+#overlay-root .camp-stack > .camp-brand {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+}
+
 #overlay-root .camp-stack .facilities,
 #overlay-root .camp-stack .camp-foot {
   flex: 0 0 auto;
-  min-height: auto;
+  min-height: 0;
   align-items: stretch;
 }
 
@@ -252,19 +275,31 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .camp-stack .stats {
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  margin-top: auto;
+  margin-top: 0;
 }
 
 #overlay-root .page-head {
   display: flex;
   align-items: stretch;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
 #overlay-root .page-head .ledger {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+  width: fit-content;
   min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+#overlay-root .page-head:not(:has(.back)) .ledger {
+  margin-inline: auto;
+}
+
+#overlay-root .page-head .ledger > div {
+  align-items: center;
 }
 
 #overlay-root .page-head .back {
@@ -319,8 +354,8 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root h1 {
   color: var(--gunny-blood);
-  font-size: clamp(48px, 14vmin, 84px);
-  letter-spacing: 0.08em;
+  font-size: clamp(40px, 11vmin, 72px);
+  letter-spacing: 0.1em;
   text-shadow: 0 2px 0 #1a0c08;
 }
 
@@ -333,7 +368,7 @@ html:-webkit-full-screen::backdrop,
 #overlay-root .camp-brand {
   text-align: center;
   flex: 0 0 auto;
-  padding: 18px 12px 22px;
+  padding: 10px 12px 8px;
 }
 
 #overlay-root .workshop-brand {
@@ -393,24 +428,39 @@ html:-webkit-full-screen::backdrop,
   margin: 0;
   text-align: center;
   flex-shrink: 0;
+  letter-spacing: 0.04em;
 }
 
 #overlay-root .ledger {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: stretch;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  gap: 0;
   flex-shrink: 0;
+  background: rgba(12, 8, 4, 0.45);
+  border: 1px solid #5a4030;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 #overlay-root .ledger > div {
-  background: rgba(12, 8, 4, 0.4);
-  border: 1px solid #5a4030;
-  border-radius: 6px;
-  padding: clamp(6px, 1.6vmin, 10px) clamp(8px, 1.8vmin, 12px);
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 16px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  white-space: nowrap;
+}
+
+#overlay-root .ledger > div + div {
+  border-left: 1px solid #5a4030;
 }
 
 #overlay-root .ledger-label {
@@ -422,9 +472,10 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .ledger-value {
   font-family: Georgia, "Iowan Old Style", serif;
-  font-size: clamp(16px, 3.4vmin, 22px);
+  font-size: clamp(15px, 2.8vmin, 18px);
   color: var(--gunny-bone);
   line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
 
 #overlay-root .facilities {
@@ -448,11 +499,8 @@ html:-webkit-full-screen::backdrop,
   -webkit-touch-callout: none;
 }
 
-#overlay-root button:active,
-#overlay-root button.active {
-  background: var(--gunny-blood);
-  border-color: #e8c4a0;
-  color: #fff6ea;
+#overlay-root button:active:not(:disabled) {
+  filter: brightness(1.06);
 }
 
 #overlay-root button.primary {
@@ -480,10 +528,8 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root button:disabled {
-  opacity: 0.4;
+  opacity: 0.48;
   cursor: not-allowed;
-  background: #3a2418;
-  color: var(--gunny-bone);
 }
 
 #overlay-root button.facility {
@@ -495,7 +541,8 @@ html:-webkit-full-screen::backdrop,
   width: 100%;
   text-align: left;
   padding: 12px 14px;
-  min-height: 56px;
+  min-height: 0;
+  height: auto;
   background: #2e1c14;
 }
 
@@ -534,7 +581,6 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root button.facility.start {
-  min-height: 56px;
   background: var(--gunny-blood);
   border-color: #e8a090;
   color: #fff6ea;
@@ -545,16 +591,7 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root button.facility.side {
-  min-height: 56px;
   min-width: 0;
-  padding: 12px 14px;
-}
-
-#overlay-root .facility-kicker {
-  font-size: 9px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  opacity: 0.72;
 }
 
 #overlay-root .facility-title {
@@ -580,10 +617,16 @@ html:-webkit-full-screen::backdrop,
   margin: 0;
   font-size: clamp(15px, 2.8vmin, 18px);
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 #overlay-root .stats.stats-wide {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+#overlay-root .stats.stats-wide div {
+  padding: 7px 8px;
 }
 
 #overlay-root .stats div {
@@ -607,9 +650,17 @@ html:-webkit-full-screen::backdrop,
   text-transform: uppercase;
 }
 
+#overlay-root .stats div b {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: inherit;
+  color: inherit;
+  line-height: inherit;
+  font-style: normal;
+}
+
 #overlay-root .stats [data-tip] {
   cursor: pointer;
-  min-height: 44px;
 }
 
 #overlay-root .foot-hint {
@@ -632,10 +683,6 @@ html:-webkit-full-screen::backdrop,
   margin: 0;
   min-width: 0;
   align-items: stretch;
-}
-
-#overlay-root .chips.chips-window {
-  grid-template-columns: 1.7rem repeat(4, minmax(0, 1fr)) 1.7rem;
 }
 
 #overlay-root .chip {
@@ -794,27 +841,13 @@ html:-webkit-full-screen::backdrop,
   min-width: 0;
 }
 
-#overlay-root .pager {
-  min-height: 36px;
-  min-width: 0;
-  width: 100%;
-  padding: 0;
-  font-size: 18px;
-  line-height: 1;
-  background: #2a1c14;
-}
-
 #overlay-root .slot-label {
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--gunny-muted);
   font-weight: 600;
   cursor: pointer;
-}
-
-#overlay-root .pager:disabled {
-  opacity: 0.28;
 }
 
 #overlay-root .slot-lock {
@@ -831,13 +864,9 @@ html:-webkit-full-screen::backdrop,
   margin: 0;
   flex: 1 1 auto;
   min-height: 0;
-  align-content: stretch;
-  grid-auto-rows: 1fr;
-  overflow: auto;
-}
-
-#overlay-root .train-grid .skill-row:last-child:nth-child(odd) {
-  grid-column: 1 / -1;
+  align-content: start;
+  grid-auto-rows: minmax(56px, auto);
+  overflow: hidden;
 }
 
 #overlay-root .skill-row {
@@ -850,7 +879,8 @@ html:-webkit-full-screen::backdrop,
   border: 1px solid #6a5038;
   border-radius: 6px;
   min-width: 0;
-  min-height: 0;
+  min-height: 56px;
+  overflow: hidden;
 }
 
 #overlay-root .skill-row:active {
@@ -933,11 +963,15 @@ html:-webkit-full-screen::backdrop,
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 #overlay-root .skin-picks .chip {
+  width: auto;
+  flex: 0 1 auto;
+  height: auto;
   min-height: 32px;
+  max-height: none;
   min-width: 0;
   font-size: 12px;
   padding: 4px 10px;
@@ -945,7 +979,7 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .camp-foot .facility.start,
 #overlay-root .camp-foot .facility.side {
-  min-height: 56px;
+  min-height: 0;
 }
 
 #overlay-root .hidden {
@@ -955,8 +989,8 @@ html:-webkit-full-screen::backdrop,
 #overlay-root .opt-fabs {
   pointer-events: auto;
   position: absolute;
-  top: max(10px, env(safe-area-inset-top, 0px));
-  right: max(8px, env(safe-area-inset-right, 0px));
+  top: max(14px, env(safe-area-inset-top, 0px));
+  right: max(14px, env(safe-area-inset-right, 0px));
   z-index: 30;
   display: flex;
   align-items: center;
@@ -1008,6 +1042,9 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .opt-sheet {
   width: min(100%, 340px);
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
   background: var(--panel-wood);
   border: 1px solid var(--gunny-brass);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 230, 190, 0.14);
@@ -1020,12 +1057,26 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .opt-sheet h2 {
   margin: 0;
+  font-size: clamp(22px, 4.6vmin, 28px);
+  line-height: 1.1;
 }
 
 #overlay-root .opt-copy {
   margin: 0;
   text-align: left;
   max-width: none;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--gunny-muted);
+}
+
+#overlay-root .opt-sheet .ghost,
+#overlay-root .opt-sheet .hold-reset,
+#overlay-root .opt-sheet .opt-danger,
+#overlay-root .opt-sheet .opt-done {
+  flex-shrink: 0;
 }
 
 #overlay-root .opt-sheet-wide {
@@ -1035,7 +1086,9 @@ html:-webkit-full-screen::backdrop,
 #overlay-root .opt-install {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 #overlay-root .opt-install p {
@@ -1164,24 +1217,36 @@ html:-webkit-full-screen::backdrop,
   z-index: 1;
 }
 
+@media (max-width: 1240px) {
+  #overlay-root {
+    padding-left: max(64px, env(safe-area-inset-left, 0px));
+    padding-right: max(64px, env(safe-area-inset-right, 0px));
+  }
+}
+
 @media (max-width: 720px) {
   #overlay-root .slot-row {
     grid-template-columns: 4.6rem minmax(0, 1fr);
   }
 }
 
-@media (max-height: 420px) {
+@media (max-height: 500px) {
   #overlay-root {
-    padding: max(10px, env(safe-area-inset-top, 0px)) max(48px, env(safe-area-inset-right, 0px))
-      max(10px, env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
+    padding-top: max(10px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(64px, env(safe-area-inset-left, 0px));
+    padding-right: max(64px, env(safe-area-inset-right, 0px));
   }
 
   #overlay-root .panel {
-    padding: 14px 16px 12px;
+    padding: 12px 16px 10px;
   }
 
+  #overlay-root .lede,
   #overlay-root .kit-line,
-  #overlay-root .workshop-brand .kicker {
+  #overlay-root .facility-sub,
+  #overlay-root .workshop-brand .kicker,
+  #panel-training .stats {
     display: none;
   }
 
@@ -1191,15 +1256,61 @@ html:-webkit-full-screen::backdrop,
   }
 
   #overlay-root .panel-stack {
-    gap: 8px;
+    gap: 6px;
+  }
+
+  #overlay-root .camp-stack {
+    justify-content: center;
+  }
+
+  #overlay-root .camp-stack > .camp-brand {
+    flex: 0 0 auto;
+    padding: 4px 8px;
   }
 
   #overlay-root .camp-brand {
-    padding: 12px 8px 14px;
+    padding: 2px 8px 0;
+  }
+
+  #overlay-root h1 {
+    font-size: clamp(28px, 8vmin, 48px);
+  }
+
+  #overlay-root .ledger {
+    width: 100%;
+  }
+
+  #overlay-root .ledger > div {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 5px 10px;
+    gap: 6px;
+  }
+
+  #overlay-root .ledger-value {
+    font-size: 15px;
+  }
+
+  #overlay-root .page-head .ledger {
+    width: auto;
+    flex: 1 1 auto;
+  }
+
+  #overlay-root .stats {
+    gap: 5px;
+    font-size: 14px;
+  }
+
+  #overlay-root .stats div {
+    padding: 5px 6px;
+  }
+
+  #overlay-root .stats.stats-wide {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
   }
 
   #overlay-root .slot-row {
-    min-height: 28px;
+    min-height: 32px;
     padding: 0;
   }
 
@@ -1207,74 +1318,72 @@ html:-webkit-full-screen::backdrop,
     gap: 3px;
   }
 
-  #overlay-root .ledger > div {
-    padding: 6px 8px;
-  }
-
-  #overlay-root .stats {
-    gap: 6px;
-    font-size: 16px;
-  }
-
-  #overlay-root .stats.stats-wide {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  #overlay-root .stats div {
-    padding: 8px 8px;
-  }
-
   #overlay-root .skill-row {
     padding: 6px 8px;
+    min-height: 52px;
   }
 
   #overlay-root .skill-row button {
-    min-height: 32px;
+    min-height: 28px;
   }
 
-  #overlay-root .chip {
-    min-height: 32px;
-    min-width: 0;
+  #overlay-root button.facility {
+    padding: 8px 12px;
+  }
+
+  #overlay-root .facility-title {
+    font-size: clamp(16px, 3.2vmin, 20px);
+  }
+
+  #overlay-root .sheet-foot {
+    padding-top: 6px;
   }
 }
 
-@media (min-width: 900px) and (min-height: 520px) {
-  #overlay-root .stats.stats-wide {
-    grid-template-columns: repeat(9, minmax(0, 1fr));
+@media (max-height: 360px) {
+  #overlay-root .skin-picks {
+    display: none;
   }
 
-  #overlay-root .stats.stats-wide div {
-    padding: 6px 8px;
+  #overlay-root .camp-brand {
+    padding: 0;
+  }
+
+  #overlay-root .panel {
+    padding: 8px 12px 8px;
   }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  #overlay-root button:hover,
-  #overlay-root button.active {
-    background: var(--gunny-blood);
-    border-color: #e8c4a0;
-    color: #fff6ea;
-  }
-
-  #overlay-root button.primary:hover {
-    background: #a8362a;
-  }
-
-  #overlay-root button.ghost:hover {
-    background: rgba(196, 69, 54, 0.2);
-  }
-
-  #overlay-root button.facility:hover {
+  #overlay-root button:hover:not(:disabled) {
     background: #4a2c1c;
     border-color: var(--gunny-gold);
+  }
+
+  #overlay-root button.primary:hover:not(:disabled) {
+    background: #a8362a;
+    border-color: #e8a090;
     color: #fff6ea;
   }
 
-  #overlay-root button.facility.start:hover {
-    background: #a8362a;
+  #overlay-root button.ghost:hover:not(:disabled) {
+    background: rgba(224, 163, 58, 0.12);
+    border-color: var(--gunny-gold);
+    color: var(--gunny-bone);
   }
 
-  #overlay-root .chip:hover {
+  #overlay-root button.facility:hover:not(:disabled) {
+    background: #4a2c1c;
+    border-color: var(--gunny-gold);
+    color: var(--gunny-bone);
+  }
+
+  #overlay-root button.facility.start:hover:not(:disabled) {
+    background: #a8362a;
+    color: #fff6ea;
+  }
+
+  #overlay-root .chip:hover:not(:disabled) {
     background: rgba(224, 163, 58, 0.14);
     border-color: var(--gunny-gold);
     color: #fff6ea;
@@ -1286,19 +1395,26 @@ html:-webkit-full-screen::backdrop,
   }
 
   #overlay-root .back:hover {
-    background: var(--gunny-blood);
-    border-color: #e8c4a0;
-    color: #fff6ea;
+    background: #4a2c1c;
+    border-color: var(--gunny-gold);
+    color: var(--gunny-gold);
   }
 
   #overlay-root .opt-fab:hover {
-    background: var(--gunny-blood);
-    border-color: #e8c4a0;
+    background: #4a2c1c;
+    border-color: var(--gunny-gold);
+    color: var(--gunny-gold);
+  }
+
+  #overlay-root .opt-mute.is-muted:hover {
+    background: #a8362a;
+    border-color: #e8a090;
     color: #fff6ea;
   }
 
   #overlay-root .opt-danger:hover {
-    background: var(--gunny-blood);
+    background: rgba(196, 69, 54, 0.35);
+    border-color: var(--gunny-blood);
     color: #fff6ea;
   }
 }

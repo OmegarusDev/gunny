@@ -122,7 +122,7 @@ function drawAimCrosshair(ctx, run) {
   }
 
   ctx.strokeStyle = hair;
-  ctx.lineWidth = 2.15;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(x - arm, y);
   ctx.lineTo(x - gap, y);

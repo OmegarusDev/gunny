@@ -19,8 +19,8 @@ export function renderTraining(el, profile, handlers) {
         <h2>Training</h2>
       </header>
       ${statsGrid([
-        ['Crit', `${(stats.critChance * 100).toFixed(0)}%`, 'Chance a shot crits. Separate from headshots.'],
-        ['Crit ×', stats.critMult.toFixed(2), 'How much extra damage a crit deals.'],
+        ['Crit', `${(stats.critChance * 100).toFixed(0)}%`, 'Chance a shot crits. Adds pen. Separate from headshots.'],
+        ['Crit ×', stats.critMult.toFixed(2), 'Extra crit damage. Crits also add a flat pen bonus.'],
         ['Cash', `×${stats.cashMul.toFixed(2)}`, 'Cash from kills. Scavenger raises this.'],
         [
           'Sight',

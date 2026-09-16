@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gunny — screen preview</title>
+    <style>
+      :root {
+        --bone: #f3e6d0;
+        --gold: #e0a33a;
+        --blood: #c44536;
+        --ink: #140e0a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--ink);
+        color: var(--bone);
+        font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+      }
+      body {
+        padding: 16px 16px 32px;
+      }
+      header {
+        max-width: 960px;
+        margin: 0 auto 16px;
+      }
+      h1 {
+        font-family: Georgia, "Iowan Old Style", Palatino, serif;
+        color: var(--blood);
+        letter-spacing: 0.1em;
+        font-size: 28px;
+        margin: 0 0 6px;
+      }
+      p {
+        margin: 0;
+        color: #c4a990;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      .shots {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      .shot h2 {
+        font-family: Georgia, "Iowan Old Style", Palatino, serif;
+        color: var(--gold);
+        font-size: 13px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        margin: 0 0 8px;
+        font-weight: 700;
+      }
+      iframe {
+        display: block;
+        width: 100%;
+        height: 540px;
+        border: 1px solid #d4b07a;
+        border-radius: 10px;
+        background: #1a120c;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>GUNNY</h1>
+      <p>Camp, facilities, end screens, options, rotate, and a paused run. Click through the live game at <a href="./" style="color: #e0a33a">index</a>.</p>
+    </header>
+    <div class="shots" id="gallery"></div>
+    <script>
+      const _set = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) {
+        if (String(k).startsWith('gunny.')) return;
+        return _set.call(this, k, v);
+      };
+    </script>
+    <script type="module" src="./src/ui/preview.js"></script>
+  </body>
+</html>

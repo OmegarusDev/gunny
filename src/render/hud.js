@@ -73,11 +73,19 @@ function panel(ctx, x, y, w, h, r) {
   ctx.stroke();
 }
 
-function kicker(ctx, text, x, y, size, tracking = '0.16em') {
+function kicker(ctx, text, x, y, size, tracking = '0.12em', maxW) {
+  const str = String(text).toUpperCase();
   ctx.fillStyle = GOLD;
   ctx.font = `${size}px ${SERIF}`;
-  ctx.letterSpacing = tracking;
-  ctx.fillText(String(text).toUpperCase(), x, y);
+  let track = tracking;
+  ctx.letterSpacing = track;
+  if (maxW != null) {
+    while (track !== '0px' && ctx.measureText(str).width > maxW) {
+      track = track === '0.06em' ? '0px' : '0.06em';
+      ctx.letterSpacing = track;
+    }
+  }
+  ctx.fillText(str, x, y);
   ctx.letterSpacing = '0px';
 }
 
@@ -97,14 +105,29 @@ function value(ctx, text, x, y, size, color = BONE) {
   ctx.letterSpacing = '0px';
 }
 
+function fitValue(ctx, text, x, y, size, maxW, color = BONE) {
+  let s = size;
+  const str = String(text);
+  ctx.fillStyle = color;
+  ctx.letterSpacing = '0.02em';
+  ctx.font = `700 ${s}px ${SERIF}`;
+  while (s > 14 && ctx.measureText(str).width > maxW) {
+    s -= 1;
+    ctx.font = `700 ${s}px ${SERIF}`;
+  }
+  ctx.fillText(str, x, y);
+  ctx.letterSpacing = '0px';
+}
+
 function chip(ctx, x, y, w, h, title, val, m) {
   ctx.fillStyle = 'rgba(12, 8, 4, 0.42)';
   fillRoundRect(ctx, x, y, w, h, 6 * m.u);
   ctx.strokeStyle = CHIP;
   ctx.lineWidth = 1;
   strokeRoundRect(ctx, x, y, w, h, 6 * m.u);
-  kicker(ctx, title, x + 12 * m.u, y + 12 * m.u, m.kicker, '0.12em');
-  value(ctx, val, x + 12 * m.u, y + 36 * m.u, Math.round(28 * m.t));
+  const pad = 10 * m.u;
+  kicker(ctx, title, x + pad, y + pad, Math.min(m.kicker, Math.round(15 * m.u)), '0.12em', w - pad * 2);
+  fitValue(ctx, val, x + pad, y + h * 0.48, Math.round(26 * m.t), w - pad * 2);
 }
 
 function meter(ctx, x, y, w, h, t, fill, edge) {
@@ -125,27 +148,37 @@ function drawBrand(ctx, run, x, y, m) {
   const w = m.brandW;
   const h = endless ? 112 * m.u : 128 * m.u;
   panel(ctx, x, y, w, h, m.r);
-  const ix = x + 18 * m.u;
+  const ix = x + 16 * m.u;
+  const innerW = w - 32 * m.u;
   ctx.textBaseline = 'top';
-  kicker(ctx, endless ? 'Endless' : run.biome?.place || 'Road', ix, y + 16 * m.u, m.kicker);
-  if (!endless) {
+  const top = y + 14 * m.u;
+  if (endless) {
+    kicker(ctx, 'Endless', ix, top, m.kicker, '0.12em', innerW);
+  } else {
+    kicker(ctx, run.biome?.place || 'Road', ix, top, m.kicker, '0.12em', innerW - 52 * m.u);
     ctx.textAlign = 'right';
-    kicker(ctx, `L${(run.levelIndex || 0) + 1}`, x + w - 18 * m.u, y + 16 * m.u, m.kicker);
+    kicker(ctx, `L${(run.levelIndex || 0) + 1}`, x + w - 16 * m.u, top, m.kicker);
     ctx.textAlign = 'left';
   }
   const title = endless ? run.biome?.place || 'The road' : run.biome?.foe || 'Run';
-  value(ctx, title, ix, y + 42 * m.u, m.value);
+  fitValue(ctx, title, ix, y + 40 * m.u, m.value, innerW);
   const metres = runMeters(run);
+  const dist = `${metres.toFixed(0)}m`;
   if (endless) {
-    value(ctx, `${metres.toFixed(0)}m`, ix, y + 84 * m.u, Math.round(26 * m.t));
+    fitValue(ctx, dist, ix, y + 82 * m.u, Math.round(26 * m.t), innerW);
     return;
   }
-  const barW = w - 36 * m.u - 88 * m.u;
+  const distSize = Math.round(22 * m.t);
+  ctx.font = `700 ${distSize}px ${SERIF}`;
+  ctx.letterSpacing = '0.02em';
+  const distW = ctx.measureText(dist).width + 10 * m.u;
+  ctx.letterSpacing = '0px';
+  const barW = Math.max(24, innerW - distW);
   const accent = run.biome?.accent || BLOOD;
   meter(
     ctx,
     ix,
-    y + 96 * m.u,
+    y + h - 22 * m.u,
     barW,
     10 * m.u,
     Math.max(0, Math.min(1, metres / TRACK_METERS)),
@@ -153,7 +186,7 @@ function drawBrand(ctx, run, x, y, m) {
     'rgba(224, 163, 58, 0.4)',
   );
   ctx.textAlign = 'right';
-  value(ctx, `${metres.toFixed(0)}m`, x + w - 18 * m.u, y + 86 * m.u, Math.round(24 * m.t));
+  fitValue(ctx, dist, x + w - 16 * m.u, y + h - 36 * m.u, distSize, distW, BONE);
   ctx.textAlign = 'left';
 }
 
@@ -177,25 +210,41 @@ function drawGun(ctx, run, viewport, m) {
   const y = viewport.h - m.pad - h;
   panel(ctx, x, y, w, h, m.r);
   const ix = x + 16 * m.u;
-  const barW = w - 32 * m.u;
+  const innerW = w - 32 * m.u;
   ctx.textBaseline = 'top';
-  kicker(ctx, run.weapon.perfectMag ? 'Perfect' : 'Mag', ix, y + 16 * m.u, m.kicker);
-  value(ctx, `${run.weapon.ammo} / ${run.stats.magSize}`, ix, y + 40 * m.u, m.mag, run.weapon.perfectMag ? GOLD : BONE);
+  kicker(ctx, run.weapon.perfectMag ? 'Perfect' : 'Mag', ix, y + 14 * m.u, m.kicker, '0.12em', innerW);
+  fitValue(
+    ctx,
+    `${run.weapon.ammo} / ${run.stats.magSize}`,
+    ix,
+    y + 36 * m.u,
+    m.mag,
+    innerW,
+    run.weapon.perfectMag ? GOLD : BONE,
+  );
 
-  const barX = ix + 68 * m.u;
-  const barInner = barW - 68 * m.u;
-  label(ctx, 'Heat', ix, y + 92 * m.u, m.label);
-  const heatFill = ctx.createLinearGradient(barX, y + 94 * m.u, barX + barInner, y + 94 * m.u);
+  ctx.font = `${m.label}px ${SANS}`;
+  ctx.letterSpacing = '0.1em';
+  const labelW =
+    Math.ceil(Math.max(ctx.measureText('HEAT').width, ctx.measureText('BLOOM').width)) + 12 * m.u;
+  ctx.letterSpacing = '0px';
+  const barX = ix + labelW;
+  const barInner = Math.max(28, innerW - labelW);
+  const heatY = y + h - 46 * m.u;
+  const bloomY = y + h - 24 * m.u;
+
+  label(ctx, 'Heat', ix, heatY, m.label);
+  const heatFill = ctx.createLinearGradient(barX, heatY + 2 * m.u, barX + barInner, heatY + 2 * m.u);
   heatFill.addColorStop(0, '#6a2018');
   heatFill.addColorStop(1, run.biome?.accent || BLOOD);
-  meter(ctx, barX, y + 94 * m.u, barInner, 11 * m.u, run.weapon.heat, heatFill, 'rgba(196, 69, 54, 0.45)');
+  meter(ctx, barX, heatY + 2 * m.u, barInner, 11 * m.u, run.weapon.heat, heatFill, 'rgba(196, 69, 54, 0.45)');
 
-  label(ctx, 'Bloom', ix, y + 116 * m.u, m.label);
+  label(ctx, 'Bloom', ix, bloomY, m.label);
   const bloom = Math.max(0, Math.min(1, run.weapon.bloom / Math.max(0.001, run.stats.bloomCap)));
-  const bloomFill = ctx.createLinearGradient(barX, y + 118 * m.u, barX + barInner, y + 118 * m.u);
+  const bloomFill = ctx.createLinearGradient(barX, bloomY + 2 * m.u, barX + barInner, bloomY + 2 * m.u);
   bloomFill.addColorStop(0, '#c48a28');
   bloomFill.addColorStop(1, '#ffe08a');
-  meter(ctx, barX, y + 118 * m.u, barInner, 10 * m.u, bloom, bloomFill, 'rgba(224, 163, 58, 0.45)');
+  meter(ctx, barX, bloomY + 2 * m.u, barInner, 10 * m.u, bloom, bloomFill, 'rgba(224, 163, 58, 0.45)');
 }
 
 function drawPause(ctx, run, viewport, m) {
@@ -217,9 +266,11 @@ function drawPause(ctx, run, viewport, m) {
   ctx.fillText('Tap anywhere to resume', viewport.w / 2, py + 92 * m.u);
   ctx.font = `${Math.round(13 * m.t)}px ${SANS}`;
   ctx.fillStyle = 'rgba(243, 230, 208, 0.5)';
+  ctx.letterSpacing = '0.08em';
   ctx.fillText('P  ·  Esc  ·  Space', viewport.w / 2, py + 118 * m.u);
   ctx.letterSpacing = '0px';
   ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
 }
 
 export function drawReloadGauge(ctx, run, viewport) {
@@ -263,7 +314,7 @@ export function drawReloadGauge(ctx, run, viewport) {
   ctx.textBaseline = 'top';
   ctx.fillStyle = jam ? '#e07060' : MUTED;
   ctx.font = `${m.kicker}px ${SERIF}`;
-  ctx.letterSpacing = '0.16em';
+  ctx.letterSpacing = '0.08em';
   ctx.fillText(jam ? 'JAMMED' : 'TAP', x + barW * 0.5, y + barH + 12 * m.u);
   ctx.letterSpacing = '0px';
   ctx.textAlign = 'left';

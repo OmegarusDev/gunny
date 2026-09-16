@@ -9,6 +9,7 @@ import {
   FLESH_PEN_COST,
   HIT_IMPULSE,
   MAX_DPR,
+  PERFECT_MAG_MULT,
   PLAYER_SCREEN_X_RATIO,
   PX_PER_M,
   SHOT_REACH_BASE,
@@ -53,7 +54,7 @@ import { createRun, simulate } from '../src/systems/run.js';
 import { stepSpawner } from '../src/systems/spawner.js';
 import { createScore, onHit, onKill, extractBonus } from '../src/systems/scoring.js';
 import { rectCircleOverlap, segmentHitsCircle } from '../src/systems/hits.js';
-import { spawnBullet, stepBullets, rangeDamageMul } from '../src/systems/ballistics.js';
+import { spawnBullet, stepBullets, rangeDamageMul, hitPenBonus } from '../src/systems/ballistics.js';
 import { capDpr, createQuality } from '../src/engine/quality.js';
 import { pwaUpdateBlocked } from '../src/engine/pwaBusy.js';
 import { deciduousH, pineH } from '../src/render/scenery/util.js';
@@ -209,8 +210,30 @@ describe('economy & ladders', () => {
     mag2.owned.push('mag_2');
     mag2.loadout.magazine = 'mag_2';
     expect(Number(formatRpm(resolveStats(mag2)))).toBeGreaterThan(Number(formatRpm(starter)));
-    expect(starter.pen).toBeGreaterThanOrEqual(FLESH_PEN_COST);
+    expect(starter.pen).toBe(0.5);
+    expect(starter.pen).toBeLessThan(FLESH_PEN_COST);
+    expect(RECEIVERS.t2_tactical.base.pen).toBe(0.9);
+    expect(RECEIVERS.t2_tactical.base.pen).toBeLessThan(FLESH_PEN_COST);
+    expect(RECEIVERS.t3_ordnance.base.pen).toBeCloseTo(0.9 * RECEIVER_STAT_RATE, 2);
+    const longShoddy = defaultProfile();
+    longShoddy.owned.push('barrel_long');
+    longShoddy.loadout.barrel = 'barrel_long';
+    const kitPen = resolveStats(longShoddy).pen;
+    expect(kitPen + hitPenBonus('head', false)).toBeLessThanOrEqual(FLESH_PEN_COST);
+    expect(kitPen + hitPenBonus('torso', true)).toBeLessThanOrEqual(FLESH_PEN_COST);
+    expect(kitPen + hitPenBonus('head', true)).toBeGreaterThan(FLESH_PEN_COST);
+    const rifle = defaultProfile();
+    rifle.owned.push('barrel_rifle');
+    rifle.loadout.barrel = 'barrel_rifle';
+    expect(resolveStats(rifle).pen + hitPenBonus('head', true)).toBeLessThanOrEqual(FLESH_PEN_COST);
+    expect(RECEIVERS.t2_tactical.base.pen + hitPenBonus('head', false)).toBeGreaterThan(FLESH_PEN_COST);
+    expect(RECEIVERS.t2_tactical.base.pen + hitPenBonus('torso', true)).toBeGreaterThan(FLESH_PEN_COST);
+    expect(spawnBullet(0, 0, 0, starter, true).pen).toBe(starter.pen);
+    expect(spawnBullet(0, 0, 0, starter, true).pen).not.toBe(starter.pen * PERFECT_MAG_MULT);
     expect(PARTS.barrel_stub.mods.pen).toBeUndefined();
+    expect(PARTS.barrel_carbine.mods.pen).toBeGreaterThan(0);
+    expect(PARTS.barrel_rifle.mods.pen).toBeGreaterThan(PARTS.barrel_carbine.mods.pen);
+    expect(PARTS.barrel_long.mods.pen).toBeGreaterThan(PARTS.barrel_rifle.mods.pen);
   });
 
   it('pays modest XP from distance, kills, heads, and extract', () => {
@@ -252,7 +275,7 @@ describe('gunsmith catalog', () => {
     expect(mags.find((p) => p.id === 'mag_40').requires).toBe('mag_35');
     expect(mags.find((p) => p.id === 'mag_80').requires).toBe('mag_75');
     expect(RECEIVERS.t1_stock.short).toBe('Shoddy');
-    expect(RECEIVERS.t2_tactical.short).toBe('Tactical');
+    expect(RECEIVERS.t2_tactical.short).toBe('Militia');
     expect(RECEIVERS.t3_ordnance.short).toBe('Ordnance');
     expect(RECEIVERS.t4_advanced.short).toBe('Advanced');
   });

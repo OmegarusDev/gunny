@@ -20,7 +20,7 @@ export default defineConfig({
         name: 'Gunny',
         short_name: 'Gunny',
         description:
-          'Shoulder-fire auto-runner. Shoot over your shoulder and do not let them touch you.',
+          'Shoulder-fire auto-runner. Shoot over your shoulder. Don’t let them touch you.',
         start_url: './',
         scope: './',
         display: 'fullscreen',
