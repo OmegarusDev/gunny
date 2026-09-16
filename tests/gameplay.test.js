@@ -700,6 +700,15 @@ describe('simulate loop', () => {
     expect(run.ended).toBe('extract');
   });
 
+  it('extracts on the line even if a body is touching', () => {
+    const run = liveRun();
+    run.player.worldX = -TRACK_METERS * PX_PER_M;
+    run.enemies.push(createEnemy(run.player.worldX, run.terrain, 1, 80, 'zombie'));
+    simulate(run, dt, viewport, idle);
+    expect(run.ended).toBe('extract');
+    expect(run.dying).toBeFalsy();
+  });
+
   it('does not extract endless past TRACK_METERS', () => {
     const run = liveRun('endless');
     run.player.worldX = -TRACK_METERS * PX_PER_M - 400;

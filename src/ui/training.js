@@ -75,7 +75,7 @@ export function renderTraining(el, profile, handlers) {
   };
   setSkillHint(hintId);
 
-  el.querySelector('[data-act="hub"]').onclick = () => handlers.hub();
+  el.querySelector('[data-act="hub"]').onclick = () => (handlers.back || handlers.hub)();
   el.querySelectorAll('.stats [data-tip]').forEach((n) => {
     n.addEventListener('pointerdown', (e) => {
       e.preventDefault();

@@ -64,6 +64,7 @@ const handlers = {
     showHub();
   },
   hub: showHub,
+  back: goBack,
   gunsmith: showGunsmith,
   training: showTraining,
   retry() {
@@ -109,7 +110,6 @@ function showHub() {
 
 function showGunsmith() {
   mode = 'gunsmith';
-  run = null;
   overlays.show('gunsmith');
   renderGunsmith(overlays.gunsmith, profile, handlers);
   leaveRun();
@@ -117,20 +117,16 @@ function showGunsmith() {
 
 function showTraining() {
   mode = 'training';
-  run = null;
   overlays.show('training');
   renderTraining(overlays.training, profile, handlers);
   leaveRun();
 }
 
-function settleRun() {
-  if (!run || run.settled) return;
-  run.settled = true;
-  addRewards(profile, run.score.cash, run.score.xp);
-  if (run.ended === 'extract' && !run.endless) {
-    unlockLevel(profile, run.levelIndex + 1);
+function showEnd() {
+  if (!run || !run.ended) {
+    showHub();
+    return;
   }
-  saveProfile(profile);
   mode = 'end';
   overlays.show('end');
   renderEnd(overlays.end, {
@@ -141,6 +137,22 @@ function settleRun() {
     extract: run.ended === 'extract',
   });
   leaveRun();
+}
+
+function goBack() {
+  if (run && run.ended) showEnd();
+  else showHub();
+}
+
+function settleRun() {
+  if (!run || run.settled) return;
+  run.settled = true;
+  addRewards(profile, run.score.cash, run.score.xp);
+  if (run.ended === 'extract' && !run.endless) {
+    unlockLevel(profile, run.levelIndex + 1);
+  }
+  saveProfile(profile);
+  showEnd();
 }
 
 let queuedPointerTap = false;

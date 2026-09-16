@@ -2,7 +2,7 @@ import { TRACK_METERS } from '../config.js';
 import { beatenRoadIndexes, biomeFor } from '../data/biomes.js';
 import { PARTS } from '../data/attachments.js';
 import { equippedLabel, resolveStats } from '../entities/loadout.js';
-import { backButton, ledgerBlock, statsGrid } from './overlays.js';
+import { ledgerBlock, statsGrid } from './overlays.js';
 import { facilityButton } from './icons.js';
 
 export function renderHub(el, profile, handlers) {
@@ -89,7 +89,6 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
   el.innerHTML = `
     <div class="panel-stack end-stack">
       <div class="page-head">
-        ${backButton()}
         ${ledgerBlock(profile)}
       </div>
       <header class="camp-brand workshop-brand">

@@ -317,10 +317,10 @@ export function simulate(run, dt, viewport, input) {
   stepRagdolls(run, dt, viewport);
   stepGibs(run, dt);
   tickDistance(run.score, runMeters(run));
-  checkContact(run);
-
   if (!run.endless && runMeters(run) >= TRACK_METERS && !run.ended && !run.dying) {
     extractBonus(run.score);
     run.ended = 'extract';
+    return;
   }
+  checkContact(run);
 }

@@ -68,7 +68,7 @@ export function renderGunsmith(el, profile, handlers) {
     </div>
   `;
 
-  el.querySelector('[data-act="hub"]').onclick = () => handlers.hub();
+  el.querySelector('[data-act="hub"]').onclick = () => (handlers.back || handlers.hub)();
   el.querySelectorAll('[data-id]').forEach((n) => {
     n.onclick = () => {
       el.dataset.slot = n.dataset.slot;
