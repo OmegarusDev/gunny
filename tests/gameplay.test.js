@@ -60,7 +60,7 @@ describe('threat pacing', () => {
     expect(early.spawnInterval).toBeGreaterThan(mid.spawnInterval);
     expect(mid.spawnInterval).toBeGreaterThan(late.spawnInterval);
     expect(late.maxAlive).toBeGreaterThan(early.maxAlive);
-    expect(early.hpMul).toBeCloseTo(late.hpMul);
+    expect(late.hpMul).toBeGreaterThan(early.hpMul);
   });
 
   it('opens the next road harder than this opening but not harder than this finale', () => {
@@ -75,13 +75,14 @@ describe('threat pacing', () => {
     expect(l1s.maxAlive).toBeLessThanOrEqual(l0e.maxAlive);
   });
 
-  it('steps campaign grunt HP per road, not within the 250m', () => {
+  it('steps campaign grunt HP per road, with a small climb inside the 250m', () => {
     const l0s = threatForDistance(0, 0, false);
     const l0e = threatForDistance(TRACK_METERS, 0, false);
     const l2s = threatForDistance(80, 2, false);
     const l2e = threatForDistance(TRACK_METERS, 2, false);
-    expect(l0e.hpMul).toBeCloseTo(l0s.hpMul);
-    expect(l2e.hpMul).toBeCloseTo(l2s.hpMul);
+    expect(l0e.hpMul).toBeGreaterThan(l0s.hpMul);
+    expect(l0e.hpMul / l0s.hpMul).toBeCloseTo(1 + THREAT.roadHpRamp);
+    expect(l2e.hpMul).toBeGreaterThan(l2s.hpMul);
     expect(l2s.hpMul).toBeGreaterThan(l0s.hpMul);
     expect(l2s.maxAlive).toBeGreaterThanOrEqual(threatForDistance(80, 0, false).maxAlive);
     expect(l2s.speed).toBeGreaterThan(threatForDistance(80, 0, false).speed);
@@ -104,6 +105,9 @@ describe('threat pacing', () => {
     expect(end500.hpMul).toBeGreaterThan(camp4_250.hpMul);
     expect(end500.hpMul).toBeGreaterThan(end250.hpMul);
     expect(end500.spawnInterval).toBeLessThan(end250.spawnInterval);
+    const campRise = camp0_250.hpMul - threatForDistance(0, 0, false).hpMul;
+    const endRise = end250.hpMul - threatForDistance(0, 0, true).hpMul;
+    expect(endRise).toBeGreaterThan(campRise * 4);
   });
 
   it('ramps Endless toughness with metres including inside the first 250', () => {
@@ -121,7 +125,7 @@ describe('threat pacing', () => {
     const l10s = threatForDistance(0, 10, false);
     const l10e = threatForDistance(TRACK_METERS, 10, false);
     expect(l10s.hpMul).toBeGreaterThan(l0e.hpMul);
-    expect(l10e.hpMul).toBeCloseTo(l10s.hpMul);
+    expect(l10e.hpMul).toBeGreaterThan(l10s.hpMul);
     expect(l10s.spawnInterval).toBeLessThanOrEqual(l0e.spawnInterval);
     expect(enemyHp(l10e.hpMul).torso).toBeGreaterThanOrEqual(1);
     expect(enemyHp(-2).head).toBeGreaterThanOrEqual(1);

@@ -97,10 +97,12 @@ export const THREAT = {
   span: 1,
   chill: { spawn: 3.4, max: 1, speed: 124, packChance: 0.02 },
   hectic: { spawn: 1.05, max: 7, speed: 186, packChance: 0.45 },
-  /** Campaign L0 grunt toughness; constant for the whole 250m. */
+  /** Campaign L0 grunt toughness at 0m. */
   gruntHp: 1,
   /** Each later road’s baseline HP. */
   roadHpStep: 0.18,
+  /** Subtle extra HP across one 250m extract (~10%). */
+  roadHpRamp: 0.1,
   /** Endless starts tougher than Forest open, then climbs with metres. */
   endlessHp: 1.24,
   endlessHpPerM: 0.00215,
@@ -164,8 +166,8 @@ function swarmFromPressure(pressure) {
 }
 
 /**
- * Campaign: HP is a per-road baseline (flat over 250m); swarm densifies toward extract.
- * Endless: own steeper curve — HP and swarm climb with metres, not campaign `levelIndex`.
+ * Campaign: per-road HP baseline, plus a small climb toward extract.
+ * Endless: steeper HP/swarm with metres, not campaign `levelIndex`.
  */
 export function threatForDistance(meters, levelIndex, endless) {
   const m = Math.max(0, meters || 0);
@@ -179,7 +181,7 @@ export function threatForDistance(meters, levelIndex, endless) {
     hpMul = THREAT.endlessHp * (1 + m * THREAT.endlessHpPerM);
   } else {
     pressure = L * THREAT.step + trackT * THREAT.span;
-    hpMul = THREAT.gruntHp * (1 + L * THREAT.roadHpStep);
+    hpMul = THREAT.gruntHp * (1 + L * THREAT.roadHpStep) * (1 + trackT * THREAT.roadHpRamp);
   }
 
   const swarm = swarmFromPressure(pressure);
