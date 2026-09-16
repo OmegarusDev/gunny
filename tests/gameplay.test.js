@@ -536,7 +536,7 @@ describe('hit impulse', () => {
     expect(combat.head.x).toBe(idle.head.x);
     expect(drawn.head.x).not.toBe(combat.head.x);
     const circles = limbCircles(pose);
-    expect(circles.head.x).toBe(combat.head.x);
+    expect(circles.head.x).toBe(drawn.head.x);
   });
 
   it('drops lethal hp on the bar and springs damage floaters', () => {
@@ -758,5 +758,15 @@ describe('render budget', () => {
     expect(q.fx).toBe(false);
     expect(q.hillStep).toBeGreaterThan(6);
     expect(q.propMul).toBeGreaterThan(1);
+  });
+
+  it('restores scenery quality after frames stay healthy', () => {
+    const q = createQuality();
+    for (let i = 0; i < 12; i++) q.noteFrame(0.04);
+    expect(q.cheap).toBe(true);
+    for (let i = 0; i < 100; i++) q.noteFrame(0.016);
+    expect(q.cheap).toBe(false);
+    expect(q.fx).toBe(true);
+    expect(q.hillStep).toBe(6);
   });
 });

@@ -1,9 +1,9 @@
 import { GRAVITY, HIT_IMPULSE, RAGDOLL_FREEZE_SPEED, MAX_FROZEN } from '../config.js';
-import { poseEnemy, ragdollLinks, ragdollNodesFromPose } from '../figure.js';
+import { offsetPose, poseEnemy, ragdollLinks, ragdollNodesFromPose } from '../figure.js';
 import { ZONE_NODE } from './impulse.js';
 
 export function spawnRagdoll(enemy, hit, rng = Math.random) {
-  const pose = poseEnemy(enemy);
+  const pose = enemy.pose ? offsetPose(enemy.pose, enemy.worldX, enemy.y) : poseEnemy(enemy);
   const nodes = ragdollNodesFromPose(pose);
   const links = ragdollLinks(nodes);
   const nx = hit.nx || 0;

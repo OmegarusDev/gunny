@@ -1,5 +1,5 @@
 import { HIT_IMPULSE, LOCATIONAL, enemyHp } from '../config.js';
-import { limbCirclesFromPose, poseEnemy } from '../figure.js';
+import { limbCirclesFromPose, offsetPose, poseEnemyLocal } from '../figure.js';
 
 let nextId = 1;
 
@@ -21,7 +21,14 @@ export function createEnemy(worldX, terrain, hpMul, speed, kind = 'zombie') {
     facing: -1,
     flinchLean: 0,
     stun: 0,
+    pose: null,
   };
+}
+
+/** One IK pose per sim step — hits, vitals, and draw all read this. */
+export function cacheEnemyPose(enemy) {
+  enemy.pose = poseEnemyLocal(enemy);
+  return enemy.pose;
 }
 
 export function applyFlinch(enemy, hit, { crit = false } = {}) {
@@ -43,7 +50,8 @@ export function stepFlinch(enemy, dt) {
 }
 
 export function limbCircles(enemy) {
-  return limbCirclesFromPose(poseEnemy(enemy, { flinch: false }));
+  const local = enemy.pose || poseEnemyLocal(enemy);
+  return limbCirclesFromPose(offsetPose(local, enemy.worldX, enemy.y));
 }
 
 export function lethalCircles(enemy) {

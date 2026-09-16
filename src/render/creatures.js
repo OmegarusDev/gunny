@@ -317,7 +317,7 @@ export function drawSurvivor(ctx, player, sx) {
 
 export function drawCreature(ctx, enemy, w2s) {
   const origin = w2s(enemy.worldX, enemy.y);
-  const local = poseEnemyLocal(enemy);
+  const local = enemy.pose || poseEnemyLocal(enemy);
   const pal = paperPalette(enemy.kind || 'zombie');
   ctx.save();
   ctx.translate(origin.x, origin.y);
@@ -329,7 +329,7 @@ export function drawCreature(ctx, enemy, w2s) {
 
 export function drawEnemyVitals(ctx, enemy, w2s) {
   const origin = w2s(enemy.worldX, enemy.y);
-  const local = poseEnemyLocal(enemy, { flinch: false });
+  const local = enemy.pose || poseEnemyLocal(enemy);
   const fill = lethalHpRatio(enemy);
   const w = 40;
   const h = 5;

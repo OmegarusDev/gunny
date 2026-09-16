@@ -1,3 +1,9 @@
+/**
+ * Coordinate spaces:
+ * - Design: 720px tall (`DESIGN_H`). Sim, aim, and canvas drawing live here.
+ * - CSS overlay: device pixels. Input maps client → design via `height / DESIGN_H`.
+ * - World X: road metres × `PX_PER_M`. The gunner is glued at `PLAYER_SCREEN_X_RATIO`.
+ */
 export const DESIGN_H = 720;
 export const FIXED_DT = 1 / 60;
 export const MAX_FRAME_DT = 0.1;

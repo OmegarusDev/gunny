@@ -5,7 +5,7 @@ import { createTerrain } from '../world/terrain.js';
 import { createWeather } from '../world/weather.js';
 import { runMeters } from '../world/metrics.js';
 import { createPlayer, screenToWorld, cameraX } from '../entities/player.js';
-import { applyFlinch, isDead, lethalCircles, stepFlinch, updateLocomotion } from '../entities/enemy.js';
+import { applyFlinch, cacheEnemyPose, isDead, lethalCircles, stepFlinch, updateLocomotion } from '../entities/enemy.js';
 import { gunWorld, playerCoreFromPose } from '../figure.js';
 import { resolveStats, shotSpreadDeg } from '../entities/loadout.js';
 import { spawnBullet, stepBullets } from './ballistics.js';
@@ -251,6 +251,9 @@ export function simulate(run, dt, viewport, input) {
   }
 
   stepSpawner(run, dt, viewport);
+  for (const enemy of run.enemies) {
+    if (enemy.alive) cacheEnemyPose(enemy);
+  }
   run.pendingHits = [];
   stepBullets(run, dt, viewport);
   applyHits(run);

@@ -36,19 +36,20 @@ export function createQuality() {
     smoothing: 'medium',
     _slow: 0,
     _hold: 0,
+    _good: 0,
     noteFrame(frameDt) {
       if (frameDt > 0.024) {
         q._slow = Math.min(30, q._slow + 2);
         q._hold = 45;
+        q._good = 0;
       } else {
         q._slow = Math.max(0, q._slow - 1);
         if (q._hold > 0) q._hold -= 1;
+        q._good += 1;
       }
-      if (preferCheap()) {
-        apply(q, true);
-        return;
-      }
-      apply(q, q._slow > 10 || (q.cheap && q._hold > 0));
+      const hitch = q._slow > 10 || (q.cheap && q._hold > 0);
+      const warming = preferCheap() && q._good < 90;
+      apply(q, hitch || warming);
     },
   };
   apply(q, preferCheap());
