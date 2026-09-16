@@ -1,14 +1,15 @@
-/** Shared reload HUD geometry + timing band (systems + render). */
+import { hudScale } from '../config.js';
 
 export const PERFECT_MID = 0.58;
 
 export function reloadGaugeBounds(viewport) {
-  const barW = Math.min(480, viewport.w * 0.5);
-  const barH = 22;
+  const u = hudScale(viewport);
+  const barW = Math.min(480 * u, viewport.w * 0.52);
+  const barH = 22 * u;
   const x = (viewport.w - barW) * 0.5;
   const y = viewport.h * 0.42;
-  const padX = 24;
-  const padY = 36;
+  const padX = 24 * u;
+  const padY = 36 * u;
   return {
     x: x - 6 - padX,
     y: y - 14 - padY,

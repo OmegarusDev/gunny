@@ -53,6 +53,7 @@ export function spawnRagdoll(enemy, hit, rng = Math.random) {
     friction: 0.9,
     kind: enemy.kind || 'zombie',
     severedHead: !!enemy.severedHead,
+    hero: false,
   };
 }
 
@@ -103,6 +104,7 @@ export function stepRagdolls(run, dt) {
       if (n.y >= run.terrain.height(n.x) - 1.2) grounded += 1;
     }
     if (grounded >= 3 && maxV < RAGDOLL_FREEZE_SPEED && rag.age > 0.25) {
+      if (rag.hero) continue;
       rag.frozen = true;
       run.frozenCorpses.push({
         kind: rag.kind,
@@ -112,5 +114,5 @@ export function stepRagdolls(run, dt) {
       if (run.frozenCorpses.length > MAX_FROZEN) run.frozenCorpses.shift();
     }
   }
-  run.ragdolls = run.ragdolls.filter((r) => !r.frozen && r.age < 6);
+  run.ragdolls = run.ragdolls.filter((r) => r.hero || (!r.frozen && r.age < 6));
 }

@@ -1,7 +1,5 @@
 import {
-  ESCAPE_CRAWL_PPS,
-  ESCAPE_DROP,
-  ESCAPE_DURATION,
+  DEATH_HOLD,
   effectiveAimReach,
   effectiveShotRange,
   HIT_IMPULSE,
@@ -17,7 +15,7 @@ import { createWeather } from '../world/weather.js';
 import { runMeters } from '../world/metrics.js';
 import { createPlayer, screenToWorld, cameraX } from '../entities/player.js';
 import { applyFlinch, cacheEnemyPose, isDead, lethalCircles, stepFlinch, updateLocomotion } from '../entities/enemy.js';
-import { gunWorld, playerCoreFromPose } from '../figure.js';
+import { gunWorld, playerCoreFromPose, posePlayerLocal } from '../figure.js';
 import { resolveStats, shotSpreadDeg } from '../entities/loadout.js';
 import { spawnBullet, stepBullets } from './ballistics.js';
 import { stepSpawner } from './spawner.js';
@@ -66,8 +64,8 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     threat: null,
     paused: false,
     ended: null,
-    escaping: false,
-    escapeT: 0,
+    dying: false,
+    deathT: 0,
     weapon: {
       ammo: stats.magSize,
       cooldown: 0,
@@ -181,25 +179,31 @@ function playerCore(player) {
   return playerCoreFromPose(player);
 }
 
-function beginEscape(run) {
-  if (run.escaping || run.ended) return;
-  run.escaping = true;
-  run.escapeT = 0;
-  run.player.flinchLean = -0.55;
-  run.player.crawling = false;
-  run.player.escapeSx = 0;
+function beginDeath(run, enemy) {
+  if (run.dying || run.ended) return;
+  run.dying = true;
+  run.deathT = 0;
+  run.player.dead = true;
   run.weapon.firing = false;
   run.weapon.suppressFire = true;
   run.aim = null;
+  const nx = enemy && enemy.worldX >= run.player.worldX ? -1 : 1;
+  const rag = spawnRagdoll(
+    {
+      pose: posePlayerLocal(run.player),
+      worldX: run.player.worldX,
+      y: run.player.y,
+      kind: 'gunner',
+    },
+    { nx, ny: -0.3, energy: 1.6, zone: 'upper' },
+    run.rng,
+  );
+  rag.hero = true;
+  run.ragdolls.push(rag);
 }
 
-function stepEscape(run, dt) {
-  const p = run.player;
-  run.escapeT += dt;
-  p.flinchLean = (p.flinchLean || 0) * Math.exp(-dt * 3.2);
-  p.crawling = run.escapeT >= ESCAPE_DROP * 0.55;
-  const crawl = run.escapeT >= ESCAPE_DROP ? ESCAPE_CRAWL_PPS : 48;
-  p.escapeSx = (p.escapeSx || 0) - crawl * dt;
+function stepDeath(run, dt) {
+  run.deathT += dt;
   run.weapon.firing = false;
   for (const enemy of run.enemies) {
     if (!enemy.alive) continue;
@@ -208,20 +212,20 @@ function stepEscape(run, dt) {
   }
   stepRagdolls(run, dt);
   stepGibs(run, dt);
-  if (run.escapeT >= ESCAPE_DURATION) {
-    run.escaping = false;
+  if (run.deathT >= DEATH_HOLD) {
+    run.dying = false;
     run.ended = 'death';
   }
 }
 
 function checkContact(run) {
-  if (run.escaping || run.ended) return;
+  if (run.dying || run.ended) return;
   const core = playerCore(run.player);
   for (const enemy of run.enemies) {
     if (!enemy.alive) continue;
     for (const c of lethalCircles(enemy)) {
       if (rectCircleOverlap(core.x, core.y, core.w, core.h, c.x, c.y, c.r)) {
-        beginEscape(run);
+        beginDeath(run, enemy);
         return;
       }
     }
@@ -230,8 +234,8 @@ function checkContact(run) {
 
 export function simulate(run, dt, viewport, input) {
   if (run.ended || run.paused) return;
-  if (run.escaping) {
-    stepEscape(run, dt);
+  if (run.dying) {
+    stepDeath(run, dt);
     return;
   }
 
@@ -315,7 +319,7 @@ export function simulate(run, dt, viewport, input) {
   tickDistance(run.score, runMeters(run));
   checkContact(run);
 
-  if (!run.endless && runMeters(run) >= TRACK_METERS && !run.ended && !run.escaping) {
+  if (!run.endless && runMeters(run) >= TRACK_METERS && !run.ended && !run.dying) {
     extractBonus(run.score);
     run.ended = 'extract';
   }

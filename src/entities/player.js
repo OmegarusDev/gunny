@@ -5,8 +5,7 @@ export function createPlayer(worldX, terrain) {
     worldX,
     y: terrain.height(worldX),
     aimAngle: 0,
-    crawling: false,
-    escapeSx: 0,
+    dead: false,
     flinchLean: 0,
   };
 }

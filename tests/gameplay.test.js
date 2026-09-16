@@ -5,7 +5,7 @@ import {
   AIM_REACH_MIN,
   AIM_SCREEN_FRAC,
   ECONOMY,
-  ESCAPE_DURATION,
+  DEATH_HOLD,
   HIT_IMPULSE,
   MAX_DPR,
   PLAYER_SCREEN_X_RATIO,
@@ -21,6 +21,7 @@ import {
   effectiveAimReach,
   effectiveShotRange,
   enemyHp,
+  hudScale,
   threatForDistance,
   usesFullScreenAim,
 } from '../src/config.js';
@@ -664,7 +665,7 @@ describe('simulate loop', () => {
     expect(run.ended).not.toBe('extract');
   });
 
-  it('starts reload after the last round and crawls off on torso contact', () => {
+  it('starts reload after the last round and ragdolls on torso contact', () => {
     const run = liveRun();
     run.weapon.ammo = 1;
     run.weapon.cooldown = 0;
@@ -675,14 +676,13 @@ describe('simulate loop', () => {
     const foe = createEnemy(run2.player.worldX, run2.terrain, 1, 80, 'zombie');
     run2.enemies.push(foe);
     simulate(run2, dt, viewport, idle);
-    expect(run2.escaping).toBe(true);
+    expect(run2.dying).toBe(true);
     expect(run2.ended).toBeNull();
-    expect(run2.player.flinchLean).toBeLessThan(0);
-    const steps = Math.ceil(ESCAPE_DURATION / dt) + 2;
+    expect(run2.player.dead).toBe(true);
+    expect(run2.ragdolls.some((r) => r.hero && r.kind === 'gunner')).toBe(true);
+    const steps = Math.ceil(DEATH_HOLD / dt) + 2;
     for (let i = 0; i < steps; i++) simulate(run2, dt, viewport, idle);
     expect(run2.ended).toBe('death');
-    expect(run2.player.crawling).toBe(true);
-    expect(run2.player.escapeSx).toBeLessThan(-40);
   });
 
   it('lets a crawler finish a contact kill', () => {
@@ -696,7 +696,8 @@ describe('simulate loop', () => {
     const hit = lethalCircles(crawler).some((c) => rectCircleOverlap(core.x, core.y, core.w, core.h, c.x, c.y, c.r));
     expect(hit).toBe(true);
     simulate(run, dt, viewport, idle);
-    expect(run.escaping).toBe(true);
+    expect(run.dying).toBe(true);
+    expect(run.ragdolls.some((r) => r.hero)).toBe(true);
   });
 
   it('uses crawl arms when the gunner is down', () => {
@@ -845,5 +846,11 @@ describe('render budget', () => {
     expect(q.cheap).toBe(false);
     expect(q.fx).toBe(true);
     expect(q.hillStep).toBe(6);
+  });
+
+  it('enlarges canvas HUD type on a phone-tall window', () => {
+    expect(hudScale({ h: 720, cssH: 720 })).toBeGreaterThanOrEqual(1);
+    expect(hudScale({ h: 720, cssH: 390 })).toBeGreaterThan(hudScale({ h: 720, cssH: 720 }));
+    expect(hudScale({ h: 720, cssH: 390 })).toBeGreaterThan(1.8);
   });
 });

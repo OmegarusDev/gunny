@@ -65,9 +65,9 @@ export function drawWorld(ctx, run, viewport) {
 }
 
 function drawPlayer(ctx, run, viewport) {
-  const sx = viewport.w * PLAYER_SCREEN_X_RATIO + (run.player.escapeSx || 0);
+  if (run.dying || run.player.dead) return;
+  const sx = viewport.w * PLAYER_SCREEN_X_RATIO;
   drawSurvivor(ctx, run.player, sx);
-  if (run.escaping || run.player.crawling) return;
   const p = run.player;
   const w = run.weapon;
   const gun = gunWorld(p);
@@ -101,7 +101,7 @@ function drawPlayer(ctx, run, viewport) {
 
 function drawAimCrosshair(ctx, run) {
   const aim = run.aim;
-  if (!aim || run.ended || run.escaping) return;
+  if (!aim || run.ended || run.dying) return;
   const { x, y, anchorX, anchorY, reach, clamped, fullScreen } = aim;
   const spread = shotSpreadDeg(run.stats, run.weapon);
   const cone = 7 + spread * 1.85;

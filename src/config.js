@@ -151,13 +151,18 @@ export const ECONOMY = {
   extractXp: 18,
 };
 
-/** Struck, drop, crawl off the left, then the end screen. Flavour is escape, not death. */
-export const ESCAPE_DURATION = 1.05;
-export const ESCAPE_DROP = 0.22;
-export const ESCAPE_CRAWL_PPS = 340;
+/** Struck, ragdoll flop, then the end screen. Flavour copy is still an escape. */
+export const DEATH_HOLD = 1.8;
 
 /** Cached WebAPK / home-screen payload. JS + icons, no extra asset packs. */
 export const INSTALL_DOWNLOAD = 'about 1 MB';
+
+/** Canvas HUD is authored at 720 design px. Scale it so kickers stay readable on a phone. */
+export function hudScale(viewport) {
+  const cssH = viewport?.cssH || viewport?.h || DESIGN_H;
+  const cssFrom11 = 11 * (cssH / DESIGN_H);
+  return Math.max(1, Math.min(2.2, 13 / Math.max(0.1, cssFrom11)));
+}
 
 function swarmFromPressure(pressure) {
   const { chill, hectic } = THREAT;
