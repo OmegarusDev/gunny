@@ -160,7 +160,7 @@ function tryFire(run, firing, viewport) {
     spawnBullet(muzzle.x, muzzle.y, angle, stats, weapon.perfectMag, effectiveShotRange(stats, viewport)),
   );
   weapon.bloom = Math.min(stats.bloomCap, weapon.bloom + stats.bloomPerShot);
-  playMuzzle();
+  playMuzzle(stats);
   return true;
 }
 

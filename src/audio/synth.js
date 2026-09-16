@@ -42,35 +42,38 @@ function noiseBuffer(audio, duration) {
   return buf;
 }
 
-export function playMuzzle() {
+export function playMuzzle(stats = {}) {
   const audio = ac();
   if (!audio) return;
   const t = audio.currentTime;
+  const speed = Math.max(280, Number(stats.bulletSpeed) || 820);
+  const crack = 0.055 + Math.min(0.05, (speed - 280) * 0.00007);
   const src = audio.createBufferSource();
-  src.buffer = noiseBuffer(audio, 0.08);
+  src.buffer = noiseBuffer(audio, 0.1);
   const hp = audio.createBiquadFilter();
   hp.type = 'highpass';
-  hp.frequency.value = 1200;
+  hp.frequency.value = 980 + Math.min(1500, (speed - 280) * 1.15);
   const ng = audio.createGain();
-  ng.gain.setValueAtTime(0.18, t);
-  ng.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+  ng.gain.setValueAtTime(0.16 + Math.min(0.06, (speed - 280) * 0.00008), t);
+  ng.gain.exponentialRampToValueAtTime(0.01, t + crack);
   src.connect(hp);
   hp.connect(ng);
   ng.connect(sink(audio));
   src.start(t);
-  src.stop(t + 0.08);
+  src.stop(t + crack);
 
   const osc = audio.createOscillator();
   const og = audio.createGain();
   osc.type = 'sine';
-  osc.frequency.setValueAtTime(150, t);
-  osc.frequency.exponentialRampToValueAtTime(30, t + 0.08);
-  og.gain.setValueAtTime(0.16, t);
-  og.gain.exponentialRampToValueAtTime(0.01, t + 0.09);
+  const boom = 118 + (speed - 280) * 0.055;
+  osc.frequency.setValueAtTime(boom, t);
+  osc.frequency.exponentialRampToValueAtTime(28, t + crack + 0.01);
+  og.gain.setValueAtTime(0.15, t);
+  og.gain.exponentialRampToValueAtTime(0.01, t + crack + 0.02);
   osc.connect(og);
   og.connect(sink(audio));
   osc.start(t);
-  osc.stop(t + 0.09);
+  osc.stop(t + crack + 0.02);
 }
 
 export function playReloadTone(norm) {

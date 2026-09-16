@@ -179,12 +179,9 @@ function drawBullets(ctx, run, viewport) {
     ctx.moveTo(p2.x, p2.y);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 7);
-    glow.addColorStop(0, 'rgba(255,255,230,0.95)');
-    glow.addColorStop(1, 'rgba(255,180,40,0)');
-    ctx.fillStyle = glow;
+    ctx.fillStyle = `rgba(255,255,230,${0.85 * a})`;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
