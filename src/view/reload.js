@@ -4,8 +4,8 @@ export const PERFECT_MID = 0.58;
 
 export function reloadGaugeBounds(viewport) {
   const u = hudScale(viewport);
-  const barW = Math.min(480 * u, viewport.w * 0.52);
-  const barH = 22 * u;
+  const barW = Math.min(420 * u, viewport.w * 0.56);
+  const barH = 18 * u;
   const x = (viewport.w - barW) * 0.5;
   const y = viewport.h * 0.42;
   const padX = 24 * u;

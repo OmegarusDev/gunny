@@ -1,4 +1,4 @@
-/** Scene LOD. Full on capable desktops; cheap on phones / after frame hitches. */
+/** Scene LOD stays locked. Hitching only drops FX so the road cannot swap maps. */
 
 export function capDpr(raw, max) {
   const n = Number(raw) || 1;
@@ -13,13 +13,8 @@ function preferCheap() {
   return false;
 }
 
-function apply(q, cheap) {
+function applyFx(q, cheap) {
   q.cheap = cheap;
-  q.hillStep = cheap ? 12 : 6;
-  q.groundStep = cheap ? 8 : 4;
-  q.grassStep = cheap ? 14 : 7;
-  q.rutStep = cheap ? 16 : 9;
-  q.propMul = cheap ? 1.65 : 1;
   q.fx = !cheap;
   q.smoothing = cheap ? 'low' : 'medium';
 }
@@ -36,22 +31,17 @@ export function createQuality() {
     smoothing: 'medium',
     _slow: 0,
     _hold: 0,
-    _good: 0,
     noteFrame(frameDt) {
       if (frameDt > 0.024) {
         q._slow = Math.min(30, q._slow + 2);
         q._hold = 45;
-        q._good = 0;
       } else {
         q._slow = Math.max(0, q._slow - 1);
         if (q._hold > 0) q._hold -= 1;
-        q._good += 1;
       }
-      const hitch = q._slow > 10 || (q.cheap && q._hold > 0);
-      const warming = preferCheap() && q._good < 90;
-      apply(q, hitch || warming);
+      applyFx(q, q._slow > 10 || q._hold > 0);
     },
   };
-  apply(q, preferCheap());
+  applyFx(q, preferCheap());
   return q;
 }

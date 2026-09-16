@@ -57,7 +57,9 @@ export function ledgerBlock(profile) {
 export function statsGrid(rows, extraClass = '') {
   return `<div class="stats ${extraClass}">${rows
     .map(([label, value, hint]) => {
-      const tip = hint ? ` data-tip="${escapeAttr(hint)}" data-tip-title="${escapeAttr(label)}"` : '';
+      const tip = hint
+        ? ` data-tip="${escapeAttr(hint)}" data-tip-title="${escapeAttr(label)}" tabindex="0" role="button"`
+        : '';
       return `<div${tip}><span>${label}</span>${value}</div>`;
     })
     .join('')}</div>`;

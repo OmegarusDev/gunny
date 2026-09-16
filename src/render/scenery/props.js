@@ -1,4 +1,3 @@
-import { PLAYER_SCREEN_X_RATIO } from '../../config.js';
 import { shadeHex } from '../fx.js';
 import {
   deciduousH,
@@ -17,10 +16,7 @@ export function drawFarScenery(ctx, viewport, run) {
   const biome = run.biome;
   const viewW = viewport.w;
   const left = worldLeft(run.player.worldX, viewport);
-  const mul = viewport.quality?.propMul || 1;
-  const spacing =
-    (biome.id === 'desert' ? 170 : biome.id === 'transylvania' ? 118 : biome.id === 'fen' ? 42 : biome.id === 'quarry' ? 92 : 148) *
-    mul;
+  const spacing = biome.id === 'desert' ? 170 : biome.id === 'transylvania' ? 118 : biome.id === 'fen' ? 42 : biome.id === 'quarry' ? 92 : 148;
   const maxHalf =
     biome.id === 'desert' || biome.id === 'fen' || biome.id === 'quarry'
       ? 48
@@ -59,8 +55,7 @@ export function drawNearScenery(ctx, viewport, run) {
   const biome = run.biome;
   const viewW = viewport.w;
   const left = worldLeft(run.player.worldX, viewport);
-  const mul = viewport.quality?.propMul || 1;
-  const spacing = (biome.id === 'desert' ? 140 : biome.id === 'fen' ? 36 : biome.id === 'quarry' ? 70 : 128) * mul;
+  const spacing = biome.id === 'desert' ? 140 : biome.id === 'fen' ? 36 : biome.id === 'quarry' ? 70 : 128;
   const maxHalf =
     biome.id === 'desert'
       ? 48
@@ -104,7 +99,7 @@ export function drawForeground(ctx, viewport, run) {
   const biome = run.biome;
   const viewW = viewport.w;
   const left = worldLeft(run.player.worldX, viewport);
-  const spacing = 210 * (viewport.quality?.propMul || 1);
+  const spacing = 210;
   const maxHalf =
     biome.id === 'desert' || biome.id === 'quarry'
       ? 40
@@ -120,8 +115,6 @@ export function drawForeground(ctx, viewport, run) {
     if (h < 0.45) continue;
     const sx = toScreen(wx, run.player.worldX, viewport);
     if (!inViewX(sx, maxHalf, viewW)) continue;
-    const gunnerX = viewW * PLAYER_SCREEN_X_RATIO;
-    if (Math.abs(sx - gunnerX) < maxHalf * 0.55) continue;
     const y = viewport.h + 8;
     if (biome.id === 'desert') {
       if (inViewX(sx, 24, viewW)) drawRock(ctx, sx, y - 6, 18 + h * 16, biome, id);

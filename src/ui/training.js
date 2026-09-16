@@ -19,12 +19,16 @@ export function renderTraining(el, profile, handlers) {
         <h2>Training</h2>
       </header>
       ${statsGrid([
-        ['Crit', `${(stats.critChance * 100).toFixed(0)}%`],
-        ['Crit ×', stats.critMult.toFixed(2)],
-        ['Cash', `×${stats.cashMul.toFixed(2)}`],
-        ['Sight', stats.fullScreenAim ? 'Full' : Math.round(stats.aimReach)],
-        ['Range', Math.round(stats.shotRange)],
-        ['Spread', `${stats.baseSpread.toFixed(2)}°`],
+        ['Crit', `${(stats.critChance * 100).toFixed(0)}%`, 'Chance a shot crits. Separate from headshots.'],
+        ['Crit ×', stats.critMult.toFixed(2), 'How much extra damage a crit deals.'],
+        ['Cash', `×${stats.cashMul.toFixed(2)}`, 'Cash from kills. Scavenger raises this.'],
+        [
+          'Sight',
+          stats.fullScreenAim ? 'Full' : Math.round(stats.aimReach),
+          stats.fullScreenAim ? 'LPVO: hold the reticle anywhere on screen.' : 'How far you can hold the reticle. Optics only.',
+        ],
+        ['Range', Math.round(stats.shotRange), 'Distance before a round starts to lose damage.'],
+        ['Spread', `${stats.baseSpread.toFixed(2)}°`, 'Starting cone of fire. Bloom stacks on top.'],
       ])}
       <div class="train-grid">
         ${skills
@@ -59,19 +63,32 @@ export function renderTraining(el, profile, handlers) {
   `;
 
   const hint = el.querySelector('[data-hint]');
-  const setHint = (id) => {
+  const setSkillHint = (id) => {
     const def = SKILLS[id];
     if (!def) return;
     el.dataset.hint = id;
     hint.textContent = `${def.name} · ${def.desc}`;
   };
-  setHint(hintId);
+  const setStatHint = (node) => {
+    if (!node?.dataset?.tip) return;
+    hint.textContent = `${node.dataset.tipTitle} · ${node.dataset.tip}`;
+  };
+  setSkillHint(hintId);
 
   el.querySelector('[data-act="hub"]').onclick = () => handlers.hub();
+  el.querySelectorAll('.stats [data-tip]').forEach((n) => {
+    n.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      setStatHint(n);
+    });
+    n.addEventListener('click', () => setStatHint(n));
+    n.addEventListener('pointerenter', () => setStatHint(n));
+    n.addEventListener('focusin', () => setStatHint(n));
+  });
   el.querySelectorAll('[data-pick]').forEach((row) => {
     const id = row.dataset.pick;
-    row.addEventListener('pointerenter', () => setHint(id));
-    row.addEventListener('focusin', () => setHint(id));
+    row.addEventListener('pointerenter', () => setSkillHint(id));
+    row.addEventListener('focusin', () => setSkillHint(id));
   });
   el.querySelectorAll('[data-skill]').forEach((btn) => {
     btn.onclick = (e) => {

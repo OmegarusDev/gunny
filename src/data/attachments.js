@@ -265,7 +265,7 @@ export const PARTS = {
     short: 'Match',
     cost: 360,
     desc: 'Higher RoF, cleaner break.',
-    mods: { rof: 0.9 },
+    mods: { rof: 0.55 },
   },
   trigger_binary: {
     id: 'trigger_binary',
@@ -276,7 +276,7 @@ export const PARTS = {
     short: 'Binary',
     cost: 720,
     desc: 'RoF ceiling. Bloom hungry.',
-    mods: { rof: 2.4, bloomPerShot: 0.2, heatBuild: 0.06 },
+    mods: { rof: 1.5, bloomPerShot: 0.2, heatBuild: 0.06 },
   },
   trigger_volt: {
     id: 'trigger_volt',
@@ -287,7 +287,7 @@ export const PARTS = {
     short: 'Volt',
     cost: 1100,
     desc: 'Hair-split cycle. Heat soars.',
-    mods: { rof: 3.5, bloomPerShot: 0.38, heatBuild: 0.12 },
+    mods: { rof: 2.1, bloomPerShot: 0.38, heatBuild: 0.12 },
   },
 
   gas_factory: {
@@ -320,7 +320,7 @@ export const PARTS = {
     short: 'Over',
     cost: 480,
     desc: 'Faster cycle, more heat and bloom.',
-    mods: { rof: 1.1, heatBuild: 0.08, bloomPerShot: 0.15 },
+    mods: { rof: 0.7, heatBuild: 0.08, bloomPerShot: 0.15 },
   },
   gas_piston: {
     id: 'gas_piston',

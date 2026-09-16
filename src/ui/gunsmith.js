@@ -124,6 +124,11 @@ export function renderGunsmith(el, profile, handlers) {
 
   el.querySelectorAll('.stats [data-tip]').forEach((n) => {
     const text = `${n.dataset.tipTitle} · ${n.dataset.tip}`;
+    n.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      setHint(text);
+    });
+    n.addEventListener('click', () => setHint(text));
     n.addEventListener('pointerenter', () => setHint(text));
     n.addEventListener('focusin', () => setHint(text));
     n.addEventListener('pointerleave', () => setHint(partHint));

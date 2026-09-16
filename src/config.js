@@ -157,11 +157,10 @@ export const DEATH_HOLD = 1.8;
 /** Cached WebAPK / home-screen payload. JS + icons, no extra asset packs. */
 export const INSTALL_DOWNLOAD = 'about 1 MB';
 
-/** Canvas HUD is authored at 720 design px. Scale it so kickers stay readable on a phone. */
+/** Canvas HUD sizes are authored in CSS pixels, then lifted into design space. */
 export function hudScale(viewport) {
-  const cssH = viewport?.cssH || viewport?.h || DESIGN_H;
-  const cssFrom11 = 11 * (cssH / DESIGN_H);
-  return Math.max(1, Math.min(2.2, 13 / Math.max(0.1, cssFrom11)));
+  const cssH = Math.max(1, viewport?.cssH || viewport?.h || DESIGN_H);
+  return DESIGN_H / cssH;
 }
 
 function swarmFromPressure(pressure) {

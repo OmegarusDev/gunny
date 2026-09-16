@@ -13,14 +13,14 @@ const SANS = '"Segoe UI", "Trebuchet MS", system-ui, sans-serif';
 
 function layout(viewport) {
   const u = hudScale(viewport);
-  const pad = 12 * u;
-  const gap = 12 * u;
+  const pad = 14 * u;
+  const gap = 14 * u;
   const ledgerInner = 8 * u;
-  let chipW = 88 * u;
-  let chipGap = 6 * u;
-  let brandW = 280 * u;
+  let chipW = 104 * u;
+  let chipGap = 8 * u;
+  let brandW = 320 * u;
   const ledgerW = () => ledgerInner * 2 + chipW * 3 + chipGap * 2;
-  const maxW = Math.max(120, viewport.w - pad * 2);
+  const maxW = Math.max(160, viewport.w - pad * 2);
   const need = brandW + gap + ledgerW();
   if (need > maxW) {
     const s = maxW / need;
@@ -31,19 +31,19 @@ function layout(viewport) {
   return {
     u,
     pad,
-    r: 8 * u,
-    kicker: Math.round(13 * u),
-    label: Math.round(12 * u),
-    value: Math.round(26 * u),
-    mag: Math.round(32 * u),
-    pause: Math.round(36 * u),
+    r: Math.max(8 * u, 10),
+    kicker: Math.round(18 * u),
+    label: Math.round(15 * u),
+    value: Math.round(36 * u),
+    mag: Math.round(44 * u),
+    pause: Math.round(42 * u),
     chipW,
-    chipH: 56 * u,
+    chipH: 68 * u,
     chipGap,
     ledgerInner,
     brandW,
-    gunW: Math.min(196 * u, viewport.w * 0.36),
-    gunH: 118 * u,
+    gunW: Math.min(220 * u, viewport.w * 0.4),
+    gunH: 140 * u,
   };
 }
 
@@ -102,7 +102,7 @@ function chip(ctx, x, y, w, h, title, val, m) {
   ctx.lineWidth = 1;
   strokeRoundRect(ctx, x, y, w, h, 6 * m.u);
   kicker(ctx, title, x + 12 * m.u, y + 12 * m.u, m.kicker, '0.12em');
-  value(ctx, val, x + 12 * m.u, y + 32 * m.u, Math.round(22 * m.u));
+  value(ctx, val, x + 12 * m.u, y + 36 * m.u, Math.round(28 * m.u));
 }
 
 function meter(ctx, x, y, w, h, t, fill, edge) {
@@ -121,7 +121,7 @@ function meter(ctx, x, y, w, h, t, fill, edge) {
 function drawBrand(ctx, run, x, y, m) {
   const endless = run.endless;
   const w = m.brandW;
-  const h = endless ? 96 * m.u : 108 * m.u;
+  const h = endless ? 112 * m.u : 128 * m.u;
   panel(ctx, x, y, w, h, m.r);
   const ix = x + 18 * m.u;
   ctx.textBaseline = 'top';
@@ -132,26 +132,26 @@ function drawBrand(ctx, run, x, y, m) {
     ctx.textAlign = 'left';
   }
   const title = endless ? run.biome?.place || 'The road' : run.biome?.foe || 'Run';
-  value(ctx, title, ix, y + 38 * m.u, m.value);
+  value(ctx, title, ix, y + 42 * m.u, m.value);
   const metres = runMeters(run);
   if (endless) {
-    value(ctx, `${metres.toFixed(0)}m`, ix, y + 70 * m.u, Math.round(22 * m.u));
+    value(ctx, `${metres.toFixed(0)}m`, ix, y + 84 * m.u, Math.round(26 * m.u));
     return;
   }
-  const barW = w - 36 * m.u - 72 * m.u;
+  const barW = w - 36 * m.u - 88 * m.u;
   const accent = run.biome?.accent || BLOOD;
   meter(
     ctx,
     ix,
-    y + 80 * m.u,
+    y + 96 * m.u,
     barW,
-    8 * m.u,
+    10 * m.u,
     Math.max(0, Math.min(1, metres / TRACK_METERS)),
     accent,
     'rgba(224, 163, 58, 0.4)',
   );
   ctx.textAlign = 'right';
-  value(ctx, `${metres.toFixed(0)}m`, x + w - 18 * m.u, y + 72 * m.u, Math.round(20 * m.u));
+  value(ctx, `${metres.toFixed(0)}m`, x + w - 18 * m.u, y + 86 * m.u, Math.round(24 * m.u));
   ctx.textAlign = 'left';
 }
 
@@ -177,23 +177,23 @@ function drawGun(ctx, run, viewport, m) {
   const ix = x + 16 * m.u;
   const barW = w - 32 * m.u;
   ctx.textBaseline = 'top';
-  kicker(ctx, run.weapon.perfectMag ? 'Perfect' : 'Mag', ix, y + 14 * m.u, m.kicker);
-  value(ctx, `${run.weapon.ammo} / ${run.stats.magSize}`, ix, y + 34 * m.u, m.mag, run.weapon.perfectMag ? GOLD : BONE);
+  kicker(ctx, run.weapon.perfectMag ? 'Perfect' : 'Mag', ix, y + 16 * m.u, m.kicker);
+  value(ctx, `${run.weapon.ammo} / ${run.stats.magSize}`, ix, y + 40 * m.u, m.mag, run.weapon.perfectMag ? GOLD : BONE);
 
-  const barX = ix + 62 * m.u;
-  const barInner = barW - 62 * m.u;
-  label(ctx, 'Heat', ix, y + 78 * m.u, m.label);
-  const heatFill = ctx.createLinearGradient(barX, y + 80 * m.u, barX + barInner, y + 80 * m.u);
+  const barX = ix + 68 * m.u;
+  const barInner = barW - 68 * m.u;
+  label(ctx, 'Heat', ix, y + 92 * m.u, m.label);
+  const heatFill = ctx.createLinearGradient(barX, y + 94 * m.u, barX + barInner, y + 94 * m.u);
   heatFill.addColorStop(0, '#6a2018');
   heatFill.addColorStop(1, run.biome?.accent || BLOOD);
-  meter(ctx, barX, y + 80 * m.u, barInner, 9 * m.u, run.weapon.heat, heatFill, 'rgba(196, 69, 54, 0.45)');
+  meter(ctx, barX, y + 94 * m.u, barInner, 11 * m.u, run.weapon.heat, heatFill, 'rgba(196, 69, 54, 0.45)');
 
-  label(ctx, 'Bloom', ix, y + 100 * m.u, m.label);
+  label(ctx, 'Bloom', ix, y + 116 * m.u, m.label);
   const bloom = Math.max(0, Math.min(1, run.weapon.bloom / Math.max(0.001, run.stats.bloomCap)));
-  const bloomFill = ctx.createLinearGradient(barX, y + 102 * m.u, barX + barInner, y + 102 * m.u);
+  const bloomFill = ctx.createLinearGradient(barX, y + 118 * m.u, barX + barInner, y + 118 * m.u);
   bloomFill.addColorStop(0, '#c48a28');
   bloomFill.addColorStop(1, '#ffe08a');
-  meter(ctx, barX, y + 102 * m.u, barInner, 8 * m.u, bloom, bloomFill, 'rgba(224, 163, 58, 0.45)');
+  meter(ctx, barX, y + 118 * m.u, barInner, 10 * m.u, bloom, bloomFill, 'rgba(224, 163, 58, 0.45)');
 }
 
 function drawPause(ctx, run, viewport, m) {

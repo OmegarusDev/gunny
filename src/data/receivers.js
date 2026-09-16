@@ -36,7 +36,7 @@ export const RECEIVERS = {
     desc: 'Jury-rigged receiver. Barrel, mag, and springs. Heavy, slow, hot.',
     base: {
       damage: 13,
-      rof: 2.2,
+      rof: 1.45,
       magSize: 1,
       reload: 2.55,
       perfectWidth: 0.07,
@@ -66,7 +66,7 @@ export const RECEIVERS = {
     desc: 'Opens optic, stock, and muzzle. Better heat path.',
     base: {
       damage: 14,
-      rof: 7.4,
+      rof: 5.0,
       magSize: 1,
       reload: 2.35,
       perfectWidth: 0.08,
@@ -96,7 +96,7 @@ export const RECEIVERS = {
     desc: 'Full internals: trigger and gas. High RoF ceiling.',
     base: {
       damage: 15,
-      rof: 8.1,
+      rof: 5.6,
       magSize: 1,
       reload: 2.2,
       perfectWidth: 0.09,
@@ -126,7 +126,7 @@ export const RECEIVERS = {
     desc: 'Machined successor. Same rails as Ordnance, hotter ceiling.',
     base: {
       damage: 16,
-      rof: 8.6,
+      rof: 6.1,
       magSize: 1,
       reload: 2.05,
       perfectWidth: 0.1,

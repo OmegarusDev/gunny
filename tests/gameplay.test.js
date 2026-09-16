@@ -186,6 +186,15 @@ describe('economy & ladders', () => {
     expect(Object.keys(RECEIVERS)).toHaveLength(4);
   });
 
+  it('keeps Shoddy slow and steps receiver RoF up the ladder', () => {
+    expect(RECEIVERS.t1_stock.base.rof).toBeLessThan(2);
+    expect(RECEIVERS.t2_tactical.base.rof).toBeGreaterThan(RECEIVERS.t1_stock.base.rof);
+    expect(RECEIVERS.t3_ordnance.base.rof).toBeGreaterThan(RECEIVERS.t2_tactical.base.rof);
+    expect(RECEIVERS.t4_advanced.base.rof).toBeGreaterThan(RECEIVERS.t3_ordnance.base.rof);
+    expect(RECEIVERS.t4_advanced.base.rof).toBeLessThan(7);
+    expect(resolveStats(defaultProfile()).rof).toBe(RECEIVERS.t1_stock.base.rof);
+  });
+
   it('pays modest XP from distance, kills, heads, and extract', () => {
     expect(ECONOMY.xpPerMeter).toBe(0.05);
     expect(ECONOMY.xpPerKill).toBe(3);
@@ -831,26 +840,29 @@ describe('render budget', () => {
 
   it('drops scenery fx after sustained long frames', () => {
     const q = createQuality();
+    const hill = q.hillStep;
+    const mul = q.propMul;
     for (let i = 0; i < 12; i++) q.noteFrame(0.04);
     expect(q.cheap).toBe(true);
     expect(q.fx).toBe(false);
-    expect(q.hillStep).toBeGreaterThan(6);
-    expect(q.propMul).toBeGreaterThan(1);
+    expect(q.hillStep).toBe(hill);
+    expect(q.propMul).toBe(mul);
   });
 
   it('restores scenery quality after frames stay healthy', () => {
     const q = createQuality();
+    const hill = q.hillStep;
     for (let i = 0; i < 12; i++) q.noteFrame(0.04);
     expect(q.cheap).toBe(true);
     for (let i = 0; i < 100; i++) q.noteFrame(0.016);
     expect(q.cheap).toBe(false);
     expect(q.fx).toBe(true);
-    expect(q.hillStep).toBe(6);
+    expect(q.hillStep).toBe(hill);
   });
 
-  it('enlarges canvas HUD type on a phone-tall window', () => {
-    expect(hudScale({ h: 720, cssH: 720 })).toBeGreaterThanOrEqual(1);
+  it('sizes canvas HUD in screen pixels so short phones stay readable', () => {
+    expect(hudScale({ h: 720, cssH: 720 })).toBeCloseTo(1, 5);
+    expect(hudScale({ h: 720, cssH: 390 })).toBeCloseTo(720 / 390, 5);
     expect(hudScale({ h: 720, cssH: 390 })).toBeGreaterThan(hudScale({ h: 720, cssH: 720 }));
-    expect(hudScale({ h: 720, cssH: 390 })).toBeGreaterThan(1.8);
   });
 });
