@@ -46,34 +46,62 @@ export function playMuzzle(stats = {}) {
   const audio = ac();
   if (!audio) return;
   const t = audio.currentTime;
+  const out = sink(audio);
   const speed = Math.max(280, Number(stats.bulletSpeed) || 820);
-  const crack = 0.055 + Math.min(0.05, (speed - 280) * 0.00007);
-  const src = audio.createBufferSource();
-  src.buffer = noiseBuffer(audio, 0.1);
-  const hp = audio.createBiquadFilter();
-  hp.type = 'highpass';
-  hp.frequency.value = 980 + Math.min(1500, (speed - 280) * 1.15);
-  const ng = audio.createGain();
-  ng.gain.setValueAtTime(0.16 + Math.min(0.06, (speed - 280) * 0.00008), t);
-  ng.gain.exponentialRampToValueAtTime(0.01, t + crack);
-  src.connect(hp);
-  hp.connect(ng);
-  ng.connect(sink(audio));
-  src.start(t);
-  src.stop(t + crack);
+  const heavy = Math.min(1, (speed - 280) / 760);
 
-  const osc = audio.createOscillator();
-  const og = audio.createGain();
-  osc.type = 'sine';
-  const boom = 118 + (speed - 280) * 0.055;
-  osc.frequency.setValueAtTime(boom, t);
-  osc.frequency.exponentialRampToValueAtTime(28, t + crack + 0.01);
-  og.gain.setValueAtTime(0.15, t);
-  og.gain.exponentialRampToValueAtTime(0.01, t + crack + 0.02);
-  osc.connect(og);
-  og.connect(sink(audio));
-  osc.start(t);
-  osc.stop(t + crack + 0.02);
+  const crack = audio.createBufferSource();
+  crack.buffer = noiseBuffer(audio, 0.08);
+  const crackHp = audio.createBiquadFilter();
+  crackHp.type = 'highpass';
+  crackHp.frequency.value = 2200 + heavy * 900;
+  const crackG = audio.createGain();
+  crackG.gain.setValueAtTime(0.42 + heavy * 0.08, t);
+  crackG.gain.exponentialRampToValueAtTime(0.01, t + 0.018);
+  crack.connect(crackHp);
+  crackHp.connect(crackG);
+  crackG.connect(out);
+  crack.start(t);
+  crack.stop(t + 0.03);
+
+  const body = audio.createBufferSource();
+  body.buffer = noiseBuffer(audio, 0.16);
+  const bodyBp = audio.createBiquadFilter();
+  bodyBp.type = 'bandpass';
+  bodyBp.frequency.value = 380 + heavy * 80;
+  bodyBp.Q.value = 0.85;
+  const bodyG = audio.createGain();
+  bodyG.gain.setValueAtTime(0.28 + heavy * 0.06, t);
+  bodyG.gain.exponentialRampToValueAtTime(0.01, t + 0.11);
+  body.connect(bodyBp);
+  bodyBp.connect(bodyG);
+  bodyG.connect(out);
+  body.start(t);
+  body.stop(t + 0.12);
+
+  const thump = audio.createOscillator();
+  const thumpG = audio.createGain();
+  thump.type = 'triangle';
+  thump.frequency.setValueAtTime(92 + heavy * 18, t);
+  thump.frequency.exponentialRampToValueAtTime(38, t + 0.14);
+  thumpG.gain.setValueAtTime(0.28, t);
+  thumpG.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+  thump.connect(thumpG);
+  thumpG.connect(out);
+  thump.start(t);
+  thump.stop(t + 0.16);
+
+  const click = audio.createOscillator();
+  const clickG = audio.createGain();
+  click.type = 'square';
+  click.frequency.value = 1900 + heavy * 400;
+  clickG.gain.setValueAtTime(0.0001, t);
+  clickG.gain.setValueAtTime(0.05, t + 0.012);
+  clickG.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  click.connect(clickG);
+  clickG.connect(out);
+  click.start(t);
+  click.stop(t + 0.045);
 }
 
 export function playReloadTone(norm) {
@@ -112,33 +140,48 @@ export function playFlesh(headshot) {
   const audio = ac();
   if (!audio) return;
   const t = audio.currentTime;
-  const src = audio.createBufferSource();
-  src.buffer = noiseBuffer(audio, 0.07);
+  const out = sink(audio);
+
+  const slap = audio.createBufferSource();
+  slap.buffer = noiseBuffer(audio, 0.12);
   const lp = audio.createBiquadFilter();
   lp.type = 'lowpass';
-  lp.frequency.value = 800;
+  lp.frequency.value = headshot ? 1100 : 420;
   const g = audio.createGain();
-  g.gain.setValueAtTime(0.14, t);
-  g.gain.exponentialRampToValueAtTime(0.01, t + 0.07);
-  src.connect(lp);
+  g.gain.setValueAtTime(headshot ? 0.26 : 0.2, t);
+  g.gain.exponentialRampToValueAtTime(0.01, t + (headshot ? 0.1 : 0.14));
+  slap.connect(lp);
   lp.connect(g);
-  g.connect(sink(audio));
-  src.start(t);
-  src.stop(t + 0.07);
+  g.connect(out);
+  slap.start(t);
+  slap.stop(t + 0.14);
+
+  const thud = audio.createOscillator();
+  const tg = audio.createGain();
+  thud.type = 'sine';
+  thud.frequency.setValueAtTime(headshot ? 110 : 68, t);
+  thud.frequency.exponentialRampToValueAtTime(32, t + 0.12);
+  tg.gain.setValueAtTime(headshot ? 0.14 : 0.18, t);
+  tg.gain.exponentialRampToValueAtTime(0.01, t + 0.13);
+  thud.connect(tg);
+  tg.connect(out);
+  thud.start(t);
+  thud.stop(t + 0.14);
 
   if (headshot) {
-    for (const freq of [1200, 1800]) {
-      const osc = audio.createOscillator();
-      const og = audio.createGain();
-      osc.type = 'triangle';
-      osc.frequency.value = freq;
-      og.gain.setValueAtTime(0.05, t);
-      og.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
-      osc.connect(og);
-      og.connect(sink(audio));
-      osc.start(t);
-      osc.stop(t + 0.09);
-    }
+    const crack = audio.createBufferSource();
+    crack.buffer = noiseBuffer(audio, 0.06);
+    const hp = audio.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 2400;
+    const cg = audio.createGain();
+    cg.gain.setValueAtTime(0.22, t);
+    cg.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
+    crack.connect(hp);
+    hp.connect(cg);
+    cg.connect(out);
+    crack.start(t);
+    crack.stop(t + 0.05);
   }
 }
 

@@ -91,6 +91,8 @@ export function stepRagdolls(run, dt, viewport) {
         b.y -= dy * corr * (invB / inv);
       }
     }
+    let maxV = 0;
+    let grounded = 0;
     for (const n of rag.nodes) {
       const ground = run.terrain.height(n.x);
       if (n.y > ground) {
@@ -99,13 +101,9 @@ export function stepRagdolls(run, dt, viewport) {
         n.oy = n.y;
         n.ox = n.x - vx * 0.7;
       }
-    }
-    let maxV = 0;
-    let grounded = 0;
-    for (const n of rag.nodes) {
       const v = Math.hypot(n.x - n.ox, n.y - n.oy);
       if (v > maxV) maxV = v;
-      if (n.y >= run.terrain.height(n.x) - 1.2) grounded += 1;
+      if (n.y >= ground - 1.2) grounded += 1;
     }
     const settled = grounded >= 3 && maxV < RAGDOLL_FREEZE_SPEED && rag.age > 0.25;
     if (settled || rag.age >= RAGDOLL_LIVE) freezeRagdoll(run, rag);

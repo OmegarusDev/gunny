@@ -30,9 +30,40 @@ export function createEnemy(worldX, terrain, hpMul, speed, kind = 'zombie', role
   };
 }
 
+function cacheHitVolumes(enemy) {
+  const local = enemy.pose || poseEnemyLocal(enemy);
+  if (!enemy.pose) enemy.pose = local;
+  const circles = limbCirclesFromPose(offsetPose(local, enemy.worldX, enemy.y));
+  enemy.hitCircles = circles;
+  const list = enemy.hitCircleList || (enemy.hitCircleList = []);
+  const lethal = enemy.lethalCircleList || (enemy.lethalCircleList = []);
+  list.length = 0;
+  lethal.length = 0;
+  list.push(
+    circles.head,
+    circles.upper,
+    circles.lower,
+    circles.pelvis,
+    circles.shL,
+    circles.shR,
+    circles.lUpp,
+    circles.lFore,
+    circles.rUpp,
+    circles.rFore,
+    circles.lThigh,
+    circles.rThigh,
+    circles.lLeg,
+    circles.rLeg,
+  );
+  for (const c of list) {
+    if (c.zone === 'head' || c.zone === 'upper' || c.zone === 'lower') lethal.push(c);
+  }
+}
+
 /** One IK pose per sim step — hits, vitals, and draw all read this. */
 export function cacheEnemyPose(enemy) {
   enemy.pose = poseEnemyLocal(enemy);
+  cacheHitVolumes(enemy);
   return enemy.pose;
 }
 
@@ -55,14 +86,18 @@ export function stepFlinch(enemy, dt) {
 }
 
 export function limbCircles(enemy) {
-  const local = enemy.pose || poseEnemyLocal(enemy);
-  return limbCirclesFromPose(offsetPose(local, enemy.worldX, enemy.y));
+  if (!enemy.hitCircles) cacheHitVolumes(enemy);
+  return enemy.hitCircles;
+}
+
+export function limbCircleList(enemy) {
+  if (!enemy.hitCircleList) cacheHitVolumes(enemy);
+  return enemy.hitCircleList;
 }
 
 export function lethalCircles(enemy) {
-  return Object.values(limbCircles(enemy)).filter(
-    (c) => c.zone === 'head' || c.zone === 'upper' || c.zone === 'lower',
-  );
+  if (!enemy.lethalCircleList) cacheHitVolumes(enemy);
+  return enemy.lethalCircleList;
 }
 
 export function updateLocomotion(enemy) {

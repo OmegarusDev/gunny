@@ -1,5 +1,5 @@
 import { CRIT_PEN, FLESH_PEN_COST, HEADSHOT_PEN, SHOT_EDGE_PAD } from '../config.js';
-import { limbCircles, locationalOf } from '../entities/enemy.js';
+import { limbCircleList, locationalOf } from '../entities/enemy.js';
 import { cameraX } from '../entities/player.js';
 import { segmentHitsTerrain } from '../world/terrain.js';
 import { segmentHitsCircle } from './hits.js';
@@ -52,7 +52,7 @@ export function stepBullets(run, dt, viewport) {
     for (const enemy of enemies) {
       if (!enemy.alive) continue;
       if (b.hitIds.has(enemy.id)) continue;
-      for (const c of Object.values(limbCircles(enemy))) {
+      for (const c of limbCircleList(enemy)) {
         const hit = segmentHitsCircle(b.x, b.y, nx, ny, c.x, c.y, c.r);
         if (!hit || hit.t > maxT) continue;
         if (!best || hit.t < best.t) best = { enemy, zone: c.zone, hit };
@@ -107,5 +107,9 @@ export function stepBullets(run, dt, viewport) {
     const offY = ny < -120 || ny > viewport.h + 120;
     if (b.pen <= 0 || nx > viewRight || offY) b.alive = false;
   }
-  run.bullets = bullets.filter((b) => b.alive);
+  let n = 0;
+  for (let i = 0; i < bullets.length; i++) {
+    if (bullets[i].alive) bullets[n++] = bullets[i];
+  }
+  bullets.length = n;
 }

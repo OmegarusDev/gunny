@@ -18,10 +18,18 @@ export function createInput(canvas) {
     fireId: null,
   };
 
+  function recacheRect() {
+    rect = canvas.getBoundingClientRect();
+    scale = rect.height / DESIGN_H;
+  }
+
+  let rect = { width: 0, height: 0, left: 0, top: 0 };
+  let scale = 1;
+  recacheRect();
+
   function toDesign(clientX, clientY) {
-    const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) recacheRect();
     if (rect.width <= 0 || rect.height <= 0) return { x: state.pointerX, y: state.pointerY };
-    const scale = rect.height / DESIGN_H;
     return {
       x: (clientX - rect.left) / scale,
       y: (clientY - rect.top) / scale,
@@ -29,15 +37,15 @@ export function createInput(canvas) {
   }
 
   function placeDefault() {
-    const rect = canvas.getBoundingClientRect();
+    recacheRect();
     if (rect.width > 0 && rect.height > 0) {
-      const scale = rect.height / DESIGN_H;
       state.pointerX = (rect.width / scale) * 0.62;
       state.pointerY = DESIGN_H * 0.48;
     }
   }
   placeDefault();
   const relayout = () => {
+    recacheRect();
     if (!state.moved) placeDefault();
   };
   window.addEventListener('resize', relayout);
@@ -58,6 +66,7 @@ export function createInput(canvas) {
   function onDown(e) {
     if (onHud(e)) return false;
     if (!e.target.closest('#canvas-container')) return false;
+    recacheRect();
     toLocal(e);
     state.firing = true;
     state.pointerTap = true;

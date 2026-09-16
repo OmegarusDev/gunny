@@ -36,6 +36,7 @@ let lastType = 'campaign';
 let lastLevel = 0;
 let lastSeed = null;
 let endlessBiome = 0;
+let hubFrame = 0;
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener(
@@ -96,6 +97,7 @@ function startRun(type, levelIndex, seed) {
 }
 
 function leaveRun() {
+  hubFrame = 0;
   applyPwa();
   syncCursor();
 }
@@ -103,6 +105,7 @@ function leaveRun() {
 function showHub() {
   mode = 'hub';
   run = null;
+  hubFrame = 0;
   overlays.show('hub');
   renderHub(overlays.hub, profile, { ...handlers, endlessBiome });
   leaveRun();
@@ -158,6 +161,15 @@ function settleRun() {
 let queuedPointerTap = false;
 let queuedReloadTap = false;
 
+const simInput = {
+  pointerX: 0,
+  pointerY: 0,
+  pointerType: 'mouse',
+  firing: false,
+  reloadPressed: false,
+  pointerTap: false,
+};
+
 function frame(now) {
   const { steps, frame: frameDt } = loop.tick(now);
   const q = viewport.quality;
@@ -206,14 +218,13 @@ function frame(now) {
         queuedReloadTap = false;
       }
       for (let i = 0; i < steps; i++) {
-        simulate(run, FIXED_DT, viewport, {
-          pointerX: input.state.pointerX,
-          pointerY: input.state.pointerY,
-          pointerType: input.state.pointerType,
-          firing,
-          reloadPressed: i === 0 ? reloadPressed : false,
-          pointerTap: i === 0 ? pointerTap : false,
-        });
+        simInput.pointerX = input.state.pointerX;
+        simInput.pointerY = input.state.pointerY;
+        simInput.pointerType = input.state.pointerType;
+        simInput.firing = firing;
+        simInput.reloadPressed = i === 0 ? reloadPressed : false;
+        simInput.pointerTap = i === 0 ? pointerTap : false;
+        simulate(run, FIXED_DT, viewport, simInput);
       }
     } else if (!run.ended) {
       run.aim = resolveAimPoint(
@@ -231,7 +242,7 @@ function frame(now) {
   } else {
     queuedPointerTap = false;
     queuedReloadTap = false;
-    drawBackdrop(ctx, viewport, now / 1000, profile.unlockedLevel);
+    if ((hubFrame++ & 1) === 0) drawBackdrop(ctx, viewport, now / 1000, profile.unlockedLevel);
   }
   requestAnimationFrame(frame);
 }

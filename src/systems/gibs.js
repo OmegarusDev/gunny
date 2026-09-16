@@ -26,16 +26,18 @@ export function spawnGibs(x, y, ix, iy, count = 10, rng = Math.random) {
   return gibs;
 }
 
-export function spawnBurst(x, y, count = 12, rng = Math.random) {
+export function spawnBurst(x, y, count = 12, rng = Math.random, nx = 0, ny = 0) {
   const parts = [];
   for (let i = 0; i < count; i++) {
-    const ang = rng() * Math.PI * 2;
-    const spd = 40 + rng() * 180;
+    const hasDir = nx || ny;
+    const spray = hasDir ? Math.atan2(ny, nx) : rng() * Math.PI * 2;
+    const ang = hasDir ? spray + (rng() - 0.5) * 1.4 : spray;
+    const spd = 50 + rng() * 220;
     parts.push({
       x,
       y,
-      vx: Math.cos(ang) * spd,
-      vy: Math.sin(ang) * spd,
+      vx: Math.cos(ang) * spd + nx * 90,
+      vy: Math.sin(ang) * spd + ny * 90 - 20,
       life: 0.28 + rng() * 0.2,
       max: 0.48,
       r: 1.5 + rng() * 2,

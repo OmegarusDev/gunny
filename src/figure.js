@@ -417,9 +417,9 @@ export function posePlayerLocal(player) {
     kind: 'gunner',
     seed: 1,
     t: enemyTime(player.worldX),
-    aimAngle: player.crawling ? 0 : player.aimAngle || 0,
+    aimAngle: player.crawling ? 0 : (player.aimAngle || 0) - (player.shotKick || 0) * 0.4,
     crawl: !!player.crawling,
-    lean: player.flinchLean || 0,
+    lean: (player.flinchLean || 0) - (player.shotKick || 0),
   });
 }
 

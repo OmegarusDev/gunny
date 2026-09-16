@@ -61,6 +61,8 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     callouts: [],
     impacts: [],
     pendingHits: [],
+    shakeX: 0,
+    shakeY: 0,
     spawnedBehemoth: false,
     spawnTimer: 0.35,
     threat: null,
@@ -73,6 +75,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
       cooldown: 0,
       bloom: 0,
       heat: 0,
+      shotFlash: 0,
       reloading: false,
       reloadT: 0,
       reloadDur: stats.reload,
@@ -126,8 +129,11 @@ function applyHits(run) {
     });
 
     if (zone === 'head') {
-      run.particles.push(...spawnBurst(hit.x, hit.y, 10, run.rng));
+      run.particles.push(...spawnBurst(hit.x, hit.y, 14, run.rng, hit.nx, hit.ny));
+    } else {
+      run.particles.push(...spawnBurst(hit.x, hit.y, 6, run.rng, hit.nx, hit.ny));
     }
+    run.impacts.push({ x: hit.x, y: hit.y, life: 0.1, dirt: false, head: zone === 'head' });
 
     applyFlinch(enemy, hit, { crit });
     updateLocomotion(enemy);
@@ -172,6 +178,17 @@ function tryFire(run, firing, viewport) {
     spawnBullet(muzzle.x, muzzle.y, angle, stats, weapon.perfectMag, effectiveShotRange(stats, viewport)),
   );
   weapon.bloom = Math.min(stats.bloomCap, weapon.bloom + stats.bloomPerShot);
+  weapon.shotFlash = 0.075;
+  player.shotKick = Math.min(0.34, (player.shotKick || 0) + 0.22);
+  run.shakeX = (run.shakeX || 0) - Math.cos(angle) * 5.5;
+  run.shakeY = (run.shakeY || 0) - Math.sin(angle) * 3.5 - 2.2;
+  const sparks = spawnBurst(muzzle.x, muzzle.y, 4, run.rng, Math.cos(angle), Math.sin(angle));
+  for (const p of sparks) {
+    p.tone = 'spark';
+    p.life = 0.08 + run.rng() * 0.05;
+    p.max = 0.14;
+  }
+  run.particles.push(...sparks);
   playMuzzle(stats);
   return true;
 }
@@ -243,6 +260,10 @@ export function simulate(run, dt, viewport, input) {
   const { player, weapon, stats } = run;
   player.worldX -= V_RETREAT * dt;
   player.y = run.terrain.height(player.worldX);
+  player.shotKick = (player.shotKick || 0) * Math.exp(-dt * 14);
+  run.shakeX = (run.shakeX || 0) * Math.exp(-dt * 16);
+  run.shakeY = (run.shakeY || 0) * Math.exp(-dt * 16);
+  weapon.shotFlash = Math.max(0, (weapon.shotFlash || 0) - dt);
 
   const gun = gunWorld(player);
   const aim = resolveAimPoint(
@@ -310,7 +331,6 @@ export function simulate(run, dt, viewport, input) {
   for (const enemy of run.enemies) {
     if (enemy.alive) cacheEnemyPose(enemy);
   }
-  run.pendingHits = [];
   stepBullets(run, dt, viewport);
   applyHits(run);
   const left = cameraX(player.worldX, viewport);
