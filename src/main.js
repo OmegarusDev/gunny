@@ -13,6 +13,7 @@ import { renderHub, renderEnd } from './ui/hub.js';
 import { mountOverlays } from './ui/overlays.js';
 import { renderTraining } from './ui/training.js';
 import { resolveAimPoint } from './view/aim.js';
+import { pwaUpdateBlocked } from './engine/pwaBusy.js';
 import { initPwa } from './pwa.js';
 import { mountSoftCursor } from './ui/cursor.js';
 
@@ -46,7 +47,9 @@ window.addEventListener(
   { capture: true },
 );
 
-initPwa();
+const applyPwa = initPwa({
+  busy: () => pwaUpdateBlocked(mode, run),
+});
 
 const handlers = {
   deploy(level) {
@@ -91,12 +94,17 @@ function startRun(type, levelIndex, seed) {
   syncCursor();
 }
 
+function leaveRun() {
+  applyPwa();
+  syncCursor();
+}
+
 function showHub() {
   mode = 'hub';
   run = null;
   overlays.show('hub');
   renderHub(overlays.hub, profile, { ...handlers, endlessBiome });
-  syncCursor();
+  leaveRun();
 }
 
 function showGunsmith() {
@@ -104,7 +112,7 @@ function showGunsmith() {
   run = null;
   overlays.show('gunsmith');
   renderGunsmith(overlays.gunsmith, profile, handlers);
-  syncCursor();
+  leaveRun();
 }
 
 function showTraining() {
@@ -112,7 +120,7 @@ function showTraining() {
   run = null;
   overlays.show('training');
   renderTraining(overlays.training, profile, handlers);
-  syncCursor();
+  leaveRun();
 }
 
 function settleRun() {
@@ -132,7 +140,7 @@ function settleRun() {
     handlers,
     extract: run.ended === 'extract',
   });
-  syncCursor();
+  leaveRun();
 }
 
 let queuedPointerTap = false;

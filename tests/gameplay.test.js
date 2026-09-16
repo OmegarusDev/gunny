@@ -50,6 +50,7 @@ import { createScore, onHit, onKill, extractBonus } from '../src/systems/scoring
 import { rectCircleOverlap } from '../src/systems/hits.js';
 import { spawnBullet, stepBullets, rangeDamageMul } from '../src/systems/ballistics.js';
 import { capDpr, createQuality } from '../src/engine/quality.js';
+import { pwaUpdateBlocked } from '../src/engine/pwaBusy.js';
 import { deciduousH, pineH } from '../src/render/scenery/util.js';
 
 describe('threat pacing', () => {
@@ -859,6 +860,27 @@ describe('simulate loop', () => {
     expect(Math.hypot(run.bullets[0].x - b.ox, run.bullets[0].y - b.oy)).toBeGreaterThan(maxDist);
     expect(clampShotRange(4000, viewport)).toBeLessThan(viewport.w * (1 - PLAYER_SCREEN_X_RATIO));
     expect(AIM_REACH_MAX).toBeLessThan(clampShotRange(4000, viewport));
+  });
+
+  it('keeps an on-screen round after 1.6s', () => {
+    const run = liveRun();
+    const maxDist = 48;
+    const b = spawnBullet(run.player.worldX, run.player.y - 120, 0, { ...run.stats, bulletSpeed: 80 }, false, maxDist);
+    run.enemies.length = 0;
+    run.bullets = [b];
+    for (let i = 0; i < 120; i++) stepBullets(run, dt, viewport);
+    expect(run.bullets).toHaveLength(1);
+    expect(Math.hypot(run.bullets[0].x - b.ox, run.bullets[0].y - b.oy)).toBeGreaterThan(80 * 1.6);
+    expect(run.bullets[0].age).toBeUndefined();
+  });
+});
+
+describe('pwa updates', () => {
+  it('blocks service-worker refresh while a run is live', () => {
+    expect(pwaUpdateBlocked('run', { ended: null })).toBe(true);
+    expect(pwaUpdateBlocked('run', { ended: 'death' })).toBe(false);
+    expect(pwaUpdateBlocked('hub', { ended: null })).toBe(false);
+    expect(pwaUpdateBlocked('run', null)).toBe(false);
   });
 });
 

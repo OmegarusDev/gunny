@@ -27,7 +27,6 @@ export function spawnBullet(x, y, angle, stats, perfectMag, maxDist) {
     maxDist: range,
     alive: true,
     hitIds: new Set(),
-    age: 0,
   };
 }
 
@@ -39,7 +38,6 @@ export function stepBullets(run, dt, viewport) {
     if (!b.alive) continue;
     const nx = b.x + b.vx * dt + weather.windX * dt;
     const ny = b.y + b.vy * dt + weather.windY * dt;
-    b.age += dt;
     b.pen -= decay * Math.hypot(nx - b.x, ny - b.y);
 
     const dirt = segmentHitsTerrain(b.x, b.y, nx, ny, terrain.height);
@@ -103,7 +101,8 @@ export function stepBullets(run, dt, viewport) {
 
     b.x = nx;
     b.y = ny;
-    if (b.age > 1.6 || b.pen <= 0 || nx > viewRight) b.alive = false;
+    const offY = ny < -120 || ny > viewport.h + 120;
+    if (b.pen <= 0 || nx > viewRight || offY) b.alive = false;
   }
   run.bullets = bullets.filter((b) => b.alive);
 }
