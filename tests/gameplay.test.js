@@ -28,7 +28,7 @@ import { BIOMES, beatenRoadIndexes, biomeFor } from '../src/data/biomes.js';
 import { KINDS } from '../src/data/kinds.js';
 import { RECEIVERS } from '../src/data/receivers.js';
 import { SKILLS, emptyRanks, refundRetiredRanks, skillCost } from '../src/data/skills.js';
-import { gunsmithStatRows, resolveStats, shotSpreadDeg, STATS } from '../src/entities/loadout.js';
+import { gunsmithStatRows, resolveStats, shotSpreadDeg, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
 import { applyFlinch, createEnemy, enemyIsHurt, lethalHpRatio, limbCircles, stepFlinch } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
@@ -580,6 +580,25 @@ describe('kinds & stats schema', () => {
     const rows = gunsmithStatRows(resolveStats(defaultProfile()));
     expect(rows.map((r) => r[0])).toEqual(STATS.filter((s) => s.gunsmith).map((s) => s.gunsmithLabel));
     expect(rows.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it('stacks known STATS and ignores unknown part keys', () => {
+    expect(STAT_BY_ID.damage.stack).toBe('add');
+    expect(STAT_BY_ID.cashMul.stack).toBe('add');
+    expect(STAT_BY_ID.fullScreenAim).toBeTruthy();
+    const profile = defaultProfile();
+    profile.skillRanks.scavenger = 2;
+    const stats = resolveStats(profile);
+    expect(stats.cashMul).toBeCloseTo(1.14);
+    const ghost = defaultProfile();
+    ghost.loadout.barrel = 'barrel_stub';
+    PARTS.barrel_stub.mods.notAStat = 99;
+    try {
+      const after = resolveStats(ghost);
+      expect(after.notAStat).toBeUndefined();
+    } finally {
+      delete PARTS.barrel_stub.mods.notAStat;
+    }
   });
 });
 

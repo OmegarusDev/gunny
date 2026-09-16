@@ -3,19 +3,37 @@ import { RECEIVERS, SLOT_MIN_TIER, SLOTS } from '../data/receivers.js';
 import { PARTS } from '../data/attachments.js';
 import { SKILLS } from '../data/skills.js';
 
-/** Clamp + gunsmith display. Unknown part keys still stack via applyMods. */
+/**
+ * Gun stats. `stack: 'add'` sums onto the receiver base (Mul keys still start at 1 and add).
+ * `stack: 'mul'` multiplies the running value. Unknown part keys are ignored.
+ */
 export const STATS = [
-  { id: 'damage', min: 6, gunsmith: true, gunsmithLabel: 'DMG', format: (v) => v.toFixed(1) },
-  { id: 'rof', min: 1.5, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => v.toFixed(1) },
-  { id: 'magSize', min: 1, round: true, gunsmith: true, gunsmithLabel: 'MAG', format: (v) => String(v) },
-  { id: 'bulletSpeed', min: 280, gunsmith: true, gunsmithLabel: 'MV', format: (v) => v.toFixed(0) },
-  { id: 'pen', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2) },
-  { id: 'reload', min: 0.7, gunsmith: true, gunsmithLabel: 'Reload', format: (v) => `${v.toFixed(2)}s` },
-  { id: 'shotRange', min: SHOT_REACH_MIN, max: SHOT_REACH_MAX, gunsmith: true, gunsmithLabel: 'Range', format: (v) => String(Math.round(v)) },
-  { id: 'aimReach', min: AIM_REACH_MIN, max: AIM_REACH_MAX, gunsmith: true, gunsmithLabel: 'Sight', format: (v) => String(Math.round(v)) },
-  { id: 'baseSpread', min: 0.2, max: 4.5, gunsmith: true, gunsmithLabel: 'Spread', format: (v) => `${v.toFixed(2)}°` },
-  { id: 'perfectWidth', min: 0.04, max: 0.28 },
+  { id: 'damage', stack: 'add', min: 6, gunsmith: true, gunsmithLabel: 'DMG', format: (v) => v.toFixed(1) },
+  { id: 'rof', stack: 'add', min: 1.5, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => v.toFixed(1) },
+  { id: 'magSize', stack: 'add', min: 1, round: true, gunsmith: true, gunsmithLabel: 'MAG', format: (v) => String(v) },
+  { id: 'bulletSpeed', stack: 'add', min: 280, gunsmith: true, gunsmithLabel: 'MV', format: (v) => v.toFixed(0) },
+  { id: 'pen', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2) },
+  { id: 'reload', stack: 'add', min: 0.7, gunsmith: true, gunsmithLabel: 'Reload', format: (v) => `${v.toFixed(2)}s` },
+  { id: 'shotRange', stack: 'add', min: SHOT_REACH_MIN, max: SHOT_REACH_MAX, gunsmith: true, gunsmithLabel: 'Range', format: (v) => String(Math.round(v)) },
+  { id: 'aimReach', stack: 'add', min: AIM_REACH_MIN, max: AIM_REACH_MAX, gunsmith: true, gunsmithLabel: 'Sight', format: (v) => String(Math.round(v)) },
+  { id: 'baseSpread', stack: 'add', min: 0.2, max: 4.5, gunsmith: true, gunsmithLabel: 'Spread', format: (v) => `${v.toFixed(2)}°` },
+  { id: 'perfectWidth', stack: 'add', min: 0.04, max: 0.28 },
+  { id: 'penDecay', stack: 'add', min: 0 },
+  { id: 'bloomPerShot', stack: 'add', min: 0.25 },
+  { id: 'bloomRecover', stack: 'add', min: 0 },
+  { id: 'aimRate', stack: 'add', min: 2.5 },
+  { id: 'weight', stack: 'add', min: 0.5 },
+  { id: 'heatBuild', stack: 'add', min: 0 },
+  { id: 'heatDump', stack: 'add', min: 0 },
+  { id: 'heatBloom', stack: 'add', min: 0 },
+  { id: 'critChance', stack: 'add', min: 0, max: 0.9 },
+  { id: 'critMult', stack: 'add', min: 1 },
+  { id: 'cashMul', stack: 'add', min: 0.2 },
+  { id: 'bloomPerShotMul', stack: 'add', min: 0.2 },
+  { id: 'fullScreenAim', stack: 'add', min: 0 },
 ];
+
+export const STAT_BY_ID = Object.fromEntries(STATS.map((s) => [s.id, s]));
 
 export function gunsmithStatRows(stats) {
   return STATS.filter((s) => s.gunsmith).map((s) => {
@@ -36,8 +54,10 @@ function clampStat(stats, def) {
 function applyMods(stats, mods) {
   if (!mods) return;
   for (const [k, v] of Object.entries(mods)) {
-    if (k.endsWith('Mul')) {
-      stats[k] = (stats[k] ?? 1) + v;
+    const def = STAT_BY_ID[k];
+    if (!def) continue;
+    if (def.stack === 'mul') {
+      stats[k] = (stats[k] ?? 1) * v;
       continue;
     }
     stats[k] = (stats[k] ?? 0) + v;
