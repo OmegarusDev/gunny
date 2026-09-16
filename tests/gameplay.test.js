@@ -32,7 +32,7 @@ import { RECEIVERS } from '../src/data/receivers.js';
 import { SKILLS, emptyRanks, refundRetiredRanks, skillCost } from '../src/data/skills.js';
 import { gunsmithStatRows, resolveStats, shotSpreadDeg, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
 import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, lethalCircles, lethalHpRatio, limbCircles, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
-import { defaultProfile, resetProfile } from '../src/state/profile.js';
+import { defaultProfile, resetProfile, buyPart, owns } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
 import { wantsImmersive, usesHtmlFullscreen, isPortrait } from '../src/engine/immersive.js';
 import { clampAimPoint, clampToViewport, resolveAimPoint } from '../src/view/aim.js';
@@ -43,7 +43,7 @@ import { createTerrain } from '../src/world/terrain.js';
 import { createPlayer } from '../src/entities/player.js';
 import { playerCoreFromPose, playerHeadClearance, poseEnemyLocal, posePlayerLocal } from '../src/figure.js';
 import { shotEnergy } from '../src/systems/impulse.js';
-import { spawnRagdoll } from '../src/systems/ragdoll.js';
+import { cullFrozenCorpses, spawnRagdoll } from '../src/systems/ragdoll.js';
 import { stepGibs } from '../src/systems/gibs.js';
 import { createRun, simulate } from '../src/systems/run.js';
 import { createScore, onHit, onKill, extractBonus } from '../src/systems/scoring.js';
@@ -214,6 +214,15 @@ describe('economy & ladders', () => {
     profile.unlockedLevel = 2;
     resetProfile(profile);
     expect(profile).toEqual(defaultProfile());
+  });
+
+  it('equips a part as soon as it is bought', () => {
+    const profile = defaultProfile();
+    profile.cash = 500;
+    expect(profile.loadout.magazine).toBe('mag_1');
+    expect(buyPart(profile, 'mag_2', PARTS.mag_2.cost)).toBe(true);
+    expect(owns(profile, 'mag_2')).toBe(true);
+    expect(profile.loadout.magazine).toBe('mag_2');
   });
 });
 
@@ -555,6 +564,19 @@ describe('hit impulse', () => {
     ).toBe(true);
   });
 
+  it('keeps corpses in view and drops ones the camera has already left', () => {
+    const run = {
+      player: { worldX: 0 },
+      frozenCorpses: [
+        { nodes: [{ id: 'pelvis', x: 80, y: 400 }] },
+        { nodes: [{ id: 'pelvis', x: 4200, y: 400 }] },
+      ],
+    };
+    cullFrozenCorpses(run, { w: 1280, h: 720 });
+    expect(run.frozenCorpses).toHaveLength(1);
+    expect(run.frozenCorpses[0].nodes[0].x).toBe(80);
+  });
+
   it('flinches visually without slowing a normal hit, and staggers only on crit', () => {
     const normal = createEnemy(100, terrain, 1, 118);
     applyFlinch(normal, hit);
@@ -591,6 +613,10 @@ describe('hit impulse', () => {
     const afterLeg = lethalHpRatio(foe);
     foe.hp.lLeg = 0;
     expect(lethalHpRatio(foe)).toBeCloseTo(afterLeg, 5);
+    const legs = createEnemy(0, terrain, 1, 80, 'zombie');
+    legs.hp.lLeg = 0;
+    expect(enemyIsHurt(legs)).toBe(false);
+    expect(lethalHpRatio(legs)).toBe(1);
     foe.hp.head = 0;
     expect(lethalHpRatio(foe)).toBeLessThan(afterLeg);
 

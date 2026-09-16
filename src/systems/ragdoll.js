@@ -1,6 +1,10 @@
 import { GRAVITY, HIT_IMPULSE, RAGDOLL_FREEZE_SPEED, MAX_FROZEN } from '../config.js';
+import { cameraX } from '../entities/player.js';
 import { offsetPose, poseEnemy, ragdollLinks, ragdollNodesFromPose } from '../figure.js';
 import { ZONE_NODE } from './impulse.js';
+
+const RAGDOLL_LIVE = 6;
+const CORPSE_CULL_PAD = 220;
 
 export function spawnRagdoll(enemy, hit, rng = Math.random) {
   const pose = enemy.pose ? offsetPose(enemy.pose, enemy.worldX, enemy.y) : poseEnemy(enemy);
@@ -57,7 +61,7 @@ export function spawnRagdoll(enemy, hit, rng = Math.random) {
   };
 }
 
-export function stepRagdolls(run, dt) {
+export function stepRagdolls(run, dt, viewport) {
   for (const rag of run.ragdolls) {
     if (rag.frozen) continue;
     rag.age += dt;
@@ -103,16 +107,51 @@ export function stepRagdolls(run, dt) {
       if (v > maxV) maxV = v;
       if (n.y >= run.terrain.height(n.x) - 1.2) grounded += 1;
     }
-    if (grounded >= 3 && maxV < RAGDOLL_FREEZE_SPEED && rag.age > 0.25) {
-      if (rag.hero) continue;
-      rag.frozen = true;
-      run.frozenCorpses.push({
-        kind: rag.kind,
-        severedHead: rag.severedHead,
-        nodes: rag.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
-      });
-      if (run.frozenCorpses.length > MAX_FROZEN) run.frozenCorpses.shift();
-    }
+    const settled = grounded >= 3 && maxV < RAGDOLL_FREEZE_SPEED && rag.age > 0.25;
+    if (settled || rag.age >= RAGDOLL_LIVE) freezeRagdoll(run, rag);
   }
-  run.ragdolls = run.ragdolls.filter((r) => r.hero || (!r.frozen && r.age < 6));
+  run.ragdolls = run.ragdolls.filter((r) => r.hero || !r.frozen);
+  cullFrozenCorpses(run, viewport);
+}
+
+function freezeRagdoll(run, rag) {
+  if (rag.hero || rag.frozen) return;
+  rag.frozen = true;
+  run.frozenCorpses.push({
+    kind: rag.kind,
+    severedHead: rag.severedHead,
+    nodes: rag.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
+  });
+}
+
+function corpseX(corpse) {
+  const n = corpse.nodes?.find((p) => p.id === 'pelvis') || corpse.nodes?.[0];
+  return n?.x ?? 0;
+}
+
+/** Keep bodies in and near the camera. Drop ones the retreat has already left. */
+export function cullFrozenCorpses(run, viewport) {
+  if (!viewport) {
+    while (run.frozenCorpses.length > MAX_FROZEN) run.frozenCorpses.shift();
+    return;
+  }
+  const left = cameraX(run.player.worldX, viewport);
+  const right = left + viewport.w;
+  run.frozenCorpses = run.frozenCorpses.filter((c) => {
+    const x = corpseX(c);
+    return x > left - CORPSE_CULL_PAD && x < right + CORPSE_CULL_PAD;
+  });
+  while (run.frozenCorpses.length > MAX_FROZEN) {
+    let drop = 0;
+    let worst = -1;
+    run.frozenCorpses.forEach((c, i) => {
+      const x = corpseX(c);
+      const off = Math.max(0, x - right, left - x);
+      if (off >= worst) {
+        worst = off;
+        drop = i;
+      }
+    });
+    run.frozenCorpses.splice(drop, 1);
+  }
 }

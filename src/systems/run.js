@@ -202,7 +202,7 @@ function beginDeath(run, enemy) {
   run.ragdolls.push(rag);
 }
 
-function stepDeath(run, dt) {
+function stepDeath(run, dt, viewport) {
   run.deathT += dt;
   run.weapon.firing = false;
   for (const enemy of run.enemies) {
@@ -210,7 +210,7 @@ function stepDeath(run, dt) {
     stepFlinch(enemy, dt);
     cacheEnemyPose(enemy);
   }
-  stepRagdolls(run, dt);
+  stepRagdolls(run, dt, viewport);
   stepGibs(run, dt);
   if (run.deathT >= DEATH_HOLD) {
     run.dying = false;
@@ -235,7 +235,7 @@ function checkContact(run) {
 export function simulate(run, dt, viewport, input) {
   if (run.ended || run.paused) return;
   if (run.dying) {
-    stepDeath(run, dt);
+    stepDeath(run, dt, viewport);
     return;
   }
 
@@ -314,7 +314,7 @@ export function simulate(run, dt, viewport, input) {
   applyHits(run);
   const left = cameraX(player.worldX, viewport);
   run.enemies = run.enemies.filter((e) => e.alive && e.worldX > left - 140);
-  stepRagdolls(run, dt);
+  stepRagdolls(run, dt, viewport);
   stepGibs(run, dt);
   tickDistance(run.score, runMeters(run));
   checkContact(run);

@@ -96,7 +96,10 @@ export function buyPart(profile, id, cost) {
   if (!canBuy(profile, id, cost)) return false;
   profile.cash -= cost;
   profile.owned.push(id);
-  saveProfile(profile);
+  const part = PARTS[id];
+  const slot = part?.slot || (RECEIVERS[id] ? 'receiver' : null);
+  if (slot) equipPart(profile, slot, id);
+  else saveProfile(profile);
   return true;
 }
 

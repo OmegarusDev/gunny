@@ -87,9 +87,9 @@ export function lethalHpRatio(enemy) {
   return Math.max(0, Math.min(1, cur / max));
 }
 
-/** Any pool missing — bar stays hidden on fresh spawns. */
+/** Head or torso missing — legs are mobility, not the kill bar. */
 export function enemyIsHurt(enemy) {
-  for (const k of ['head', 'torso', 'lLeg', 'rLeg']) {
+  for (const k of ['head', 'torso']) {
     if ((enemy.hp[k] ?? 0) < (enemy.max[k] ?? 0) - 1e-4) return true;
   }
   return false;
