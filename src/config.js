@@ -106,7 +106,8 @@ export const TRACK_METERS = 250;
  * Density uses the same pair. Rhythm (clusters / rests) lives in the spawner.
  */
 export const THREAT = {
-  chill: { spawn: 2.9, max: 2, speed: 138, packChance: 0.18 },
+  /** Mag-1 Forest is a near miss at 50% heads; packs punish. Mag-2 can extract. */
+  chill: { spawn: 2.6, max: 2, speed: 150, packChance: 0.2 },
   /** Campaign L0 grunt toughness at 0m. Torso is 50 at hpMul 1. */
   gruntHp: 1,
   roadHpStep: 0.1,
@@ -119,8 +120,8 @@ export const THREAT = {
   endlessHard: 2,
   speedCap: 222,
   speedSprint: 252,
-  /** Campaign depth (road + extract t) before the sprint band. ~road 13. */
-  sprintRoad: 13,
+  /** Sprint after Duty’s behemoth road, so Road 15 is a gun check not a speed check. */
+  sprintRoad: 18,
   /** Endless extra units ((m-250)/120) before the sprint band. ~1.9km. */
   sprintEndless: 14,
   spawnFloor: 0.55,
@@ -146,24 +147,23 @@ export const BASE_CRIT_MULT = 1.1;
 
 /** Kill cash is the only early store fuel. mag_2 costs 100 ≈ 10 kills.
  * XP is distance + kills + heads. First grunt is 5 XP, then × hpMul by road.
- * Clearing 250m pays cash only: $50 on Forest, ×1.2 per later road, capped so
- * Road 20 does not print a receiver. */
+ * A 250m clear is $150 on Forest (+$50 per later road, cap $400) — a real payday,
+ * never a receiver ($500 Militia). */
 export const ECONOMY = {
   cashPerKill: 10,
-  xpPerMeter: 0.05,
+  xpPerMeter: 0.1,
   xpPerKill: 5,
   xpPerHeadshot: 2,
   xpPerPerfect: 1,
-  extractCashBase: 50,
-  extractCashRate: 1.2,
+  extractCashBase: 150,
+  extractCashStep: 50,
   extractCashCap: 400,
 };
 
-/** Campaign 250m payday. Uncapped 1.2^L is $1.6k by Road 20 and tens of thousands later. */
+/** Campaign 250m payday. Linear so later roads stay fatter without printing guns. */
 export function extractCash(levelIndex) {
   const L = Math.max(0, Math.floor(Number(levelIndex) || 0));
-  const raw = ECONOMY.extractCashBase * ECONOMY.extractCashRate ** L;
-  return Math.round(Math.min(ECONOMY.extractCashCap, raw));
+  return Math.min(ECONOMY.extractCashCap, ECONOMY.extractCashBase + ECONOMY.extractCashStep * L);
 }
 
 /** Struck, ragdoll flop, then the end screen. Flavour copy is still an escape. */

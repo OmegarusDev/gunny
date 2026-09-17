@@ -1,7 +1,7 @@
 import { TRACK_METERS, extractCash } from '../config.js';
 import { beatenRoadIndexes, biomeFor } from '../data/biomes.js';
 import { equippedLabel, resolveStats } from '../entities/loadout.js';
-import { fmtMoney, ledgerBlock, statsGrid } from './overlays.js';
+import { fmtMoney, formatMetres, formatReload, ledgerBlock, statsGrid } from './overlays.js';
 import { facilityButton } from './icons.js';
 
 export function renderHub(el, profile, handlers) {
@@ -63,11 +63,11 @@ export function renderHub(el, profile, handlers) {
       }
       ${statsGrid([
         ['Kit', equippedLabel(profile)],
-        ['DMG', stats.damage.toFixed(1)],
+        ['DMG', Number.isInteger(Math.round(stats.damage * 10) / 10) ? String(Math.round(stats.damage * 10) / 10) : stats.damage.toFixed(1)],
         ['Mag', stats.magSize],
         ['ROF', String(Math.round(stats.rof * 60))],
-        ['Reload', `${stats.reload.toFixed(2)}s`],
-        ['Road', `L${profile.unlockedLevel + 1}`],
+        ['Reload', formatReload(stats.reload)],
+        ['Road', String(profile.unlockedLevel + 1)],
       ])}
     </div>
   `;
@@ -83,24 +83,25 @@ export function renderHub(el, profile, handlers) {
 export function renderEnd(el, { title, run, profile, handlers, extract }) {
   const biome = run.biome;
   const clearPay = extract ? run.score.extractCash || extractCash(run.levelIndex) : 0;
+  const killCash = extract ? Math.max(0, run.score.cash - clearPay) : run.score.cash;
   el.innerHTML = `
     <div class="panel-stack end-stack">
       <div class="page-head">
         ${ledgerBlock(profile)}
       </div>
       <header class="camp-brand workshop-brand">
-        <p class="kicker">${run.endless ? 'Endless' : `Level ${run.levelIndex + 1}`}</p>
+        <p class="kicker">${run.endless ? 'Endless' : `Road ${run.levelIndex + 1}`}</p>
         <h2>${biome ? biome.place : 'The road'}</h2>
         <p class="end-verdict">${title}</p>
       </header>
       ${statsGrid([
-        ['Distance', `${run.score.lastMetersPaid.toFixed(1)}m`],
+        ['Distance', formatMetres(run.score.lastMetersPaid)],
         ['Kills', run.score.kills],
         ['Heads', run.score.headshots],
         extract
-          ? ['Clear', `+${fmtMoney(clearPay)}`]
+          ? ['Clear', `+${fmtMoney(clearPay)}`, 'Payday for walking the whole road. On top of kill cash.']
           : ['Perfects', run.score.perfects],
-        ['Cash', `+${fmtMoney(run.score.cash)}`],
+        ['Cash', `+${fmtMoney(killCash)}`],
         ['XP', `+${Math.floor(run.score.xp)}`],
       ])}
       <div class="facilities">

@@ -5,7 +5,7 @@ export const SKILLS = {
     short: 'Recoil',
     desc: 'Reduces bloom expansion per shot.',
     maxRank: 20,
-    baseCost: 35,
+    baseCost: 40,
     perRank: { bloomPerShotMul: -0.055 },
   },
   reload: {
@@ -41,7 +41,7 @@ export const SKILLS = {
     short: 'Crit %',
     desc: 'Independent RNG crit chance. Not a headshot. Adds pen on a crit.',
     maxRank: 20,
-    baseCost: 45,
+    baseCost: 50,
     perRank: { critChance: 0.03 },
   },
   critMult: {
@@ -68,14 +68,16 @@ export const SKILLS = {
     short: 'Firing',
     desc: 'A little more cyclic rate. Bolt and trigger still do the heavy lifting.',
     maxRank: 20,
-    baseCost: 42,
+    baseCost: 40,
     perRank: { rof: 0.012 },
   },
 };
 
-/** Mild curve so mid ranks stay grindable, not a wall. */
+export const GUNNER_XP = 100;
+
+/** First rank is baseCost, then +20 XP each. Always a round number. */
 export function skillCost(def, nextRank) {
-  return Math.floor(def.baseCost * (1 + nextRank * 0.55));
+  return def.baseCost + 20 * Math.max(0, nextRank);
 }
 
 export function emptyRanks() {
@@ -104,5 +106,5 @@ export function xpInvested(ranks) {
 
 export function gunnerLevel(profile) {
   const total = Math.max(0, Math.floor(profile.xp) + xpInvested(profile.skillRanks));
-  return 1 + Math.floor(total / 90);
+  return 1 + Math.floor(total / GUNNER_XP);
 }

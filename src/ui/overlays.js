@@ -37,6 +37,18 @@ export function fmtMoney(n) {
   return `$${Math.floor(n)}`;
 }
 
+export function formatReload(sec) {
+  const s = Math.round(Number(sec) * 100) / 100;
+  return `${s}s`;
+}
+
+export function formatMetres(m) {
+  const n = Number(m);
+  if (!Number.isFinite(n)) return '0m';
+  const rounded = Math.round(n * 10) / 10;
+  return Number.isInteger(rounded) ? `${rounded}m` : `${rounded.toFixed(1)}m`;
+}
+
 export function ledgerBlock(profile) {
   return `<div class="ledger" role="group" aria-label="Ledger">
     <div class="ledger-gunner">
@@ -59,10 +71,11 @@ export function ledgerBlock(profile) {
 export function statsGrid(rows, extraClass = '') {
   return `<div class="stats ${extraClass}">${rows
     .map(([label, value, hint]) => {
+      const payout = label === 'Clear' ? ' class="is-payout"' : '';
       const tip = hint
         ? ` data-tip="${escapeAttr(hint)}" data-tip-title="${escapeAttr(label)}" tabindex="0" role="button"`
         : '';
-      return `<div${tip}><span>${label}</span><b>${value}</b></div>`;
+      return `<div${payout}${tip}><span>${label}</span><b>${value}</b></div>`;
     })
     .join('')}</div>`;
 }

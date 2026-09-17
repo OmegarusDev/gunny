@@ -30,7 +30,7 @@ import {
   threatForDistance,
   usesFullScreenAim,
 } from '../src/config.js';
-import { PARTS, catalogProgressWindow, ladderCost, partsForSlot } from '../src/data/attachments.js';
+import { PARTS, catalogProgressWindow, ladderCost, partsForSlot, BOLT_COST_BASE, BOLT_COST_RATE } from '../src/data/attachments.js';
 import { BIOMES, beatenRoadIndexes, biomeFor } from '../src/data/biomes.js';
 import { KINDS } from '../src/data/kinds.js';
 import { RECEIVERS, RECEIVER_COST_BASE, RECEIVER_COSTS, RECEIVER_STAT_RATE, SLOTS, SLOT_MIN_TIER } from '../src/data/receivers.js';
@@ -178,6 +178,8 @@ describe('economy & ladders', () => {
   it('prices mag_2 near ten starter kills', () => {
     expect(PARTS.mag_2.cost).toBe(100);
     expect(ECONOMY.cashPerKill * 10).toBe(PARTS.mag_2.cost);
+    expect(PARTS.mag_3.cost).toBe(150);
+    expect(PARTS.mag_10.cost).toBe(500);
   });
 
   it('keeps magazine ladder sequential', () => {
@@ -191,18 +193,18 @@ describe('economy & ladders', () => {
     expect(RECEIVERS.t1_stock.cost).toBe(0);
     expect(RECEIVERS.t1_stock.short).toBe('Shoddy');
     expect(RECEIVERS.t2_tactical.requires).toBe('t1_stock');
-    expect(RECEIVERS.t2_tactical.cost).toBe(1000);
+    expect(RECEIVERS.t2_tactical.cost).toBe(500);
     expect(RECEIVERS.t3_ordnance.tier).toBe(3);
     expect(RECEIVERS.t3_ordnance.cost).toBe(2000);
     expect(RECEIVERS.t3_ordnance.cost).toBeGreaterThan(RECEIVERS.t2_tactical.cost);
     expect(RECEIVERS.t4_duty.requires).toBe('t3_ordnance');
     expect(RECEIVERS.t4_duty.short).toBe('Duty');
-    expect(RECEIVERS.t4_duty.cost).toBe(3500);
+    expect(RECEIVERS.t4_duty.cost).toBe(4000);
     expect(RECEIVERS.t5_advanced.requires).toBe('t4_duty');
     expect(RECEIVERS.t5_advanced.short).toBe('Advanced');
-    expect(RECEIVERS.t5_advanced.cost).toBe(5500);
+    expect(RECEIVERS.t5_advanced.cost).toBe(8000);
     expect(RECEIVERS.t5_advanced.cost).toBeGreaterThan(RECEIVERS.t4_duty.cost);
-    expect(RECEIVER_COSTS).toEqual([0, 1000, 2000, 3500, 5500]);
+    expect(RECEIVER_COSTS).toEqual([0, 500, 2000, 4000, 8000]);
     expect(RECEIVERS.t2_tactical.cost).toBe(RECEIVER_COST_BASE);
     expect(Object.keys(RECEIVERS)).toHaveLength(5);
   });
@@ -260,7 +262,7 @@ describe('economy & ladders', () => {
   });
 
   it('pays XP from distance, kills, and heads — not from a road clear', () => {
-    expect(ECONOMY.xpPerMeter).toBe(0.05);
+    expect(ECONOMY.xpPerMeter).toBe(0.1);
     expect(ECONOMY.xpPerKill).toBe(5);
     expect(ECONOMY.xpPerHeadshot).toBe(2);
     const score = createScore();
@@ -268,17 +270,18 @@ describe('economy & ladders', () => {
     onHit(score, 'head', false);
     extractBonus(score, 0);
     expect(score.xp).toBe(ECONOMY.xpPerKill + ECONOMY.xpPerHeadshot);
-    expect(score.extractCash).toBe(50);
-    expect(score.cash).toBe(ECONOMY.cashPerKill + 50);
+    expect(score.extractCash).toBe(150);
+    expect(score.cash).toBe(ECONOMY.cashPerKill + 150);
   });
 
-  it('pays $50 to clear Forest, then 1.2× per later road, capped at $400', () => {
-    expect(extractCash(0)).toBe(50);
-    expect(extractCash(1)).toBe(60);
-    expect(extractCash(4)).toBe(104);
-    expect(extractCash(11)).toBe(Math.round(50 * 1.2 ** 11));
-    expect(extractCash(19)).toBe(ECONOMY.extractCashCap);
-    expect(extractCash(40)).toBe(ECONOMY.extractCashCap);
+  it('pays $150 to clear Forest, then $50 more per later road, capped at $400', () => {
+    expect(extractCash(0)).toBe(150);
+    expect(extractCash(1)).toBe(200);
+    expect(extractCash(4)).toBe(350);
+    expect(extractCash(5)).toBe(400);
+    expect(extractCash(10)).toBe(400);
+    expect(extractCash(19)).toBe(400);
+    expect(extractCash(40)).toBe(400);
     expect(ECONOMY.extractCashCap).toBe(400);
   });
 
@@ -472,7 +475,7 @@ describe('gunsmith catalog', () => {
 
   it('prices later rungs from a base cost and a rate', () => {
     expect(PARTS.bolt_polished.cost).toBe(250);
-    expect(PARTS.bolt_light.cost).toBe(ladderCost(250, 1.9, 2));
+    expect(PARTS.bolt_light.cost).toBe(ladderCost(BOLT_COST_BASE, BOLT_COST_RATE, 2));
     expect(PARTS.ammo_hot.cost).toBe(300);
     expect(PARTS.bolt_fluted.cost).toBeGreaterThan(PARTS.bolt_light.cost);
     expect(PARTS.muzzle_brake.cost).toBeGreaterThan(PARTS.muzzle_comp.cost);
@@ -732,7 +735,8 @@ describe('skills & profile', () => {
 
   it('prices skill ranks with a mild curve', () => {
     expect(skillCost(SKILLS.marksman, 0)).toBe(40);
-    expect(skillCost(SKILLS.marksman, 3)).toBeGreaterThan(skillCost(SKILLS.marksman, 0));
+    expect(skillCost(SKILLS.marksman, 1)).toBe(60);
+    expect(skillCost(SKILLS.marksman, 3)).toBe(100);
   });
 
   it('only auto-fullscreens the Android WebAPK unless the setting is on', () => {
@@ -995,16 +999,25 @@ describe('kinds & stats schema', () => {
 describe('walker roles', () => {
   const terrain = { height: () => 400 };
 
-  it('gates tank, heavy, and behemoth by road and endless metres', () => {
-    expect(roleUnlocked('tank', { levelIndex: 3 })).toBe(false);
-    expect(roleUnlocked('tank', { levelIndex: 4 })).toBe(true);
+  it('gates tank, heavy, and behemoth just before each receiver payday', () => {
+    expect(roleUnlocked('tank', { levelIndex: ROLE_UNLOCK.tank.road - 1 })).toBe(false);
+    expect(roleUnlocked('tank', { levelIndex: ROLE_UNLOCK.tank.road })).toBe(true);
+    expect(ROLE_UNLOCK.tank.road).toBe(2);
     expect(roleUnlocked('heavy', { levelIndex: ROLE_UNLOCK.heavy.road - 1 })).toBe(false);
     expect(roleUnlocked('heavy', { levelIndex: ROLE_UNLOCK.heavy.road })).toBe(true);
-    expect(roleUnlocked('behemoth', { levelIndex: 18 })).toBe(false);
-    expect(roleUnlocked('behemoth', { levelIndex: 19 })).toBe(true);
-    expect(roleUnlocked('behemoth', { endless: true, meters: 999 })).toBe(false);
-    expect(roleUnlocked('behemoth', { endless: true, meters: 1000 })).toBe(true);
+    expect(ROLE_UNLOCK.heavy.road).toBe(6);
+    expect(roleUnlocked('behemoth', { levelIndex: ROLE_UNLOCK.behemoth.road - 1 })).toBe(false);
+    expect(roleUnlocked('behemoth', { levelIndex: ROLE_UNLOCK.behemoth.road })).toBe(true);
+    expect(ROLE_UNLOCK.behemoth.road).toBe(14);
+    expect(roleUnlocked('behemoth', { endless: true, meters: ROLE_UNLOCK.behemoth.endlessM - 1 })).toBe(false);
+    expect(roleUnlocked('behemoth', { endless: true, meters: ROLE_UNLOCK.behemoth.endlessM })).toBe(true);
     expect(Object.keys(ROLES)).toEqual(['grunt', 'tank', 'heavy', 'behemoth']);
+    expect(ROLES.tank.cash).toBe(ROLES.grunt.cash * 2);
+    expect(ROLES.heavy.cash).toBe(ROLES.tank.cash * 2);
+    expect(ROLES.behemoth.cash).toBe(ROLES.heavy.cash * 2);
+    expect(ROLES.tank.xp).toBe(ROLES.grunt.xp * 2);
+    expect(ROLES.heavy.xp).toBe(ROLES.tank.xp * 2);
+    expect(ROLES.behemoth.xp).toBe(ROLES.heavy.xp * 2);
   });
 
   it('makes tanks slower, tougher, and larger than grunts', () => {
@@ -1025,9 +1038,9 @@ describe('walker roles', () => {
     expect(poseEnemyLocal(boss).scale).toBeCloseTo(ROLES.behemoth.scale);
   });
 
-  it('guarantees a behemoth on Road 20 and Endless 1km', () => {
+  it('guarantees a behemoth on Road 15 and Endless 800m', () => {
     const viewport = { w: 1280, h: 720 };
-    const road = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: 19, seed: 1 });
+    const road = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: ROLE_UNLOCK.behemoth.road, seed: 1 });
     road.player.worldX = -40 * PX_PER_M;
     road.spawnTimer = 0;
     stepSpawner(road, 0.016, viewport);
@@ -1035,7 +1048,7 @@ describe('walker roles', () => {
     expect(road.spawnedBehemoth).toBe(true);
 
     const endless = createRun({ profile: defaultProfile(), viewport, type: 'endless', levelIndex: 0, seed: 1 });
-    endless.player.worldX = -1000 * PX_PER_M;
+    endless.player.worldX = -ROLE_UNLOCK.behemoth.endlessM * PX_PER_M;
     endless.spawnTimer = 0;
     stepSpawner(endless, 0.016, viewport);
     expect(endless.enemies.some((e) => e.role === 'behemoth')).toBe(true);
@@ -1054,7 +1067,7 @@ describe('walker roles', () => {
   });
 
   it('forces the first late-road pick to be a behemoth', () => {
-    const run = { endless: false, levelIndex: 19, spawnedBehemoth: false, rng: () => 0.99 };
+    const run = { endless: false, levelIndex: ROLE_UNLOCK.behemoth.road, spawnedBehemoth: false, rng: () => 0.99 };
     expect(pickRole(run, 40, [])).toBe('behemoth');
     expect(run.spawnedBehemoth).toBe(true);
     expect(pickRole(run, 80, [{ role: 'behemoth' }])).toBe('grunt');

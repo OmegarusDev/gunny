@@ -1,23 +1,23 @@
 /** Gun parts. Each slot is a ladder: buy only the next rank (`requires` previous id). */
 
-/** Box → drum (+5) → belt. mag_2 costs 100 ≈ 10 kills. Belts pay ammo with reload time. */
+/** Box → drum (+5) → belt. mag_2 costs 100 ≈ 10 kills. Each extra round is $50. */
 const MAG_BOX = [1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 35];
 const MAG_DRUM = [40, 45, 50, 55, 60, 65, 70, 75];
 const MAG_BELT = [80, 90, 100, 110, 120];
 
-export const PART_COST_RATE = 1.7;
-export const BOLT_COST_RATE = 1.9;
-export const BARREL_COST_BASE = 140;
-export const OPTIC_COST_BASE = 200;
-export const STOCK_COST_BASE = 160;
-export const MUZZLE_COST_BASE = 160;
+export const PART_COST_RATE = 1.5;
+export const BOLT_COST_RATE = 1.5;
+export const BARREL_COST_BASE = 200;
+export const OPTIC_COST_BASE = 400;
+export const STOCK_COST_BASE = 600;
+export const MUZZLE_COST_BASE = 800;
 export const BOLT_COST_BASE = 250;
-export const GAS_COST_BASE = 320;
-export const SPRING_COST_BASE = 120;
+export const GAS_COST_BASE = 800;
+export const SPRING_COST_BASE = 150;
 export const AMMO_COST_BASE = 300;
-export const GRIP_COST_BASE = 140;
-export const TRIGGER_COST_BASE = 180;
-export const LASER_COST_BASE = 220;
+export const GRIP_COST_BASE = 400;
+export const TRIGGER_COST_BASE = 600;
+export const LASER_COST_BASE = 800;
 export const AMMO_DAMAGE_PER_RANK = 2.2;
 export const AMMO_PEN_PER_RANK = 0.09;
 export const BOLT_ROF_PER_RANK = 0.1;
@@ -29,7 +29,7 @@ export const MUZZLE_SPREAD_STEP = -0.12;
 
 export function ladderCost(baseCost, costRate, rank) {
   if (rank <= 0) return 0;
-  return Math.round(baseCost * costRate ** (rank - 1));
+  return Math.round((baseCost * costRate ** (rank - 1)) / 10) * 10;
 }
 
 function roundTo(v, d = 3) {
@@ -83,8 +83,7 @@ function muzzleMods(recoil, spread) {
 
 function magCost(size) {
   if (size <= 1) return 0;
-  const n = size - 1;
-  return Math.round(85 * n + 15 * n ** 1.2);
+  return 50 * size;
 }
 
 function magKind(size) {

@@ -180,7 +180,7 @@ function slotRow(profile, slot, locked, items, selected, picked) {
     <div class="chips" role="listbox" style="--chip-cols: ${Math.max(items.length, 1)}">
       ${
         locked
-          ? `<span class="muted slot-lock">${slotLockName(slot)}</span>`
+          ? `<span class="muted slot-lock">Needs ${slotLockName(slot)}</span>`
           : items
               .map((it) => {
                 const on = slot === selected && it.id === picked;

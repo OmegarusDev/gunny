@@ -35,9 +35,9 @@ export const SLOT_MIN_TIER = {
 
 /** Damage and RoF grow by this each receiver rank. Shoddy is rank 0. Pen is special-cased. */
 export const RECEIVER_STAT_RATE = 1.5;
-export const RECEIVER_COST_BASE = 1000;
-/** Militia $1k, then $2k / $3.5k / $5.5k so the last gun lands under 10h, not a double-from-Advanced wall. */
-export const RECEIVER_COSTS = [0, 1000, 2000, 3500, 5500];
+export const RECEIVER_COST_BASE = 500;
+/** Militia ~30m, then +1h / +2h / +4h. Round hundreds; leftover kit fills the long tail. */
+export const RECEIVER_COSTS = [0, 500, 2000, 4000, 8000];
 /** Militia (rank 1) pen. Later ranks still 1.5× from here so they can punch through. */
 export const MILITIA_PEN = 0.9;
 

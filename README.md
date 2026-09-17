@@ -24,11 +24,11 @@ A perfect reload is a timing tap on the gold band. Miss after the forgive window
 
 `Camp → Start Run → shoot over your shoulder → extract or die → Gunsmith / Training`
 
-Cash from kills (and a $50 Forest clear bonus, 1.2× per later road, capped at $400) buys kit. XP buys Training — kills start at 5 XP and scale with the road. Clear 250m to unlock the next road. Campaign cycles Forest Road → Fen Causeway → Transylvanian Lane → Desert Wadi → Bone Quarry. Endless uses any road you’ve already extracted from, and is about twice as hard as the same campaign metres.
+Cash from kills (and a $150 Forest clear, then +$50 per later road, capped at $400) buys kit. XP buys Training — kills start at 5 XP and scale with the road. Clear 250m to unlock the next road. Campaign cycles Forest Road → Fen Causeway → Transylvanian Lane → Desert Wadi → Bone Quarry. Endless uses any road you’ve already extracted from, and is about twice as hard as the same campaign metres.
 
-**ROF** is cyclic rounds per minute. Shoddy starts at 40 RPM with a 1-round mag and a 3s reload (reload is separate). A perfect tap on the gold band, just before two-thirds of the bar, adds 10% cyclic rate for that mag. Its three parts are mag, bolt (RoF), and ammo (damage + a little pen). Each later receiver is a fresh kit: Militia barrel and springs; Ordnance grip and optic; Duty stock and trigger; Advanced muzzle, gas, and laser. Switching back keeps that gun’s parts. Receivers still raise damage and RoF about 1.5× each rank. Muzzle devices are compensators and brakes, not a suppressor. Past effective range, rounds keep flying but damage and accuracy fall with distance squared. Forest walkers start at 50 torso and climb 20% through the road; each later road opens 10% harder than the last.
+**ROF** is cyclic rounds per minute. Shoddy starts at 40 RPM with a 1-round mag and a 3s reload (reload is separate). A perfect tap on the gold band, just before two-thirds of the bar, adds 10% cyclic rate for that mag. Its three parts are mag, bolt (RoF), and ammo (damage + a little pen). Each later receiver is a fresh kit: Militia barrel and springs; Ordnance grip and optic; Duty stock and trigger; Advanced muzzle, gas, and laser. Switching back keeps that gun’s parts. Receivers still raise damage and RoF about 1.5× each rank ($500 / $2k / $4k / $8k — about 30m, then +1h / +2h / +4h). Kit rungs sit in those gaps, scaled to the gun that unlocks them. Muzzle devices are compensators and brakes, not a suppressor. Past effective range, rounds keep flying but damage and accuracy fall with distance squared. Forest walkers start at 50 torso and climb 20% through the road; each later road opens 10% harder than the last.
 
-Walkers: Walker, Tank (Road 5 / Endless 200m), Heavy Tank (Road 10 / Endless 500m), Behemoth (Road 20 / Endless 1km). Heavies are bigger versions of that road’s creature, not unique models.
+Walkers: Walker, Tank (Road 3 / Endless 200m), Heavy Tank (Road 7 / Endless 400m), Behemoth (Road 15 / Endless 800m). Each heavy shows up a road before that receiver’s typical payday and pays 2× / 4× / 8× a grunt’s cash and XP. Heavies are bigger versions of that road’s creature, not unique models.
 
 Contact with a living enemy’s **head or torso** ends the run. Legs don’t.
 
@@ -36,7 +36,8 @@ Contact with a living enemy’s **head or torso** ends the run. Legs don’t.
 
 - You cannot reload until the mag is dry. That is the gun.
 - Mag and receiver prices are a grind. Buying the next rung to clear a road is the loop.
-- Road 20 and Endless 1km will wreck a starter kit. Upgrade first.
+- Road 15 and Endless 800m will wreck a starter kit. Upgrade first.
+- Forest’s first clear and Militia are both about a half-hour for a decent shot. Later roads take longer until you buy the next gun.
 - Tanks and the Behemoth look like larger biome walkers (bigger zombie, bigger vampire, …).
 - Crits are a Training RNG roll. They are not headshots. Both add 0.12 pen and stack.
 - Shoddy only punches through with magnum ammo plus a headshot and a crit together. Militia starts at 0.9 and needs a headshot, a crit, or barrel pen.

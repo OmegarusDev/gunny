@@ -708,6 +708,15 @@ html:-webkit-full-screen::backdrop,
   font-style: normal;
 }
 
+#overlay-root .stats .is-payout {
+  border-color: var(--gunny-gold);
+}
+
+#overlay-root .stats .is-payout span,
+#overlay-root .stats .is-payout b {
+  color: var(--gunny-gold);
+}
+
 #overlay-root .stats [data-tip] {
   cursor: pointer;
 }

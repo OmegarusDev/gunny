@@ -16,34 +16,34 @@ export const ROLES = {
   tank: {
     id: 'tank',
     name: 'Tank',
-    hp: 3.5,
+    hp: 3,
     speed: 0.94,
     scale: 1.28,
     weight: 2,
     gap: 180,
-    cash: 2.5,
+    cash: 2,
     xp: 2,
   },
   heavy: {
     id: 'heavy',
     name: 'Heavy Tank',
-    hp: 8,
+    hp: 6,
     speed: 0.88,
     scale: 1.55,
     weight: 3,
     gap: 220,
     cash: 4,
-    xp: 3,
+    xp: 4,
   },
   behemoth: {
     id: 'behemoth',
     name: 'Behemoth',
-    hp: 14,
-    speed: 0.82,
+    hp: 10,
+    speed: 0.8,
     scale: 2.05,
     weight: 4,
     gap: 280,
-    cash: 10,
+    cash: 8,
     xp: 8,
   },
 };
@@ -55,11 +55,13 @@ export function chaseSpeed(threatSpeed, roleId) {
   return Math.max(CHASE_FLOOR, (threatSpeed || 0) * roleOf(roleId).speed) * 1.1;
 }
 
-/** Campaign is 0-indexed: Road 5 = index 4, Road 10 = 9, Road 20 = 19. */
+/** Heavies land a road before each receiver checkpoint. Militia ~30m, then +1h / +2h / +4h
+ * — these roads follow that stretch, not even spacing. Advanced has no new role.
+ * Pay doubles each rank vs a grunt on the same road. */
 export const ROLE_UNLOCK = {
-  tank: { road: 4, endlessM: 200 },
-  heavy: { road: 9, endlessM: 500 },
-  behemoth: { road: 19, endlessM: 1000 },
+  tank: { road: 2, endlessM: 200 },
+  heavy: { road: 6, endlessM: 400 },
+  behemoth: { road: 14, endlessM: 800 },
 };
 
 export function roleOf(id) {
