@@ -73,19 +73,36 @@ function panel(ctx, x, y, w, h, r) {
   ctx.stroke();
 }
 
+function trackingPx(size, tracking) {
+  const t = String(tracking);
+  if (t.endsWith('em')) return parseFloat(t) * size || 0;
+  if (t.endsWith('px')) return parseFloat(t) || 0;
+  return 0;
+}
+
+function measureKicker(ctx, str, size, tracking) {
+  ctx.font = `${size}px ${SERIF}`;
+  ctx.letterSpacing = '0px';
+  const base = ctx.measureText(str).width;
+  return base + Math.max(0, str.length - 1) * trackingPx(size, tracking);
+}
+
 function kicker(ctx, text, x, y, size, tracking = '0.12em', maxW) {
   const str = String(text).toUpperCase();
   ctx.fillStyle = GOLD;
-  ctx.font = `${size}px ${SERIF}`;
+  let s = size;
   let track = tracking;
-  ctx.letterSpacing = track;
   if (maxW != null) {
-    while (track !== '0px' && ctx.measureText(str).width > maxW) {
-      track = track === '0.06em' ? '0px' : '0.06em';
-      ctx.letterSpacing = track;
+    while (s > 11 && measureKicker(ctx, str, s, track) > maxW) {
+      if (track === '0.12em') track = '0.06em';
+      else if (track !== '0px') track = '0px';
+      else s -= 1;
     }
   }
-  ctx.fillText(str, x, y);
+  ctx.font = `${s}px ${SERIF}`;
+  ctx.letterSpacing = track;
+  if (maxW != null) ctx.fillText(str, x, y, maxW);
+  else ctx.fillText(str, x, y);
   ctx.letterSpacing = '0px';
 }
 
@@ -115,7 +132,7 @@ function fitValue(ctx, text, x, y, size, maxW, color = BONE) {
     s -= 1;
     ctx.font = `700 ${s}px ${SERIF}`;
   }
-  ctx.fillText(str, x, y);
+  ctx.fillText(str, x, y, maxW);
   ctx.letterSpacing = '0px';
 }
 
@@ -155,9 +172,11 @@ function drawBrand(ctx, run, x, y, m) {
   if (endless) {
     kicker(ctx, 'Endless', ix, top, m.kicker, '0.12em', innerW);
   } else {
-    kicker(ctx, run.biome?.place || 'Road', ix, top, m.kicker, '0.12em', innerW - 52 * m.u);
+    const badge = `L${(run.levelIndex || 0) + 1}`;
+    const badgeW = measureKicker(ctx, badge, m.kicker, '0.12em') + 10 * m.u;
+    kicker(ctx, run.biome?.place || 'Road', ix, top, m.kicker, '0.12em', Math.max(48, innerW - badgeW));
     ctx.textAlign = 'right';
-    kicker(ctx, `L${(run.levelIndex || 0) + 1}`, x + w - 16 * m.u, top, m.kicker);
+    kicker(ctx, badge, x + w - 16 * m.u, top, m.kicker);
     ctx.textAlign = 'left';
   }
   const title = endless ? run.biome?.place || 'The road' : run.biome?.foe || 'Run';
@@ -169,25 +188,19 @@ function drawBrand(ctx, run, x, y, m) {
     return;
   }
   const distSize = Math.round(22 * m.t);
-  ctx.font = `700 ${distSize}px ${SERIF}`;
-  ctx.letterSpacing = '0.02em';
-  const distW = ctx.measureText(dist).width + 10 * m.u;
-  ctx.letterSpacing = '0px';
-  const barW = Math.max(24, innerW - distW);
   const accent = run.biome?.accent || BLOOD;
+  ctx.textAlign = 'left';
+  fitValue(ctx, dist, ix, y + 82 * m.u, distSize, innerW, BONE);
   meter(
     ctx,
     ix,
-    y + h - 22 * m.u,
-    barW,
-    10 * m.u,
+    y + h - 18 * m.u,
+    innerW,
+    8 * m.u,
     Math.max(0, Math.min(1, metres / TRACK_METERS)),
     accent,
     'rgba(224, 163, 58, 0.4)',
   );
-  ctx.textAlign = 'right';
-  fitValue(ctx, dist, x + w - 16 * m.u, y + h - 36 * m.u, distSize, distW, BONE);
-  ctx.textAlign = 'left';
 }
 
 function drawLedger(ctx, run, profile, viewport, m) {

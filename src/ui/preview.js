@@ -81,6 +81,8 @@ function bootShot(id) {
   link.href = './src/style.css';
   document.head.appendChild(link);
 
+  document.body.style.padding = '0';
+  document.body.style.overflow = 'hidden';
   document.body.innerHTML = `
     <div id="rotate-overlay">
       <p class="rotate-kicker">Landscape</p>
@@ -96,7 +98,18 @@ function bootShot(id) {
   const canvas = document.getElementById('gameCanvas');
   const overlayRoot = document.getElementById('overlay-root');
   const { ctx, viewport, resize } = createCanvas(canvas);
-  resize();
+
+  const start = () => {
+    requestAnimationFrame(() => {
+      resize();
+      paintShot(id, { ctx, viewport, overlayRoot });
+    });
+  };
+  if (link.sheet) start();
+  else link.onload = start;
+}
+
+function paintShot(id, { ctx, viewport, overlayRoot }) {
   const profile = demoProfile();
   const overlays = mountOverlays(overlayRoot, { resetProgress() {} });
   const noop = {
@@ -164,6 +177,6 @@ function bootShot(id) {
   if (id === 'options') {
     overlays.show('hub');
     renderHub(overlays.hub, profile, noop);
-    requestAnimationFrame(() => document.querySelector('.opt-fab')?.click());
+    requestAnimationFrame(() => document.querySelector('[aria-label="Options"]')?.click());
   }
 }
