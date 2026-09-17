@@ -1,6 +1,5 @@
 import { RECEIVERS, SLOTS, receiverRequirement } from '../data/receivers.js';
 import {
-  LEGACY_PART_IDS,
   PARTS,
   STARTER_LOADOUT,
   STARTER_PARTS,
@@ -9,8 +8,7 @@ import {
 } from '../data/attachments.js';
 import { emptyRanks, refundRetiredRanks } from '../data/skills.js';
 
-/** Bumped for economy + ladder rebalance (fresh camp). Kits hydrate from v2 saves. */
-const KEY = 'gunny.profile.v2';
+const KEY = 'gunny.profile.v3';
 
 export function starterKit() {
   const loadout = { ...STARTER_LOADOUT };
@@ -25,16 +23,11 @@ export function ensureKit(profile, recId = profile.loadout?.receiver) {
   return profile.kits[recId];
 }
 
-function remapPartId(id) {
-  return LEGACY_PART_IDS[id] || id;
-}
-
 function slotLoadoutFrom(src = {}) {
   const loadout = { ...starterKit().loadout };
-  if (src.trigger && !src.bolt) loadout.bolt = remapPartId(src.trigger);
   for (const slot of SLOTS) {
     if (slot === 'receiver') continue;
-    const id = remapPartId(src[slot]);
+    const id = src[slot];
     if (PARTS[id] && PARTS[id].slot === slot) loadout[slot] = id;
   }
   return loadout;
@@ -42,9 +35,7 @@ function slotLoadoutFrom(src = {}) {
 
 function sanitizeKit(raw) {
   const kit = starterKit();
-  const owned = Array.from(
-    new Set([...(raw?.owned || []).map(remapPartId), ...STARTER_PARTS]),
-  ).filter((id) => PARTS[id]);
+  const owned = Array.from(new Set([...(raw?.owned || []), ...STARTER_PARTS])).filter((id) => PARTS[id]);
   kit.owned = owned;
   kit.loadout = slotLoadoutFrom(raw?.loadout);
   for (const slot of Object.keys(kit.loadout)) {
@@ -72,13 +63,12 @@ export function applyKit(profile) {
 
 export function grant(profile, ...ids) {
   for (const id of ids) {
-    const mapped = remapPartId(id);
-    if (RECEIVERS[mapped]) {
-      if (!profile.owned.includes(mapped)) profile.owned.push(mapped);
-      ensureKit(profile, mapped);
-    } else if (PARTS[mapped]) {
+    if (RECEIVERS[id]) {
+      if (!profile.owned.includes(id)) profile.owned.push(id);
+      ensureKit(profile, id);
+    } else if (PARTS[id]) {
       const owned = ensureKit(profile).owned;
-      if (!owned.includes(mapped)) owned.push(mapped);
+      if (!owned.includes(id)) owned.push(id);
     }
   }
 }
@@ -97,9 +87,9 @@ export function defaultProfile() {
 
 export function hydrateProfile(parsed = {}) {
   const base = defaultProfile();
-  const ownedReceivers = Array.from(
-    new Set([...(parsed.owned || []).map(remapPartId), ...STARTER_RECEIVERS]),
-  ).filter((id) => RECEIVERS[id]);
+  const ownedReceivers = Array.from(new Set([...(parsed.owned || []), ...STARTER_RECEIVERS])).filter(
+    (id) => RECEIVERS[id],
+  );
   const recId = RECEIVERS[parsed.loadout?.receiver] ? parsed.loadout.receiver : STARTER_LOADOUT.receiver;
   const kits = {};
   const savedKits = parsed.kits && typeof parsed.kits === 'object' ? parsed.kits : null;
@@ -107,7 +97,7 @@ export function hydrateProfile(parsed = {}) {
   if (hasKits) {
     for (const id of ownedReceivers) kits[id] = sanitizeKit(savedKits[id]);
   } else {
-    const leftover = (parsed.owned || []).map(remapPartId).filter((id) => PARTS[id]);
+    const leftover = (parsed.owned || []).filter((id) => PARTS[id]);
     kits[recId] = sanitizeKit({
       owned: leftover,
       loadout: parsed.loadout,
@@ -158,9 +148,8 @@ export function resetProfile(profile) {
 }
 
 export function owns(profile, id) {
-  const mapped = remapPartId(id);
-  if (RECEIVERS[mapped]) return profile.owned.includes(mapped);
-  if (PARTS[mapped]) return ensureKit(profile).owned.includes(mapped);
+  if (RECEIVERS[id]) return profile.owned.includes(id);
+  if (PARTS[id]) return ensureKit(profile).owned.includes(id);
   return false;
 }
 

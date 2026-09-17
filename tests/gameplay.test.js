@@ -293,11 +293,11 @@ describe('economy & ladders', () => {
     expect(profile.kits.t2_tactical.loadout.magazine).toBe('mag_2');
   });
 
-  it('hydrates pre-kit saves onto the equipped receiver only', () => {
+  it('hydrates a flat owned list onto the equipped receiver only', () => {
     const { profile } = hydrateProfile({
       cash: 10,
-      owned: ['t1_stock', 't2_tactical', 'mag_2', 'trigger_match'],
-      loadout: { receiver: 't1_stock', magazine: 'mag_2', trigger: 'trigger_match' },
+      owned: ['t1_stock', 't2_tactical', 'mag_2', 'bolt_polished'],
+      loadout: { receiver: 't1_stock', magazine: 'mag_2', bolt: 'bolt_polished' },
     });
     expect(profile.owned).toEqual(['t1_stock', 't2_tactical']);
     expect(profile.loadout.magazine).toBe('mag_2');
@@ -561,7 +561,7 @@ describe('loadout aim stats', () => {
     ord.owned.push('t2_tactical', 't3_ordnance');
     ord.loadout.receiver = 't3_ordnance';
     const stockTrig = resolveStats(ord);
-    ord.loadout.trigger = 'sear_hair';
+    ord.loadout.trigger = 'trigger_hair';
     expect(resolveStats(ord).rof).toBeGreaterThan(stockTrig.rof);
 
     const adv = defaultProfile();

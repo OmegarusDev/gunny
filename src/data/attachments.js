@@ -493,26 +493,26 @@ export const PARTS = {
     costRate: PART_COST_RATE,
     perRank: { rof: TRIGGER_ROF_PER_RANK },
     starter: {
-      id: 'sear_factory',
-      name: 'Factory Sear',
+      id: 'trigger_factory',
+      name: 'Factory Trigger',
       short: 'Factory',
       desc: 'Heavy break. What Ordnance ships with.',
     },
     rungs: [
       {
-        id: 'sear_match',
-        name: 'Match Sear',
+        id: 'trigger_match',
+        name: 'Match Trigger',
         short: 'Match',
         desc: 'A lighter break. A bit more cyclic rate.',
       },
       {
-        id: 'sear_two',
+        id: 'trigger_two',
         name: 'Two-Stage',
         short: 'Two-Stage',
         desc: 'Crisp wall. Faster follow-up.',
       },
       {
-        id: 'sear_hair',
+        id: 'trigger_hair',
         name: 'Hair Trigger',
         short: 'Hair',
         desc: 'Fastest break the action will take.',
@@ -568,7 +568,7 @@ export const STARTER_PARTS = [
   'grip_none',
   'optic_none',
   'stock_none',
-  'sear_factory',
+  'trigger_factory',
   'muzzle_none',
   'gas_factory',
   'laser_none',
@@ -586,18 +586,10 @@ export const STARTER_LOADOUT = {
   grip: 'grip_none',
   optic: 'optic_none',
   stock: 'stock_none',
-  trigger: 'sear_factory',
+  trigger: 'trigger_factory',
   muzzle: 'muzzle_none',
   gasBlock: 'gas_factory',
   laser: 'laser_none',
-};
-
-/** Old trigger ids from pre-kit saves. */
-export const LEGACY_PART_IDS = {
-  trigger_milspec: 'bolt_factory',
-  trigger_match: 'bolt_polished',
-  trigger_binary: 'bolt_light',
-  trigger_volt: 'bolt_fluted',
 };
 
 export const CATALOG_WINDOW = 4;
