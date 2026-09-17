@@ -9,7 +9,7 @@ export function renderTraining(el, profile, handlers) {
   const hintId = el.dataset.hint && SKILLS[el.dataset.hint] ? el.dataset.hint : skills[0]?.id;
 
   el.innerHTML = `
-    <div class="panel-stack training-stack">
+    <div class="panel-stack">
       <div class="page-head">
         ${backButton()}
         ${ledgerBlock(profile)}

@@ -16,7 +16,7 @@ export const SLOTS = [
   'laser',
 ];
 
-/** Shoddy: mag, RoF, damage. Each later receiver unlocks three more slots. */
+/** Shoddy: mag, bolt, ammo. Later guns open two slots, Advanced opens the last three. */
 export const SLOT_MIN_TIER = {
   receiver: 1,
   magazine: 1,
@@ -24,19 +24,20 @@ export const SLOT_MIN_TIER = {
   ammo: 1,
   barrel: 2,
   springs: 2,
-  grip: 2,
+  grip: 3,
   optic: 3,
-  stock: 3,
-  trigger: 3,
-  muzzle: 4,
-  gasBlock: 4,
-  laser: 4,
+  stock: 4,
+  trigger: 4,
+  muzzle: 5,
+  gasBlock: 5,
+  laser: 5,
 };
 
 /** Damage and RoF grow by this each receiver rank. Shoddy is rank 0. Pen is special-cased. */
 export const RECEIVER_STAT_RATE = 1.5;
 export const RECEIVER_COST_BASE = 1000;
-export const RECEIVER_COST_RATE = 2;
+/** Militia $1k, then $2k / $3.5k / $5.5k so the last gun lands under 10h, not a double-from-Advanced wall. */
+export const RECEIVER_COSTS = [0, 1000, 2000, 3500, 5500];
 /** Militia (rank 1) pen. Later ranks still 1.5× from here so they can punch through. */
 export const MILITIA_PEN = 0.9;
 
@@ -83,12 +84,13 @@ function roundTo(v, d) {
   return Math.round(v * p) / p;
 }
 
-export function receiverCost(rank) {
+function receiverCost(rank) {
   if (rank <= 0) return 0;
-  return Math.round(RECEIVER_COST_BASE * RECEIVER_COST_RATE ** (rank - 1));
+  if (rank < RECEIVER_COSTS.length) return RECEIVER_COSTS[rank];
+  return Math.round(RECEIVER_COSTS[RECEIVER_COSTS.length - 1] * 1.5 ** (rank - (RECEIVER_COSTS.length - 1)));
 }
 
-export function receiverBase(rank) {
+function receiverBase(rank) {
   const g = RECEIVER_STAT_RATE ** rank;
   const base = { ...SHODDY_BASE };
   base.damage = roundTo(SHODDY_BASE.damage * g, 1);
@@ -118,19 +120,25 @@ const META = [
     id: 't2_tactical',
     name: 'Militia Receiver',
     short: 'Militia',
-    desc: 'Militia-grade. Opens barrel, springs, and grip.',
+    desc: 'Militia-grade. Opens barrel and springs.',
   },
   {
     id: 't3_ordnance',
     name: 'Ordnance Receiver',
     short: 'Ordnance',
-    desc: 'Full internals: optic, stock, and trigger. High RoF ceiling.',
+    desc: 'Opens grip and optic. A cleaner hold and a longer sight.',
   },
   {
-    id: 't4_advanced',
+    id: 't4_duty',
+    name: 'Duty Receiver',
+    short: 'Duty',
+    desc: 'Opens stock and trigger. Planted fire.',
+  },
+  {
+    id: 't5_advanced',
     name: 'Advanced Receiver',
     short: 'Advanced',
-    desc: 'Opens muzzle, gas, and a laser. Same rails as Ordnance, hotter ceiling.',
+    desc: 'Opens muzzle, gas, and a laser. Hottest ceiling.',
   },
 ];
 

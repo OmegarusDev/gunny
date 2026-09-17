@@ -1,4 +1,4 @@
-import { ECONOMY } from '../config.js';
+import { ECONOMY, extractCash } from '../config.js';
 
 export function createScore() {
   return {
@@ -28,7 +28,7 @@ export function onHit(score, zone, crit) {
 export function onKill(score, cashMul, xpMul = 1) {
   score.kills += 1;
   score.cash += ECONOMY.cashPerKill * cashMul;
-  score.xp += ECONOMY.xpPerKill * xpMul;
+  score.xp += Math.round(ECONOMY.xpPerKill * xpMul);
 }
 
 export function onPerfect(score) {
@@ -36,7 +36,8 @@ export function onPerfect(score) {
   score.xp += ECONOMY.xpPerPerfect;
 }
 
-export function extractBonus(score) {
-  score.cash += ECONOMY.extractBonus;
-  score.xp += ECONOMY.extractXp;
+export function extractBonus(score, levelIndex = 0) {
+  const cash = extractCash(levelIndex);
+  score.cash += cash;
+  score.extractCash = cash;
 }

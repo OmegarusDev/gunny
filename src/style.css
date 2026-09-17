@@ -463,13 +463,6 @@ html:-webkit-full-screen::backdrop,
   line-height: 1.4;
 }
 
-#overlay-root .kit-line {
-  margin: 0;
-  text-align: center;
-  flex-shrink: 0;
-  letter-spacing: 0.04em;
-}
-
 #overlay-root .ledger {
   display: flex;
   flex-wrap: nowrap;
@@ -759,6 +752,11 @@ html:-webkit-full-screen::backdrop,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+#overlay-root .slot-matrix > .slot-row:first-child .chip {
+  font-size: 11px;
+  padding: 6px 4px;
 }
 
 #overlay-root .part-chip {
@@ -1352,7 +1350,6 @@ html:-webkit-full-screen::backdrop,
   }
 
   #overlay-root .lede,
-  #overlay-root .kit-line,
   #overlay-root .facility-sub,
   #overlay-root .workshop-brand .kicker,
   #panel-training .stats {

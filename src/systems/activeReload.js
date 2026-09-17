@@ -2,13 +2,6 @@ import { JAM_PENALTY, RELOAD_FORGIVE } from '../config.js';
 import { playCock, playJam, playMagIn, playMagOut, playPerfect } from '../audio/synth.js';
 import { perfectBand } from '../view/reload.js';
 
-export {
-  perfectBand,
-  pointerInReloadGauge,
-  reloadGaugeBounds,
-  reloadNorm,
-} from '../view/reload.js';
-
 export function startReload(weapon, stats) {
   if (weapon.reloading) return;
   weapon.reloading = true;
@@ -16,7 +9,6 @@ export function startReload(weapon, stats) {
   weapon.reloadDur = stats.reload;
   weapon.jammed = false;
   weapon.tapped = false;
-  weapon.toneAcc = 0;
   weapon.perfectMag = false;
   weapon.magIn = false;
   playMagOut();

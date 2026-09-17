@@ -48,7 +48,7 @@ window.addEventListener(
 );
 
 const applyPwa = initPwa({
-  busy: () => pwaUpdateBlocked(mode, run),
+  busy: () => pwaUpdateBlocked(mode),
 });
 
 const handlers = {

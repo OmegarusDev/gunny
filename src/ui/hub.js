@@ -1,7 +1,7 @@
-import { TRACK_METERS } from '../config.js';
+import { TRACK_METERS, extractCash } from '../config.js';
 import { beatenRoadIndexes, biomeFor } from '../data/biomes.js';
 import { equippedLabel, resolveStats } from '../entities/loadout.js';
-import { ledgerBlock, statsGrid } from './overlays.js';
+import { fmtMoney, ledgerBlock, statsGrid } from './overlays.js';
 import { facilityButton } from './icons.js';
 
 export function renderHub(el, profile, handlers) {
@@ -82,6 +82,7 @@ export function renderHub(el, profile, handlers) {
 
 export function renderEnd(el, { title, run, profile, handlers, extract }) {
   const biome = run.biome;
+  const clearPay = extract ? run.score.extractCash || extractCash(run.levelIndex) : 0;
   el.innerHTML = `
     <div class="panel-stack end-stack">
       <div class="page-head">
@@ -96,8 +97,10 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
         ['Distance', `${run.score.lastMetersPaid.toFixed(1)}m`],
         ['Kills', run.score.kills],
         ['Heads', run.score.headshots],
-        ['Perfects', run.score.perfects],
-        ['Cash', `+$${Math.floor(run.score.cash)}`],
+        extract
+          ? ['Clear', `+${fmtMoney(clearPay)}`]
+          : ['Perfects', run.score.perfects],
+        ['Cash', `+${fmtMoney(run.score.cash)}`],
         ['XP', `+${Math.floor(run.score.xp)}`],
       ])}
       <div class="facilities">

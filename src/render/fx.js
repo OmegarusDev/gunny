@@ -1,7 +1,4 @@
-import { hexRgb, mixHex, rgbStr, shadeHex } from '../util/color.js';
 import { uhash } from '../util/hash.js';
-
-export { hexRgb, mixHex, rgbStr, shadeHex };
 
 let grainCanvas = null;
 let grainPat = null;

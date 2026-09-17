@@ -22,7 +22,7 @@ import {
   drawNearScenery,
   drawSky,
   hubRun,
-} from './scenery.js';
+} from './scenery/index.js';
 
 function w2s(x, y, run, viewport) {
   return worldToScreen(x, y, run.player.worldX, viewport);

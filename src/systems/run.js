@@ -4,6 +4,7 @@ import {
   effectiveShotRange,
   HIT_IMPULSE,
   TRACK_METERS,
+  threatForDistance,
   usesFullScreenAim,
   V_RETREAT,
 } from '../config.js';
@@ -64,7 +65,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     shakeY: 0,
     spawnedBehemoth: false,
     spawnTimer: 0.35,
-    threat: null,
+    threat: threatForDistance(0, levelIndex, type === 'endless'),
     paused: false,
     ended: null,
     dying: false,
@@ -84,7 +85,6 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
       tapped: false,
       perfectMag: false,
       firing: false,
-      toneAcc: 0,
       suppressFire: false,
     },
     score: createScore(),
@@ -143,7 +143,8 @@ function applyHits(run) {
       if (zone === 'head' || enemy.hp.head <= 0) enemy.severedHead = true;
       const overkill = dmg > remaining * 2 && remaining > 0;
       const role = roleOf(enemy.role);
-      onKill(run.score, stats.cashMul * role.cash, role.xp);
+      const hpMul = run.threat?.hpMul || 1;
+      onKill(run.score, stats.cashMul * role.cash, role.xp * hpMul);
       if (overkill) {
         run.gibs.push(...spawnGibs(hit.x, hit.y, hit.nx, hit.ny, 10, run.rng));
       } else {
@@ -234,14 +235,24 @@ function beginDeath(run, enemy) {
   run.ragdolls.push(rag);
 }
 
-function stepDeath(run, dt, viewport) {
-  run.deathT += dt;
-  run.weapon.firing = false;
+function chaseLiving(run, dt) {
   for (const enemy of run.enemies) {
     if (!enemy.alive) continue;
     stepFlinch(enemy, dt);
-    cacheEnemyPose(enemy);
+    const hitch = enemy.stun > 0 ? HIT_IMPULSE.stunHitch : 1;
+    enemy.worldX -= enemy.speed * hitch * dt;
+    enemy.y = run.terrain.height(enemy.worldX);
   }
+}
+
+function stepDeath(run, dt, viewport) {
+  run.deathT += dt;
+  run.weapon.firing = false;
+  chaseLiving(run, dt);
+  for (const enemy of run.enemies) {
+    if (enemy.alive) cacheEnemyPose(enemy);
+  }
+  stepFootfalls(run, viewport);
   stepRagdolls(run, dt, viewport);
   stepGibs(run, dt);
   if (run.deathT >= DEATH_HOLD) {
@@ -373,13 +384,7 @@ export function simulate(run, dt, viewport, input) {
     weapon.suppressFire = false;
   }
 
-  for (const enemy of run.enemies) {
-    if (!enemy.alive) continue;
-    stepFlinch(enemy, dt);
-    const hitch = enemy.stun > 0 ? HIT_IMPULSE.stunHitch : 1;
-    enemy.worldX -= enemy.speed * hitch * dt;
-    enemy.y = run.terrain.height(enemy.worldX);
-  }
+  chaseLiving(run, dt);
 
   stepSpawner(run, dt, viewport);
   stepFootfalls(run, viewport);
@@ -394,7 +399,7 @@ export function simulate(run, dt, viewport, input) {
   stepGibs(run, dt);
   tickDistance(run.score, runMeters(run));
   if (!run.endless && runMeters(run) >= TRACK_METERS && !run.ended && !run.dying) {
-    extractBonus(run.score);
+    extractBonus(run.score, run.levelIndex);
     run.ended = 'extract';
     return;
   }

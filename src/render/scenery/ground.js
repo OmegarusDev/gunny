@@ -1,5 +1,5 @@
 import { PLAYER_SCREEN_X_RATIO } from '../../config.js';
-import { mixHex, shadeHex } from '../fx.js';
+import { mixHex, shadeHex } from '../../util/color.js';
 import { uhash, worldLeft } from './util.js';
 
 export function drawHills(ctx, viewport, run) {

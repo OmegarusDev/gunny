@@ -1,7 +1,4 @@
 import { registerSW } from 'virtual:pwa-register';
-import { pwaUpdateBlocked } from './engine/pwaBusy.js';
-
-export { pwaUpdateBlocked };
 
 export function initPwa({ busy } = {}) {
   let waiting = false;

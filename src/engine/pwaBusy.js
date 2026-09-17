@@ -1,4 +1,4 @@
-/** A new build waits until camp — never reload mid-run. */
-export function pwaUpdateBlocked(mode, run) {
-  return mode === 'run' && !!run && !run.ended;
+/** A new build waits until camp — never reload mid-run or on the end screen. */
+export function pwaUpdateBlocked(mode) {
+  return mode !== 'hub';
 }

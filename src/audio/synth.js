@@ -1,3 +1,5 @@
+import { clamp01 } from '../util/math.js';
+
 let ctx = null;
 let buses = null;
 let mixer = { muted: false, gunshot: 0.8, footsteps: 0.8, ambient: 0.55 };
@@ -10,11 +12,6 @@ function ac() {
   if (!ctx) ctx = new Ctor();
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
-}
-
-function clamp01(n, fallback = 0) {
-  const v = Number(n);
-  return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : fallback;
 }
 
 function ambientGain() {
@@ -306,10 +303,6 @@ export function playCock(tight = false) {
   metalClick(audio, dest, t, 2200, 0.1, 0.012);
   playMech(audio, t + span * 0.62, { spikes: 4, span: 0.018, gain: 0.14, freq: 1700 });
   metalClick(audio, dest, t + span * 0.68, 1450, 0.09, 0.014);
-}
-
-export function playReloadTone() {
-  /* Reload now uses mag/cock rattles instead of a rising beep. */
 }
 
 export function playPerfect() {

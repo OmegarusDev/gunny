@@ -10,7 +10,7 @@ import { emptyRanks, sanitizeRanks } from '../data/skills.js';
 
 const KEY = 'gunny.profile.v3';
 
-export function starterKit() {
+function starterKit() {
   const loadout = { ...STARTER_LOADOUT };
   delete loadout.receiver;
   return { owned: [...STARTER_PARTS], loadout };
@@ -45,7 +45,7 @@ function sanitizeKit(raw) {
   return kit;
 }
 
-export function stashKit(profile) {
+function persistReceiverKit(profile) {
   const recId = profile.loadout.receiver;
   if (!RECEIVERS[recId]) return;
   const kit = ensureKit(profile, recId);
@@ -85,26 +85,35 @@ export function defaultProfile() {
   };
 }
 
+function remapReceiverId(id) {
+  if (id === 't4_advanced') return 't5_advanced';
+  return id;
+}
+
+function fillReceiverLadder(ids) {
+  const owned = new Set(ids);
+  const list = Object.values(RECEIVERS).sort((a, b) => a.rank - b.rank);
+  let max = -1;
+  for (const rec of list) {
+    if (owned.has(rec.id)) max = Math.max(max, rec.rank);
+  }
+  return list.filter((r) => r.rank <= max).map((r) => r.id);
+}
+
 export function hydrateProfile(parsed = {}) {
   const base = defaultProfile();
-  const ownedReceivers = Array.from(new Set([...(parsed.owned || []), ...STARTER_RECEIVERS])).filter(
-    (id) => RECEIVERS[id],
+  const ownedReceivers = fillReceiverLadder(
+    Array.from(new Set([...(parsed.owned || []).map(remapReceiverId), ...STARTER_RECEIVERS])).filter(
+      (id) => RECEIVERS[id],
+    ),
   );
-  const recId = RECEIVERS[parsed.loadout?.receiver] ? parsed.loadout.receiver : STARTER_LOADOUT.receiver;
+  const rawRec = remapReceiverId(parsed.loadout?.receiver);
+  const recId = RECEIVERS[rawRec] ? rawRec : STARTER_LOADOUT.receiver;
+  const savedKits = parsed.kits && typeof parsed.kits === 'object' ? parsed.kits : {};
   const kits = {};
-  const savedKits = parsed.kits && typeof parsed.kits === 'object' ? parsed.kits : null;
-  const hasKits = savedKits && Object.keys(savedKits).some((id) => RECEIVERS[id]);
-  if (hasKits) {
-    for (const id of ownedReceivers) kits[id] = sanitizeKit(savedKits[id]);
-  } else {
-    const leftover = (parsed.owned || []).filter((id) => PARTS[id]);
-    kits[recId] = sanitizeKit({
-      owned: leftover,
-      loadout: parsed.loadout,
-    });
-    for (const id of ownedReceivers) {
-      if (!kits[id]) kits[id] = starterKit();
-    }
+  for (const id of ownedReceivers) {
+    const raw = savedKits[id] || (id === 't5_advanced' ? savedKits.t4_advanced : null);
+    kits[id] = sanitizeKit(raw);
   }
   const next = {
     ...base,
@@ -117,15 +126,14 @@ export function hydrateProfile(parsed = {}) {
     skillRanks: sanitizeRanks(parsed.skillRanks),
   };
   applyKit(next);
-  return { profile: next };
+  return next;
 }
 
 export function loadProfile() {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultProfile();
-    const { profile } = hydrateProfile(JSON.parse(raw));
-    return profile;
+    return hydrateProfile(JSON.parse(raw));
   } catch {
     return defaultProfile();
   }
@@ -150,12 +158,12 @@ export function owns(profile, id) {
   return false;
 }
 
-export function itemRequirement(id) {
+function itemRequirement(id) {
   return partRequirement(id) || receiverRequirement(id);
 }
 
 /** Next ladder step only — cannot skip parts. */
-export function canBuy(profile, id, cost) {
+function canBuy(profile, id, cost) {
   if (owns(profile, id)) return false;
   if (profile.cash < cost) return false;
   const req = itemRequirement(id);
@@ -189,7 +197,7 @@ export function equipPart(profile, slot, id) {
     const rec = RECEIVERS[id];
     if (!rec || !owns(profile, id)) return false;
     if (profile.loadout.receiver !== id) {
-      stashKit(profile);
+      persistReceiverKit(profile);
       profile.loadout.receiver = id;
       applyKit(profile);
     }

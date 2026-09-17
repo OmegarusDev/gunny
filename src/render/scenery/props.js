@@ -1,4 +1,4 @@
-import { shadeHex } from '../fx.js';
+import { shadeHex } from '../../util/color.js';
 import {
   deciduousH,
   inViewX,

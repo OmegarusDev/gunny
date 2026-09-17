@@ -1,9 +1,6 @@
-const KEY = 'gunny.settings.v1';
+import { clamp01 } from '../util/math.js';
 
-function clamp01(n, fallback) {
-  const v = Number(n);
-  return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : fallback;
-}
+const KEY = 'gunny.settings.v1';
 
 export function defaultSettings() {
   return {

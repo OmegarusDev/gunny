@@ -21,17 +21,3 @@ export function valueNoise1D(x, seed = 0) {
   const b = hash(i + 1 + seed);
   return lerp(a, b, f) * 2 - 1;
 }
-
-export function fbm1D(x, seed = 0) {
-  let sum = 0;
-  let amp = 1;
-  let freq = 1;
-  let norm = 0;
-  for (let o = 0; o < 4; o++) {
-    sum += valueNoise1D(x * freq, seed + o * 101) * amp;
-    norm += amp;
-    amp *= 0.5;
-    freq *= 2.03;
-  }
-  return sum / norm;
-}

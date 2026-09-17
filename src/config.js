@@ -73,8 +73,6 @@ export function effectiveShotRange(stats, viewport) {
   const extra = (stats?.shotRange || 0) - SHOT_REACH_BASE;
   return clampShotRange(baseShotRange(viewport) + extra, viewport);
 }
-/** Static cone (degrees) before bloom/heat — first shots are not lasers. */
-export const BASE_SPREAD_DEG = 2.35;
 export const JAM_PENALTY = 0.9;
 export const RELOAD_FORGIVE = 0.32;
 /** Perfect reload: +10% cyclic rate for the mag you just seated. */
@@ -147,16 +145,26 @@ export const BASE_CRIT_CHANCE = 0.05;
 export const BASE_CRIT_MULT = 1.1;
 
 /** Kill cash is the only early store fuel. mag_2 costs 100 ≈ 10 kills.
- * XP is distance + kills + heads + extract. First skill ranks cost 30–50. */
+ * XP is distance + kills + heads. First grunt is 5 XP, then × hpMul by road.
+ * Clearing 250m pays cash only: $50 on Forest, ×1.2 per later road, capped so
+ * Road 20 does not print a receiver. */
 export const ECONOMY = {
   cashPerKill: 10,
   xpPerMeter: 0.05,
-  xpPerKill: 3,
+  xpPerKill: 5,
   xpPerHeadshot: 2,
   xpPerPerfect: 1,
-  extractBonus: 40,
-  extractXp: 18,
+  extractCashBase: 50,
+  extractCashRate: 1.2,
+  extractCashCap: 400,
 };
+
+/** Campaign 250m payday. Uncapped 1.2^L is $1.6k by Road 20 and tens of thousands later. */
+export function extractCash(levelIndex) {
+  const L = Math.max(0, Math.floor(Number(levelIndex) || 0));
+  const raw = ECONOMY.extractCashBase * ECONOMY.extractCashRate ** L;
+  return Math.round(Math.min(ECONOMY.extractCashCap, raw));
+}
 
 /** Struck, ragdoll flop, then the end screen. Flavour copy is still an escape. */
 export const DEATH_HOLD = 1.8;

@@ -19,7 +19,7 @@ export function mountOptions(root, handlers) {
 
   const installFab = document.createElement('button');
   installFab.type = 'button';
-  installFab.className = 'opt-fab install-fab';
+  installFab.className = 'opt-fab';
   installFab.setAttribute('aria-label', 'Install app');
   installFab.innerHTML = INSTALL_SVG;
 

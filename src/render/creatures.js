@@ -1,13 +1,13 @@
 import {
   MUZZLE_LEN,
   S,
-  mixTone,
   paperPalette,
   poseEnemyLocal,
   poseFromNodes,
   posePlayerLocal,
 } from '../figure.js';
 import { enemyIsHurt, lethalHpRatio } from '../entities/enemy.js';
+import { mixTone } from '../util/color.js';
 
 function oval(ctx, x, y, rx, ry, fill) {
   ctx.fillStyle = fill;

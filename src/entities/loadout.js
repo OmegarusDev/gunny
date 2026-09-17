@@ -3,7 +3,7 @@ import { RECEIVERS, SLOT_MIN_TIER, SLOTS } from '../data/receivers.js';
 import { PARTS } from '../data/attachments.js';
 import { SKILLS } from '../data/skills.js';
 
-export function effectiveRps(stats) {
+function effectiveRps(stats) {
   const rof = Math.max(0.01, stats?.rof || 0);
   const mag = Math.max(1, Math.round(stats?.magSize || 1));
   const reload = Math.max(0, stats?.reload || 0);

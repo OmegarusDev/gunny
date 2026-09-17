@@ -20,6 +20,7 @@ import {
   THREAT,
   TRACK_METERS,
   V_RETREAT,
+  extractCash,
   clampShotRange,
   effectiveAimReach,
   effectiveShotRange,
@@ -32,7 +33,7 @@ import {
 import { PARTS, catalogProgressWindow, ladderCost, partsForSlot } from '../src/data/attachments.js';
 import { BIOMES, beatenRoadIndexes, biomeFor } from '../src/data/biomes.js';
 import { KINDS } from '../src/data/kinds.js';
-import { RECEIVERS, RECEIVER_COST_BASE, RECEIVER_COST_RATE, RECEIVER_STAT_RATE, SLOTS, SLOT_MIN_TIER } from '../src/data/receivers.js';
+import { RECEIVERS, RECEIVER_COST_BASE, RECEIVER_COSTS, RECEIVER_STAT_RATE, SLOTS, SLOT_MIN_TIER } from '../src/data/receivers.js';
 import { CHASE_FLOOR, ROLE_UNLOCK, ROLES, pickRole, roleUnlocked } from '../src/data/roles.js';
 import { SKILLS, sanitizeRanks, skillCost } from '../src/data/skills.js';
 import { formatRpm, gunsmithStatRows, magRof, resolveStats, shotSpreadDeg, slotUnlockedFor, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
@@ -192,24 +193,29 @@ describe('economy & ladders', () => {
     expect(RECEIVERS.t2_tactical.requires).toBe('t1_stock');
     expect(RECEIVERS.t2_tactical.cost).toBe(1000);
     expect(RECEIVERS.t3_ordnance.tier).toBe(3);
-    expect(RECEIVERS.t3_ordnance.cost).toBe(ladderCost(RECEIVER_COST_BASE, RECEIVER_COST_RATE, 2));
     expect(RECEIVERS.t3_ordnance.cost).toBe(2000);
     expect(RECEIVERS.t3_ordnance.cost).toBeGreaterThan(RECEIVERS.t2_tactical.cost);
-    expect(RECEIVERS.t4_advanced.requires).toBe('t3_ordnance');
-    expect(RECEIVERS.t4_advanced.short).toBe('Advanced');
-    expect(RECEIVERS.t4_advanced.cost).toBe(ladderCost(RECEIVER_COST_BASE, RECEIVER_COST_RATE, 3));
-    expect(RECEIVERS.t4_advanced.cost).toBeGreaterThan(RECEIVERS.t3_ordnance.cost);
-    expect(Object.keys(RECEIVERS)).toHaveLength(4);
+    expect(RECEIVERS.t4_duty.requires).toBe('t3_ordnance');
+    expect(RECEIVERS.t4_duty.short).toBe('Duty');
+    expect(RECEIVERS.t4_duty.cost).toBe(3500);
+    expect(RECEIVERS.t5_advanced.requires).toBe('t4_duty');
+    expect(RECEIVERS.t5_advanced.short).toBe('Advanced');
+    expect(RECEIVERS.t5_advanced.cost).toBe(5500);
+    expect(RECEIVERS.t5_advanced.cost).toBeGreaterThan(RECEIVERS.t4_duty.cost);
+    expect(RECEIVER_COSTS).toEqual([0, 1000, 2000, 3500, 5500]);
+    expect(RECEIVERS.t2_tactical.cost).toBe(RECEIVER_COST_BASE);
+    expect(Object.keys(RECEIVERS)).toHaveLength(5);
   });
 
   it('keeps Shoddy slow and grows receiver RoF and damage 1.5× per rank', () => {
     expect(RECEIVERS.t1_stock.base.rof).toBeCloseTo(40 / 60);
     expect(RECEIVERS.t2_tactical.base.rof).toBeCloseTo((40 / 60) * RECEIVER_STAT_RATE);
     expect(RECEIVERS.t3_ordnance.base.rof).toBeCloseTo((40 / 60) * RECEIVER_STAT_RATE ** 2);
-    expect(RECEIVERS.t4_advanced.base.rof).toBeCloseTo((40 / 60) * RECEIVER_STAT_RATE ** 3);
+    expect(RECEIVERS.t4_duty.base.rof).toBeCloseTo((40 / 60) * RECEIVER_STAT_RATE ** 3);
+    expect(RECEIVERS.t5_advanced.base.rof).toBeCloseTo((40 / 60) * RECEIVER_STAT_RATE ** 4);
     expect(RECEIVERS.t2_tactical.base.damage).toBeCloseTo(15 * RECEIVER_STAT_RATE, 1);
-    expect(RECEIVERS.t4_advanced.base.damage).toBeGreaterThan(RECEIVERS.t3_ordnance.base.damage);
-    expect(RECEIVERS.t4_advanced.base.pen).toBeGreaterThan(RECEIVERS.t3_ordnance.base.pen);
+    expect(RECEIVERS.t5_advanced.base.damage).toBeGreaterThan(RECEIVERS.t4_duty.base.damage);
+    expect(RECEIVERS.t5_advanced.base.pen).toBeGreaterThan(RECEIVERS.t4_duty.base.pen);
     expect(STAT_BY_ID.rof.min).toBeLessThanOrEqual(40 / 60);
     expect(resolveStats(defaultProfile()).rof).toBeCloseTo(40 / 60);
     const starter = resolveStats(defaultProfile());
@@ -253,16 +259,27 @@ describe('economy & ladders', () => {
     expect(PARTS.barrel_long.mods.pen).toBeGreaterThan(PARTS.barrel_rifle.mods.pen);
   });
 
-  it('pays modest XP from distance, kills, heads, and extract', () => {
+  it('pays XP from distance, kills, and heads — not from a road clear', () => {
     expect(ECONOMY.xpPerMeter).toBe(0.05);
-    expect(ECONOMY.xpPerKill).toBe(3);
+    expect(ECONOMY.xpPerKill).toBe(5);
     expect(ECONOMY.xpPerHeadshot).toBe(2);
-    expect(ECONOMY.extractXp).toBe(18);
     const score = createScore();
     onKill(score, 1);
     onHit(score, 'head', false);
-    extractBonus(score);
-    expect(score.xp).toBe(ECONOMY.xpPerKill + ECONOMY.xpPerHeadshot + ECONOMY.extractXp);
+    extractBonus(score, 0);
+    expect(score.xp).toBe(ECONOMY.xpPerKill + ECONOMY.xpPerHeadshot);
+    expect(score.extractCash).toBe(50);
+    expect(score.cash).toBe(ECONOMY.cashPerKill + 50);
+  });
+
+  it('pays $50 to clear Forest, then 1.2× per later road, capped at $400', () => {
+    expect(extractCash(0)).toBe(50);
+    expect(extractCash(1)).toBe(60);
+    expect(extractCash(4)).toBe(104);
+    expect(extractCash(11)).toBe(Math.round(50 * 1.2 ** 11));
+    expect(extractCash(19)).toBe(ECONOMY.extractCashCap);
+    expect(extractCash(40)).toBe(ECONOMY.extractCashCap);
+    expect(ECONOMY.extractCashCap).toBe(400);
   });
 
   it('wipes a live profile back to camp defaults', () => {
@@ -303,11 +320,17 @@ describe('economy & ladders', () => {
     expect(profile.kits.t2_tactical.loadout.magazine).toBe('mag_2');
   });
 
-  it('hydrates a flat owned list onto the equipped receiver only', () => {
-    const { profile } = hydrateProfile({
+  it('hydrates per-receiver kits and restores them on switch', () => {
+    const profile = hydrateProfile({
       cash: 10,
-      owned: ['t1_stock', 't2_tactical', 'mag_2', 'bolt_polished'],
-      loadout: { receiver: 't1_stock', magazine: 'mag_2', bolt: 'bolt_polished' },
+      owned: ['t1_stock', 't2_tactical'],
+      loadout: { receiver: 't1_stock' },
+      kits: {
+        t1_stock: {
+          owned: ['mag_2', 'bolt_polished'],
+          loadout: { magazine: 'mag_2', bolt: 'bolt_polished' },
+        },
+      },
     });
     expect(profile.owned).toEqual(['t1_stock', 't2_tactical']);
     expect(profile.loadout.magazine).toBe('mag_2');
@@ -319,6 +342,33 @@ describe('economy & ladders', () => {
     expect(equipPart(profile, 'receiver', 't1_stock')).toBe(true);
     expect(profile.loadout.magazine).toBe('mag_2');
     expect(profile.loadout.bolt).toBe('bolt_polished');
+  });
+
+  it('does not treat a flat owned part list as the equipped kit', () => {
+    const profile = hydrateProfile({
+      owned: ['t1_stock', 'mag_2'],
+      loadout: { receiver: 't1_stock', magazine: 'mag_2' },
+    });
+    expect(profile.loadout.magazine).toBe('mag_1');
+    expect(owns(profile, 'mag_2')).toBe(false);
+  });
+
+  it('renames a saved Advanced receiver onto the fifth gun', () => {
+    const profile = hydrateProfile({
+      owned: ['t1_stock', 't2_tactical', 't3_ordnance', 't4_advanced'],
+      loadout: { receiver: 't4_advanced' },
+      kits: {
+        t4_advanced: {
+          owned: ['muzzle_comp'],
+          loadout: { muzzle: 'muzzle_comp' },
+        },
+      },
+    });
+    expect(profile.owned).toContain('t5_advanced');
+    expect(profile.owned).toContain('t4_duty');
+    expect(profile.owned).not.toContain('t4_advanced');
+    expect(profile.loadout.receiver).toBe('t5_advanced');
+    expect(profile.loadout.muzzle).toBe('muzzle_comp');
   });
 });
 
@@ -332,7 +382,8 @@ describe('gunsmith catalog', () => {
     expect(RECEIVERS.t1_stock.short).toBe('Shoddy');
     expect(RECEIVERS.t2_tactical.short).toBe('Militia');
     expect(RECEIVERS.t3_ordnance.short).toBe('Ordnance');
-    expect(RECEIVERS.t4_advanced.short).toBe('Advanced');
+    expect(RECEIVERS.t4_duty.short).toBe('Duty');
+    expect(RECEIVERS.t5_advanced.short).toBe('Advanced');
   });
 
   it('windows long catalogs to four visible rungs', () => {
@@ -348,7 +399,7 @@ describe('gunsmith catalog', () => {
     }
   });
 
-  it('unlocks mag, bolt, and ammo on Shoddy, then three slots per later receiver', () => {
+  it('unlocks mag, bolt, and ammo on Shoddy, then two slots per later gun, three on Advanced', () => {
     expect(SLOTS).toEqual([
       'receiver',
       'magazine',
@@ -371,13 +422,13 @@ describe('gunsmith catalog', () => {
       ammo: 1,
       barrel: 2,
       springs: 2,
-      grip: 2,
+      grip: 3,
       optic: 3,
-      stock: 3,
-      trigger: 3,
-      muzzle: 4,
-      gasBlock: 4,
-      laser: 4,
+      stock: 4,
+      trigger: 4,
+      muzzle: 5,
+      gasBlock: 5,
+      laser: 5,
     });
     expect(slotUnlockedFor('t1_stock', 'magazine')).toBe(true);
     expect(slotUnlockedFor('t1_stock', 'bolt')).toBe(true);
@@ -387,15 +438,19 @@ describe('gunsmith catalog', () => {
     expect(slotUnlockedFor('t1_stock', 'grip')).toBe(false);
     expect(slotUnlockedFor('t2_tactical', 'barrel')).toBe(true);
     expect(slotUnlockedFor('t2_tactical', 'springs')).toBe(true);
-    expect(slotUnlockedFor('t2_tactical', 'grip')).toBe(true);
+    expect(slotUnlockedFor('t2_tactical', 'grip')).toBe(false);
     expect(slotUnlockedFor('t2_tactical', 'optic')).toBe(false);
+    expect(slotUnlockedFor('t3_ordnance', 'grip')).toBe(true);
     expect(slotUnlockedFor('t3_ordnance', 'optic')).toBe(true);
-    expect(slotUnlockedFor('t3_ordnance', 'stock')).toBe(true);
-    expect(slotUnlockedFor('t3_ordnance', 'trigger')).toBe(true);
+    expect(slotUnlockedFor('t3_ordnance', 'stock')).toBe(false);
+    expect(slotUnlockedFor('t3_ordnance', 'trigger')).toBe(false);
     expect(slotUnlockedFor('t3_ordnance', 'muzzle')).toBe(false);
-    expect(slotUnlockedFor('t4_advanced', 'muzzle')).toBe(true);
-    expect(slotUnlockedFor('t4_advanced', 'gasBlock')).toBe(true);
-    expect(slotUnlockedFor('t4_advanced', 'laser')).toBe(true);
+    expect(slotUnlockedFor('t4_duty', 'stock')).toBe(true);
+    expect(slotUnlockedFor('t4_duty', 'trigger')).toBe(true);
+    expect(slotUnlockedFor('t4_duty', 'muzzle')).toBe(false);
+    expect(slotUnlockedFor('t5_advanced', 'muzzle')).toBe(true);
+    expect(slotUnlockedFor('t5_advanced', 'gasBlock')).toBe(true);
+    expect(slotUnlockedFor('t5_advanced', 'laser')).toBe(true);
   });
 
   it('lets Shoddy raise mag, RoF, and damage through parts', () => {
@@ -424,9 +479,7 @@ describe('gunsmith catalog', () => {
     expect(PARTS.muzzle_hybrid.cost).toBeGreaterThan(PARTS.muzzle_ported.cost);
   });
 
-  it('replaces the suppressor line with recoil/spread muzzle devices', () => {
-    expect(PARTS.muzzle_can).toBeUndefined();
-    expect(PARTS.muzzle_flash).toBeUndefined();
+  it('ladders muzzle devices by recoil then spread', () => {
     expect(partsForSlot('muzzle').map((p) => p.id)).toEqual([
       'muzzle_none',
       'muzzle_comp',
@@ -447,8 +500,8 @@ describe('gunsmith catalog', () => {
 
   it('keeps Piston Drive a cycle upgrade over Overgassed', () => {
     const profile = defaultProfile();
-    profile.owned.push('t2_tactical', 't3_ordnance', 't4_advanced', 'gas_adjust', 'gas_over', 'gas_piston');
-    profile.loadout.receiver = 't4_advanced';
+    profile.owned.push('t2_tactical', 't3_ordnance', 't4_duty', 't5_advanced', 'gas_adjust', 'gas_over', 'gas_piston');
+    profile.loadout.receiver = 't5_advanced';
     profile.loadout.gasBlock = 'gas_over';
     const over = resolveStats(profile);
     profile.loadout.gasBlock = 'gas_piston';
@@ -550,24 +603,25 @@ describe('loadout aim stats', () => {
     expect(PARTS.barrel_stub.mods.damage).toBeGreaterThan(0);
   });
 
-  it('gives Militia a grip, Ordnance a trigger, and Advanced a laser', () => {
-    const militia = defaultProfile();
-    militia.loadout.receiver = 't2_tactical';
-    militia.loadout.grip = 'grip_ergo';
-    const grooved = resolveStats(militia);
-    militia.loadout.grip = 'grip_none';
-    expect(grooved.baseSpread).toBeLessThan(resolveStats(militia).baseSpread);
-
+  it('gives Ordnance a grip, Duty a trigger, and Advanced a laser', () => {
     const ord = defaultProfile();
     ord.owned.push('t2_tactical', 't3_ordnance');
     ord.loadout.receiver = 't3_ordnance';
-    const stockTrig = resolveStats(ord);
-    ord.loadout.trigger = 'trigger_hair';
-    expect(resolveStats(ord).rof).toBeGreaterThan(stockTrig.rof);
+    ord.loadout.grip = 'grip_ergo';
+    const grooved = resolveStats(ord);
+    ord.loadout.grip = 'grip_none';
+    expect(grooved.baseSpread).toBeLessThan(resolveStats(ord).baseSpread);
+
+    const duty = defaultProfile();
+    duty.owned.push('t2_tactical', 't3_ordnance', 't4_duty');
+    duty.loadout.receiver = 't4_duty';
+    const stockTrig = resolveStats(duty);
+    duty.loadout.trigger = 'trigger_hair';
+    expect(resolveStats(duty).rof).toBeGreaterThan(stockTrig.rof);
 
     const adv = defaultProfile();
-    adv.owned.push('t2_tactical', 't3_ordnance', 't4_advanced');
-    adv.loadout.receiver = 't4_advanced';
+    adv.owned.push('t2_tactical', 't3_ordnance', 't4_duty', 't5_advanced');
+    adv.loadout.receiver = 't5_advanced';
     expect(resolveStats(adv).laserSight).toBe(0);
     const dark = resolveStats(adv);
     adv.loadout.laser = 'laser_peq';
@@ -578,8 +632,8 @@ describe('loadout aim stats', () => {
   it('tightens marksman without unlocking extra sight reach', () => {
     const profile = defaultProfile();
     profile.skillRanks.marksman = 8;
-    profile.owned.push('t2_tactical', 't3_ordnance', 'stock_wire', 'stock_combat', 'stock_precision');
-    profile.loadout.receiver = 't3_ordnance';
+    profile.owned.push('t2_tactical', 't3_ordnance', 't4_duty', 'stock_wire', 'stock_combat', 'stock_precision');
+    profile.loadout.receiver = 't4_duty';
     profile.loadout.stock = 'stock_precision';
     const stats = resolveStats(profile);
     const stock = resolveStats(defaultProfile());
@@ -656,7 +710,6 @@ describe('skills & profile', () => {
     expect(SKILLS.recoil.maxRank).toBe(20);
     expect(SKILLS.critChance.maxRank).toBe(20);
     expect(SKILLS.marksman.maxRank).toBe(20);
-    expect(SKILLS.marksman.perRank.aimReach).toBeUndefined();
     expect(SKILLS.speed).toBeTruthy();
     expect(SKILLS.firing).toBeTruthy();
     expect(Object.keys(SKILLS).length % 2).toBe(0);
@@ -670,8 +723,8 @@ describe('skills & profile', () => {
   });
 
   it('drops unknown skill ranks and clamps known ones', () => {
-    const ranks = sanitizeRanks({ elevation: 2, marksman: 1, recoil: 99 });
-    expect(ranks.elevation).toBeUndefined();
+    const ranks = sanitizeRanks({ nope: 2, marksman: 1, recoil: 99 });
+    expect(ranks.nope).toBeUndefined();
     expect(ranks.marksman).toBe(1);
     expect(ranks.recoil).toBe(SKILLS.recoil.maxRank);
     expect(ranks.firing).toBe(0);
@@ -1100,6 +1153,9 @@ describe('simulate loop', () => {
     expect(run2.ended).toBeNull();
     expect(run2.player.dead).toBe(true);
     expect(run2.ragdolls.some((r) => r.hero && r.kind === 'gunner')).toBe(true);
+    const x0 = foe.worldX;
+    simulate(run2, dt, viewport, idle);
+    expect(foe.worldX).toBeLessThan(x0);
     const steps = Math.ceil(DEATH_HOLD / dt) + 2;
     for (let i = 0; i < steps; i++) simulate(run2, dt, viewport, idle);
     expect(run2.ended).toBe('death');
@@ -1319,11 +1375,12 @@ describe('simulate loop', () => {
 });
 
 describe('pwa updates', () => {
-  it('blocks service-worker refresh while a run is live', () => {
-    expect(pwaUpdateBlocked('run', { ended: null })).toBe(true);
-    expect(pwaUpdateBlocked('run', { ended: 'death' })).toBe(false);
-    expect(pwaUpdateBlocked('hub', { ended: null })).toBe(false);
-    expect(pwaUpdateBlocked('run', null)).toBe(false);
+  it('blocks service-worker refresh until camp', () => {
+    expect(pwaUpdateBlocked('run')).toBe(true);
+    expect(pwaUpdateBlocked('end')).toBe(true);
+    expect(pwaUpdateBlocked('gunsmith')).toBe(true);
+    expect(pwaUpdateBlocked('training')).toBe(true);
+    expect(pwaUpdateBlocked('hub')).toBe(false);
   });
 });
 

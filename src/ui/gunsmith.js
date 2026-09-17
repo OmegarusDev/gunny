@@ -29,7 +29,7 @@ export function renderGunsmith(el, profile, handlers) {
   const rows = SLOTS.map((slot) => {
     const locked = slot !== 'receiver' && !slotUnlockedFor(recId, slot);
     const items = locked ? [] : catalog(slot, recId);
-    return { slot, locked, items, win: visibleWindow(profile, items) };
+    return { slot, locked, items, win: visibleWindow(profile, items, slot) };
   });
 
   let picked = el.dataset.part;
@@ -50,7 +50,7 @@ export function renderGunsmith(el, profile, handlers) {
   const lockedSlot = !!selectedRow?.locked;
 
   el.innerHTML = `
-    <div class="panel-stack gunsmith-stack">
+    <div class="panel-stack">
       <div class="page-head">
         ${backButton()}
         ${ledgerBlock(profile)}
@@ -96,7 +96,7 @@ export function renderGunsmith(el, profile, handlers) {
   };
   const partHint = item ? `${item.name}${item.desc ? ' · ' + item.desc : ''}` : '';
   if (lockedSlot) {
-    setHint(`Needs a T${SLOT_MIN_TIER[selected]} receiver.`);
+    setHint(`Needs ${slotLockName(selected)}.`);
     actions.appendChild(hint);
   } else if (item) {
     setHint(partHint);
@@ -160,7 +160,14 @@ export function renderGunsmith(el, profile, handlers) {
   }
 }
 
-function visibleWindow(profile, items) {
+function slotLockName(slot) {
+  const tier = SLOT_MIN_TIER[slot];
+  const rec = Object.values(RECEIVERS).find((r) => r.tier === tier);
+  return rec ? rec.short : `T${tier}`;
+}
+
+function visibleWindow(profile, items, slot) {
+  if (slot === 'receiver') return { items, start: 0, total: items.length };
   const next = items.find((i) => !owns(profile, i.id)) || items[items.length - 1];
   return catalogProgressWindow(items, { nextId: next?.id });
 }
@@ -173,7 +180,7 @@ function slotRow(profile, slot, locked, items, selected, picked) {
     <div class="chips" role="listbox" style="--chip-cols: ${Math.max(items.length, 1)}">
       ${
         locked
-          ? `<span class="muted slot-lock">T${SLOT_MIN_TIER[slot]} receiver</span>`
+          ? `<span class="muted slot-lock">${slotLockName(slot)}</span>`
           : items
               .map((it) => {
                 const on = slot === selected && it.id === picked;

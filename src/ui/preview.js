@@ -1,3 +1,4 @@
+import { extractCash } from '../config.js';
 import { biomeFor } from '../data/biomes.js';
 import { defaultProfile, ensureKit, grant, applyKit } from '../state/profile.js';
 import { createCanvas } from '../engine/canvas.js';
@@ -57,18 +58,20 @@ function demoProfile() {
 }
 
 function fakeRun(profile, extract) {
+  const clear = extract ? extractCash(2) : 0;
   return {
     biome: biomeFor(2),
     endless: false,
     levelIndex: 2,
-    ended: extract ? 'extract' : 'dead',
+    ended: extract ? 'extract' : 'death',
     score: {
       lastMetersPaid: extract ? 250 : 187.4,
       kills: 22,
       headshots: 6,
       perfects: 3,
-      cash: extract ? 300 : 220,
-      xp: extract ? 55 : 41,
+      cash: 220 + clear,
+      extractCash: clear,
+      xp: extract ? 37 : 41,
     },
   };
 }
