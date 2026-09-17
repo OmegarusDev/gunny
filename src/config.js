@@ -68,7 +68,7 @@ export function usesFullScreenAim(stats) {
   return (stats?.fullScreenAim || 0) > 0;
 }
 
-/** How far a round keeps full energy. Past this, damage drops hard; tracers still fly. */
+/** How far a round keeps full energy and cone. Past this, damage and accuracy drop with distance squared; tracers still fly. */
 export function effectiveShotRange(stats, viewport) {
   const extra = (stats?.shotRange || 0) - SHOT_REACH_BASE;
   return clampShotRange(baseShotRange(viewport) + extra, viewport);

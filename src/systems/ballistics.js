@@ -5,11 +5,16 @@ import { segmentHitsTerrain } from '../world/terrain.js';
 import { segmentHitsCircle } from './hits.js';
 import { shotEnergy } from './impulse.js';
 
-/** Full energy to maxDist, then inverse-square from the muzzle. */
+/** Full energy to maxDist, then inverse-square from the muzzle. Spent rounds keep flying. */
 export function rangeDamageMul(travelled, maxDist) {
   const r = Math.max(1, maxDist);
   if (travelled <= r) return 1;
   return (r / travelled) ** 2;
+}
+
+/** Extra cone (degrees) once the hold is past effective range. */
+export function rangeSpreadDeg(travelled, maxDist) {
+  return (1 - rangeDamageMul(travelled, maxDist)) * 10;
 }
 
 export function hitPenBonus(zone, crit) {
@@ -42,7 +47,18 @@ export function stepBullets(run, dt, viewport) {
     if (!b.alive) continue;
     const nx = b.x + b.vx * dt + weather.windX * dt;
     const ny = b.y + b.vy * dt + weather.windY * dt;
-    b.pen -= decay * Math.hypot(nx - b.x, ny - b.y);
+    const step = Math.hypot(nx - b.x, ny - b.y);
+    b.pen = Math.max(0, b.pen - decay * step);
+    const travelled = Math.hypot(nx - b.ox, ny - b.oy);
+    if (travelled > b.maxDist) {
+      const fall = rangeDamageMul(travelled, b.maxDist);
+      const vx = b.vx;
+      const vy = b.vy;
+      const spd = Math.hypot(vx, vy) || 1;
+      const sway = (1 - fall) * 36 * dt * Math.sin(travelled * 0.07 + b.ox);
+      b.vx = vx + (-vy / spd) * sway;
+      b.vy = vy + (vx / spd) * sway;
+    }
 
     const dirt = segmentHitsTerrain(b.x, b.y, nx, ny, terrain.height);
     let maxT = 1;
@@ -105,7 +121,7 @@ export function stepBullets(run, dt, viewport) {
     b.x = nx;
     b.y = ny;
     const offY = ny < -120 || ny > viewport.h + 120;
-    if (b.pen <= 0 || nx > viewRight || offY) b.alive = false;
+    if (nx > viewRight || offY) b.alive = false;
   }
   let n = 0;
   for (let i = 0; i < bullets.length; i++) {

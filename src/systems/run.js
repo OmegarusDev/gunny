@@ -17,7 +17,7 @@ import { createPlayer, screenToWorld, cameraX } from '../entities/player.js';
 import { applyFlinch, cacheEnemyPose, isDead, lethalCircles, stepFlinch, updateLocomotion } from '../entities/enemy.js';
 import { gaitPlanted, gunWorld, playerCoreFromPose, posePlayerLocal } from '../figure.js';
 import { resolveStats, shotSpreadDeg } from '../entities/loadout.js';
-import { spawnBullet, stepBullets } from './ballistics.js';
+import { rangeSpreadDeg, spawnBullet, stepBullets } from './ballistics.js';
 import { stepSpawner } from './spawner.js';
 import { spawnRagdoll, stepRagdolls } from './ragdoll.js';
 import { spawnBurst, spawnGibs, stepGibs } from './gibs.js';
@@ -174,17 +174,25 @@ function tryFire(run, firing, viewport, tap) {
   weapon.firing = true;
   weapon.cooldown = 1 / stats.rof;
   weapon.ammo -= 1;
-  const bloomDeg = shotSpreadDeg(stats, weapon);
+  const gun = gunWorld(player);
+  const shotRange = effectiveShotRange(stats, viewport);
+  const pre = {
+    x: gun.x + Math.cos(player.aimAngle) * gun.len,
+    y: gun.y + Math.sin(player.aimAngle) * gun.len,
+  };
+  let bloomDeg = shotSpreadDeg(stats, weapon);
+  if (run.aim) {
+    const aimWorld = screenToWorld(run.aim.x, run.aim.y, player.worldX, viewport);
+    const aimDist = Math.hypot(aimWorld.x - pre.x, aimWorld.y - pre.y);
+    bloomDeg += rangeSpreadDeg(aimDist, shotRange);
+  }
   const spread = degToRad((run.rng() * 2 - 1) * bloomDeg);
   const angle = player.aimAngle + spread;
-  const gun = gunWorld(player);
   const muzzle = {
     x: gun.x + Math.cos(angle) * gun.len,
     y: gun.y + Math.sin(angle) * gun.len,
   };
-  run.bullets.push(
-    spawnBullet(muzzle.x, muzzle.y, angle, stats, weapon.perfectMag, effectiveShotRange(stats, viewport)),
-  );
+  run.bullets.push(spawnBullet(muzzle.x, muzzle.y, angle, stats, weapon.perfectMag, shotRange));
   weapon.bloom = Math.min(stats.bloomCap, weapon.bloom + stats.bloomPerShot);
   weapon.shotFlash = 0.09;
   player.shotKick = Math.min(0.12, (player.shotKick || 0) + 0.07);
@@ -301,7 +309,7 @@ export function simulate(run, dt, viewport, input) {
   }
 
   const { player, weapon, stats } = run;
-  player.worldX -= V_RETREAT * dt;
+  player.worldX -= V_RETREAT * (stats.moveMul || 1) * dt;
   player.y = run.terrain.height(player.worldX);
   player.shotKick = (player.shotKick || 0) * Math.exp(-dt * 18);
   run.shakeX = (run.shakeX || 0) * Math.exp(-dt * 18);

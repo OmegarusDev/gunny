@@ -49,13 +49,12 @@ export function drawWorld(ctx, run, viewport) {
     ctx.translate(run.shakeX || 0, run.shakeY || 0);
   }
   composeScene(ctx, viewport, run, t);
-  drawKeyLight(ctx, viewport, biome);
-  drawGrain(ctx, viewport, t);
   drawCorpses(ctx, run, viewport);
   drawRagdolls(ctx, run, viewport);
   drawGibs(ctx, run, viewport);
   drawEnemies(ctx, run, viewport);
   drawPlayer(ctx, run, viewport);
+  drawLaserSight(ctx, run, viewport);
   drawBullets(ctx, run, viewport);
   drawParticles(ctx, run, viewport);
   ctx.save();
@@ -63,8 +62,10 @@ export function drawWorld(ctx, run, viewport) {
   drawForeground(ctx, viewport, run);
   ctx.restore();
   drawMotes(ctx, viewport, biome, t);
-  drawVignette(ctx, viewport, biome);
   if (kick) ctx.restore();
+  drawKeyLight(ctx, viewport, biome);
+  drawGrain(ctx, viewport, t);
+  drawVignette(ctx, viewport, biome);
   drawReloadGauge(ctx, run, viewport);
   drawCallouts(ctx, run, viewport);
   drawAimCrosshair(ctx, run);
@@ -126,6 +127,36 @@ function drawPlayer(ctx, run, viewport) {
     ctx.fill();
     ctx.restore();
   }
+  ctx.restore();
+}
+
+function drawLaserSight(ctx, run, viewport) {
+  if (!(run.stats.laserSight > 0) || !run.aim || run.ended || run.dying || run.player.dead) return;
+  const p = run.player;
+  const gun = gunWorld(p);
+  const sx = viewport.w * PLAYER_SCREEN_X_RATIO;
+  const ang = gun.ang || p.aimAngle;
+  const mx = sx + gun.sx + Math.cos(ang) * gun.len;
+  const my = p.y + gun.sy + Math.sin(ang) * gun.len;
+  const { x, y } = run.aim;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = 'rgba(255, 48, 48, 0.42)';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(mx, my);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255, 90, 90, 0.85)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(mx, my);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255, 70, 70, 0.9)';
+  ctx.beginPath();
+  ctx.arc(x, y, 2.4, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 

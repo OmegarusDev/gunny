@@ -1,6 +1,6 @@
 import { TRACK_METERS } from '../config.js';
 import { beatenRoadIndexes, biomeFor } from '../data/biomes.js';
-import { equippedLabel, formatRpm, resolveStats } from '../entities/loadout.js';
+import { equippedLabel, resolveStats } from '../entities/loadout.js';
 import { ledgerBlock, statsGrid } from './overlays.js';
 import { facilityButton } from './icons.js';
 
@@ -65,7 +65,7 @@ export function renderHub(el, profile, handlers) {
         ['Kit', equippedLabel(profile)],
         ['DMG', stats.damage.toFixed(1)],
         ['Mag', stats.magSize],
-        ['ROF', formatRpm(stats)],
+        ['ROF', String(Math.round(stats.rof * 60))],
         ['Reload', `${stats.reload.toFixed(2)}s`],
         ['Road', `L${profile.unlockedLevel + 1}`],
       ])}

@@ -52,7 +52,7 @@ export const ROLES = {
 export const CHASE_FLOOR = V_RETREAT * 1.08;
 
 export function chaseSpeed(threatSpeed, roleId) {
-  return Math.max(CHASE_FLOOR, (threatSpeed || 0) * roleOf(roleId).speed);
+  return Math.max(CHASE_FLOOR, (threatSpeed || 0) * roleOf(roleId).speed) * 1.1;
 }
 
 /** Campaign is 0-indexed: Road 5 = index 4, Road 10 = 9, Road 20 = 19. */

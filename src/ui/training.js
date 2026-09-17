@@ -27,7 +27,7 @@ export function renderTraining(el, profile, handlers) {
           stats.fullScreenAim ? 'Full' : Math.round(stats.aimReach),
           stats.fullScreenAim ? 'LPVO: hold the reticle anywhere on screen.' : 'How far you can hold the reticle. Optics only.',
         ],
-        ['Range', Math.round(stats.shotRange), 'Distance before a round starts to lose damage.'],
+        ['Range', Math.round(stats.shotRange), 'Distance before a round starts to lose damage and accuracy. Rounds still fly.'],
         ['Spread', `${stats.baseSpread.toFixed(2)}°`, 'Starting cone of fire. Bloom stacks on top.'],
       ])}
       <div class="train-grid">

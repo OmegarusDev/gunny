@@ -12,10 +12,13 @@ const SLOT_LABEL = {
   ammo: 'Ammo',
   barrel: 'Barrel',
   springs: 'Spring',
+  grip: 'Grip',
   optic: 'Optic',
   stock: 'Stock',
+  trigger: 'Trigger',
   muzzle: 'Muzzle',
   gasBlock: 'Gas',
+  laser: 'Laser',
 };
 
 export function renderGunsmith(el, profile, handlers) {

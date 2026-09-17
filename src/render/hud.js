@@ -310,14 +310,14 @@ export function drawReloadGauge(ctx, run, viewport) {
   const t = reloadNorm(w);
   const band = perfectBand(run.stats);
   const jam = w.jammed;
-  const px = x - 18 * m.u;
-  const py = y - 40 * m.u;
-  const pw = barW + 36 * m.u;
-  const ph = barH + 72 * m.u;
+  const px = x - 14 * m.u;
+  const py = y - 32 * m.u;
+  const pw = barW + 28 * m.u;
+  const ph = barH + 58 * m.u;
   panel(ctx, px, py, pw, ph, m.r);
   ctx.textBaseline = 'top';
   ctx.textAlign = 'center';
-  kicker(ctx, jam ? 'Jammed' : 'Reload', px + pw / 2, py + 14 * m.u, m.kicker);
+  kicker(ctx, jam ? 'Jammed' : 'Reload', px + pw / 2, py + 10 * m.u, m.kicker);
   ctx.textAlign = 'left';
 
   ctx.fillStyle = 'rgba(12, 8, 4, 0.55)';
@@ -344,7 +344,7 @@ export function drawReloadGauge(ctx, run, viewport) {
   ctx.fillStyle = jam ? '#e07060' : MUTED;
   ctx.font = `${m.kicker}px ${SERIF}`;
   ctx.letterSpacing = '0.08em';
-  ctx.fillText(jam ? 'JAMMED' : 'TAP', x + barW * 0.5, y + barH + 12 * m.u);
+  ctx.fillText(jam ? 'JAMMED' : 'Tap Anywhere', x + barW * 0.5, y + barH + 8 * m.u);
   ctx.letterSpacing = '0px';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';

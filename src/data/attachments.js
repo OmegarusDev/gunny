@@ -11,13 +11,19 @@ export const BARREL_COST_BASE = 140;
 export const OPTIC_COST_BASE = 200;
 export const STOCK_COST_BASE = 160;
 export const MUZZLE_COST_BASE = 160;
-export const BOLT_COST_BASE = 400;
+export const BOLT_COST_BASE = 250;
 export const GAS_COST_BASE = 320;
 export const SPRING_COST_BASE = 120;
-export const AMMO_COST_BASE = 160;
+export const AMMO_COST_BASE = 300;
+export const GRIP_COST_BASE = 140;
+export const TRIGGER_COST_BASE = 180;
+export const LASER_COST_BASE = 220;
 export const AMMO_DAMAGE_PER_RANK = 2.2;
 export const AMMO_PEN_PER_RANK = 0.09;
 export const BOLT_ROF_PER_RANK = 0.1;
+export const TRIGGER_ROF_PER_RANK = 0.05;
+export const GRIP_SPREAD_STEP = -0.16;
+export const LASER_SPREAD_STEP = -0.18;
 export const MUZZLE_RECOIL_STEP = -0.14;
 export const MUZZLE_SPREAD_STEP = -0.12;
 
@@ -146,7 +152,7 @@ export const PARTS = {
     short: 'Stub',
     cost: 0,
     desc: 'Short range. Snappy, imprecise.',
-    mods: { bulletSpeed: -90, bloomPerShot: 0.35, aimRate: 0.4, baseSpread: 0.35, pen: 0.05 },
+    mods: { damage: 0.4, bulletSpeed: -90, bloomPerShot: 0.35, aimRate: 0.4, baseSpread: 0.35, pen: 0.05 },
   },
   barrel_carbine: {
     id: 'barrel_carbine',
@@ -157,7 +163,7 @@ export const PARTS = {
     short: 'Carbine',
     cost: ladderCost(BARREL_COST_BASE, PART_COST_RATE, 1),
     desc: 'A bit more range and a cleaner cone.',
-    mods: { bulletSpeed: 40, bloomPerShot: -0.15, pen: 0.08, baseSpread: -0.2, shotRange: 48 },
+    mods: { damage: 1, bulletSpeed: 40, bloomPerShot: -0.15, pen: 0.08, baseSpread: -0.2, shotRange: 48 },
   },
   barrel_rifle: {
     id: 'barrel_rifle',
@@ -168,7 +174,7 @@ export const PARTS = {
     short: 'Rifle',
     cost: ladderCost(BARREL_COST_BASE, PART_COST_RATE, 2),
     desc: 'Longer effective range and punch.',
-    mods: { bulletSpeed: 140, bloomPerShot: -0.28, pen: 0.22, aimRate: -0.6, weight: 0.08, baseSpread: -0.4, shotRange: 96 },
+    mods: { damage: 1.8, bulletSpeed: 140, bloomPerShot: -0.28, pen: 0.22, aimRate: -0.6, weight: 0.08, baseSpread: -0.4, shotRange: 96 },
   },
   barrel_long: {
     id: 'barrel_long',
@@ -179,7 +185,7 @@ export const PARTS = {
     short: 'Long',
     cost: ladderCost(BARREL_COST_BASE, PART_COST_RATE, 3),
     desc: 'Best on-screen range. Slow settle on slopes.',
-    mods: { bulletSpeed: 240, bloomPerShot: -0.4, pen: 0.38, aimRate: -1.2, weight: 0.14, baseSpread: -0.65, shotRange: 150 },
+    mods: { damage: 2.8, bulletSpeed: 240, bloomPerShot: -0.4, pen: 0.38, aimRate: -1.2, weight: 0.14, baseSpread: -0.65, shotRange: 150 },
   },
 
   ...buildMagParts(),
@@ -236,7 +242,7 @@ export const PARTS = {
     short: 'Dot',
     cost: ladderCost(OPTIC_COST_BASE, PART_COST_RATE, 1),
     desc: 'Tighter cone and a farther hold. Still short of mid-field. Does not add gun range.',
-    mods: { bloomPerShot: -0.28, aimRate: 0.8, aimReach: 141, baseSpread: -0.25 },
+    mods: { bloomPerShot: -0.28, aimRate: 0.8, aimReach: 141, baseSpread: -0.25, critChance: 0.015 },
   },
   optic_acog: {
     id: 'optic_acog',
@@ -247,7 +253,7 @@ export const PARTS = {
     short: 'ACOG',
     cost: ladderCost(OPTIC_COST_BASE, PART_COST_RATE, 2),
     desc: 'Holds into the right half of the screen with a cleaner first shot.',
-    mods: { bloomPerShot: -0.4, aimRate: -0.3, bloomRecover: 0.6, aimReach: 294, baseSpread: -0.45 },
+    mods: { bloomPerShot: -0.4, aimRate: -0.3, bloomRecover: 0.6, aimReach: 294, baseSpread: -0.45, critChance: 0.028 },
   },
   optic_lpvo: {
     id: 'optic_lpvo',
@@ -258,7 +264,7 @@ export const PARTS = {
     short: 'LPVO',
     cost: ladderCost(OPTIC_COST_BASE, PART_COST_RATE, 3),
     desc: 'Hold anywhere on screen. Barrel still sets how hard the round hits out there.',
-    mods: { bloomPerShot: -0.55, aimRate: 0.4, bloomRecover: 0.9, weight: 0.06, fullScreenAim: 1, baseSpread: -0.7 },
+    mods: { bloomPerShot: -0.55, aimRate: 0.4, bloomRecover: 0.9, weight: 0.06, fullScreenAim: 1, baseSpread: -0.7, critChance: 0.042 },
   },
 
   stock_none: {
@@ -447,6 +453,108 @@ export const PARTS = {
       },
     ],
   }),
+
+  ...rankedSlot({
+    slot: 'grip',
+    baseCost: GRIP_COST_BASE,
+    costRate: PART_COST_RATE,
+    perRank: { baseSpread: GRIP_SPREAD_STEP },
+    starter: {
+      id: 'grip_none',
+      name: 'Smooth Grip',
+      short: 'Smooth',
+      desc: 'Bare wood. The cone lives here.',
+    },
+    rungs: [
+      {
+        id: 'grip_groove',
+        name: 'Grooved Grip',
+        short: 'Groove',
+        desc: 'Cuts a little wander off the first shot.',
+      },
+      {
+        id: 'grip_tactical',
+        name: 'Tactical Grip',
+        short: 'Tactical',
+        desc: 'Firmer hold. Tighter cone.',
+      },
+      {
+        id: 'grip_ergo',
+        name: 'Ergo Grip',
+        short: 'Ergo',
+        desc: 'Best purchase. The cone settles.',
+      },
+    ],
+  }),
+
+  ...rankedSlot({
+    slot: 'trigger',
+    baseCost: TRIGGER_COST_BASE,
+    costRate: PART_COST_RATE,
+    perRank: { rof: TRIGGER_ROF_PER_RANK },
+    starter: {
+      id: 'sear_factory',
+      name: 'Factory Sear',
+      short: 'Factory',
+      desc: 'Heavy break. What Ordnance ships with.',
+    },
+    rungs: [
+      {
+        id: 'sear_match',
+        name: 'Match Sear',
+        short: 'Match',
+        desc: 'A lighter break. A bit more cyclic rate.',
+      },
+      {
+        id: 'sear_two',
+        name: 'Two-Stage',
+        short: 'Two-Stage',
+        desc: 'Crisp wall. Faster follow-up.',
+      },
+      {
+        id: 'sear_hair',
+        name: 'Hair Trigger',
+        short: 'Hair',
+        desc: 'Fastest break the action will take.',
+      },
+    ],
+  }),
+
+  ...rankedSlot({
+    slot: 'laser',
+    baseCost: LASER_COST_BASE,
+    costRate: PART_COST_RATE,
+    perRank: { baseSpread: LASER_SPREAD_STEP },
+    starter: {
+      id: 'laser_none',
+      name: 'No Laser',
+      short: 'None',
+      desc: 'Hold by feel.',
+    },
+    rungs: [
+      {
+        id: 'laser_peq',
+        name: 'PEQ Light',
+        short: 'PEQ',
+        desc: 'A visible beam while you hold. Tighter cone.',
+        mods: { laserSight: 1 },
+      },
+      {
+        id: 'laser_vis',
+        name: 'Visible Laser',
+        short: 'Visible',
+        desc: 'Brighter beam. Cleaner first shot.',
+        mods: { laserSight: 1 },
+      },
+      {
+        id: 'laser_ir',
+        name: 'IR Laser',
+        short: 'IR',
+        desc: 'Tightest beam. Best hold on the cone.',
+        mods: { laserSight: 1 },
+      },
+    ],
+  }),
 };
 
 export const STARTER_RECEIVERS = ['t1_stock'];
@@ -457,10 +565,13 @@ export const STARTER_PARTS = [
   'ammo_factory',
   'barrel_stub',
   'spring_factory',
+  'grip_none',
   'optic_none',
   'stock_none',
+  'sear_factory',
   'muzzle_none',
   'gas_factory',
+  'laser_none',
 ];
 
 export const STARTER_OWNED = [...STARTER_RECEIVERS, ...STARTER_PARTS];
@@ -472,10 +583,13 @@ export const STARTER_LOADOUT = {
   ammo: 'ammo_factory',
   barrel: 'barrel_stub',
   springs: 'spring_factory',
+  grip: 'grip_none',
   optic: 'optic_none',
   stock: 'stock_none',
+  trigger: 'sear_factory',
   muzzle: 'muzzle_none',
   gasBlock: 'gas_factory',
+  laser: 'laser_none',
 };
 
 /** Old trigger ids from pre-kit saves. */

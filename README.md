@@ -15,7 +15,7 @@ A 2D HTML5 Canvas chase. Scenery, characters, and UI are drawn; sound is synthes
 
 - **Aim** — mouse / touch
 - **Fire** — click / tap and hold
-- **Reload** — only when the mag is empty; tap the reload bar (`R` also taps it)
+- **Reload** — only when the mag is empty; tap anywhere (`R` also taps it)
 - **Pause** — `P` / Esc / Space (or leave the tab). **Tap the pause screen to resume.**
 
 A perfect reload is a timing tap on the gold band. Miss after the forgive window and you jam.
@@ -26,7 +26,7 @@ A perfect reload is a timing tap on the gold band. Miss after the forgive window
 
 Cash from kills (and a 250m extract bonus) buys kit. XP buys Training. Clear 250m to unlock the next road. Campaign cycles Forest Road → Fen Causeway → Transylvanian Lane → Desert Wadi → Bone Quarry. Endless uses any road you’ve already extracted from, and is about twice as hard as the same campaign metres.
 
-**ROF** is rounds per minute, including the empty-mag reload. Shoddy starts at 24 RPM with a 1-round mag. Its three parts are mag, bolt (RoF), and ammo (damage + a little pen). Each later receiver is a fresh kit that unlocks two more slots: Militia barrel and springs, Ordnance optic and stock, Advanced muzzle and gas. Switching back keeps that gun’s parts. Receivers still raise damage and RoF about 1.5× each rank. Muzzle devices are compensators and brakes, not a suppressor.
+**ROF** is cyclic rounds per minute. Shoddy starts at 30 RPM with a 1-round mag (reload is separate). Its three parts are mag, bolt (RoF), and ammo (damage + a little pen). Each later receiver is a fresh kit: Militia barrel, springs, and grip; Ordnance optic, stock, and trigger; Advanced muzzle, gas, and laser. Switching back keeps that gun’s parts. Receivers still raise damage and RoF about 1.5× each rank. Muzzle devices are compensators and brakes, not a suppressor. Past effective range, rounds keep flying but damage and accuracy fall with distance squared.
 
 Walkers: Walker, Tank (Road 5 / Endless 200m), Heavy Tank (Road 10 / Endless 500m), Behemoth (Road 20 / Endless 1km). Heavies are bigger versions of that road’s creature, not unique models.
 

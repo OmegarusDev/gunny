@@ -53,6 +53,24 @@ export const SKILLS = {
     baseCost: 50,
     perRank: { critMult: 0.07 },
   },
+  speed: {
+    id: 'speed',
+    name: 'Road Speed',
+    short: 'Speed',
+    desc: 'Walk the road a little faster. Metres tick sooner. Enemies still close.',
+    maxRank: 20,
+    baseCost: 40,
+    perRank: { moveMul: 0.01 },
+  },
+  firing: {
+    id: 'firing',
+    name: 'Firing Cadence',
+    short: 'Firing',
+    desc: 'A little more cyclic rate. Bolt and trigger still do the heavy lifting.',
+    maxRank: 20,
+    baseCost: 42,
+    perRank: { rof: 0.012 },
+  },
 };
 
 /** Mild curve so mid ranks stay grindable, not a wall. */

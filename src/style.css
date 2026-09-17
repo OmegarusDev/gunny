@@ -662,12 +662,19 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .stats.stats-wide {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 4px;
+  font-size: clamp(12px, 2.1vmin, 15px);
 }
 
 #overlay-root .stats.stats-wide div {
-  padding: 7px 8px;
+  padding: 4px 3px;
+  gap: 0;
+}
+
+#overlay-root .stats.stats-wide div span {
+  font-size: clamp(8px, 1.45vmin, 10px);
+  letter-spacing: 0.04em;
 }
 
 #overlay-root .stats div {
@@ -922,9 +929,9 @@ html:-webkit-full-screen::backdrop,
   margin: 0;
   flex: 1 1 auto;
   min-height: 0;
-  align-content: center;
+  align-content: start;
   grid-auto-rows: minmax(56px, auto);
-  overflow: hidden;
+  overflow: auto;
 }
 
 #overlay-root .skill-row {
@@ -1412,6 +1419,21 @@ html:-webkit-full-screen::backdrop,
 
   #overlay-root .stats div {
     padding: 5px 6px;
+  }
+
+  #overlay-root .stats.stats-wide {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 3px;
+    font-size: 11px;
+  }
+
+  #overlay-root .stats.stats-wide div {
+    padding: 3px 2px;
+  }
+
+  #overlay-root .stats.stats-wide div span {
+    font-size: 8px;
+    letter-spacing: 0.02em;
   }
 
   #overlay-root .slot-row {

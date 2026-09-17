@@ -181,9 +181,10 @@ describe('economy & ladders', () => {
     expect(RECEIVERS.t1_stock.cost).toBe(0);
     expect(RECEIVERS.t1_stock.short).toBe('Shoddy');
     expect(RECEIVERS.t2_tactical.requires).toBe('t1_stock');
-    expect(RECEIVERS.t2_tactical.cost).toBe(550);
+    expect(RECEIVERS.t2_tactical.cost).toBe(1000);
     expect(RECEIVERS.t3_ordnance.tier).toBe(3);
     expect(RECEIVERS.t3_ordnance.cost).toBe(ladderCost(RECEIVER_COST_BASE, RECEIVER_COST_RATE, 2));
+    expect(RECEIVERS.t3_ordnance.cost).toBe(2000);
     expect(RECEIVERS.t3_ordnance.cost).toBeGreaterThan(RECEIVERS.t2_tactical.cost);
     expect(RECEIVERS.t4_advanced.requires).toBe('t3_ordnance');
     expect(RECEIVERS.t4_advanced.short).toBe('Advanced');
@@ -206,6 +207,7 @@ describe('economy & ladders', () => {
     expect(starter.magSize).toBe(1);
     expect(formatRpm(starter)).toBe(String(Math.round((1 / starter.reload) * 60)));
     expect(Number(formatRpm(starter))).toBeLessThan(Math.round(starter.rof * 60));
+    expect(Math.round(starter.rof * 60)).toBe(30);
     const mag2 = defaultProfile();
     mag2.loadout.magazine = 'mag_2';
     expect(Number(formatRpm(resolveStats(mag2)))).toBeGreaterThan(Number(formatRpm(starter)));
@@ -340,12 +342,12 @@ describe('gunsmith catalog', () => {
   });
 
   it('keeps at least four rungs on every attachment slot', () => {
-    for (const slot of ['magazine', 'bolt', 'ammo', 'barrel', 'springs', 'optic', 'stock', 'muzzle', 'gasBlock']) {
+    for (const slot of ['magazine', 'bolt', 'ammo', 'barrel', 'springs', 'grip', 'optic', 'stock', 'trigger', 'muzzle', 'gasBlock', 'laser']) {
       expect(partsForSlot(slot).length).toBeGreaterThanOrEqual(4);
     }
   });
 
-  it('unlocks mag, bolt, and ammo on Shoddy, then two slots per later receiver', () => {
+  it('unlocks mag, bolt, and ammo on Shoddy, then three slots per later receiver', () => {
     expect(SLOTS).toEqual([
       'receiver',
       'magazine',
@@ -353,10 +355,13 @@ describe('gunsmith catalog', () => {
       'ammo',
       'barrel',
       'springs',
+      'grip',
       'optic',
       'stock',
+      'trigger',
       'muzzle',
       'gasBlock',
+      'laser',
     ]);
     expect(SLOT_MIN_TIER).toEqual({
       receiver: 1,
@@ -365,24 +370,31 @@ describe('gunsmith catalog', () => {
       ammo: 1,
       barrel: 2,
       springs: 2,
+      grip: 2,
       optic: 3,
       stock: 3,
+      trigger: 3,
       muzzle: 4,
       gasBlock: 4,
+      laser: 4,
     });
     expect(slotUnlockedFor('t1_stock', 'magazine')).toBe(true);
     expect(slotUnlockedFor('t1_stock', 'bolt')).toBe(true);
     expect(slotUnlockedFor('t1_stock', 'ammo')).toBe(true);
     expect(slotUnlockedFor('t1_stock', 'barrel')).toBe(false);
     expect(slotUnlockedFor('t1_stock', 'springs')).toBe(false);
+    expect(slotUnlockedFor('t1_stock', 'grip')).toBe(false);
     expect(slotUnlockedFor('t2_tactical', 'barrel')).toBe(true);
     expect(slotUnlockedFor('t2_tactical', 'springs')).toBe(true);
+    expect(slotUnlockedFor('t2_tactical', 'grip')).toBe(true);
     expect(slotUnlockedFor('t2_tactical', 'optic')).toBe(false);
     expect(slotUnlockedFor('t3_ordnance', 'optic')).toBe(true);
     expect(slotUnlockedFor('t3_ordnance', 'stock')).toBe(true);
+    expect(slotUnlockedFor('t3_ordnance', 'trigger')).toBe(true);
     expect(slotUnlockedFor('t3_ordnance', 'muzzle')).toBe(false);
     expect(slotUnlockedFor('t4_advanced', 'muzzle')).toBe(true);
     expect(slotUnlockedFor('t4_advanced', 'gasBlock')).toBe(true);
+    expect(slotUnlockedFor('t4_advanced', 'laser')).toBe(true);
   });
 
   it('lets Shoddy raise mag, RoF, and damage through parts', () => {
@@ -403,8 +415,9 @@ describe('gunsmith catalog', () => {
   });
 
   it('prices later rungs from a base cost and a rate', () => {
-    expect(PARTS.bolt_polished.cost).toBe(400);
-    expect(PARTS.bolt_light.cost).toBe(ladderCost(400, 1.9, 2));
+    expect(PARTS.bolt_polished.cost).toBe(250);
+    expect(PARTS.bolt_light.cost).toBe(ladderCost(250, 1.9, 2));
+    expect(PARTS.ammo_hot.cost).toBe(300);
     expect(PARTS.bolt_fluted.cost).toBeGreaterThan(PARTS.bolt_light.cost);
     expect(PARTS.muzzle_brake.cost).toBeGreaterThan(PARTS.muzzle_comp.cost);
     expect(PARTS.muzzle_hybrid.cost).toBeGreaterThan(PARTS.muzzle_ported.cost);
@@ -489,6 +502,8 @@ describe('loadout aim stats', () => {
     expect(gunX + effectiveAimReach(scoped, viewport)).toBeGreaterThan(viewport.w * 0.5);
     expect(gunX + effectiveAimReach(scoped, viewport)).toBeLessThan(viewport.w * 0.7);
     expect(scoped.baseSpread).toBeLessThan(irons.baseSpread);
+    expect(dot.critChance).toBeGreaterThan(irons.critChance);
+    expect(scoped.critChance).toBeGreaterThan(dot.critChance);
     expect(scoped.shotRange).toBeCloseTo(irons.shotRange, 5);
     expect(effectiveShotRange(scoped, viewport)).toBeCloseTo(effectiveShotRange(irons, viewport), 5);
     expect(usesFullScreenAim(scoped)).toBe(false);
@@ -530,6 +545,33 @@ describe('loadout aim stats', () => {
     expect(rifle.aimReach).toBeCloseTo(stub.aimReach, 5);
     expect(effectiveShotRange(rifle, viewport)).toBeGreaterThan(effectiveShotRange(stub, viewport));
     expect(effectiveAimReach(rifle, viewport)).toBeCloseTo(effectiveAimReach(stub, viewport), 5);
+    expect(rifle.damage).toBeGreaterThan(stub.damage);
+    expect(PARTS.barrel_stub.mods.damage).toBeGreaterThan(0);
+  });
+
+  it('gives Militia a grip, Ordnance a trigger, and Advanced a laser', () => {
+    const militia = defaultProfile();
+    militia.loadout.receiver = 't2_tactical';
+    militia.loadout.grip = 'grip_ergo';
+    const grooved = resolveStats(militia);
+    militia.loadout.grip = 'grip_none';
+    expect(grooved.baseSpread).toBeLessThan(resolveStats(militia).baseSpread);
+
+    const ord = defaultProfile();
+    ord.owned.push('t2_tactical', 't3_ordnance');
+    ord.loadout.receiver = 't3_ordnance';
+    const stockTrig = resolveStats(ord);
+    ord.loadout.trigger = 'sear_hair';
+    expect(resolveStats(ord).rof).toBeGreaterThan(stockTrig.rof);
+
+    const adv = defaultProfile();
+    adv.owned.push('t2_tactical', 't3_ordnance', 't4_advanced');
+    adv.loadout.receiver = 't4_advanced';
+    expect(resolveStats(adv).laserSight).toBe(0);
+    const dark = resolveStats(adv);
+    adv.loadout.laser = 'laser_peq';
+    expect(resolveStats(adv).laserSight).toBeGreaterThan(0);
+    expect(resolveStats(adv).baseSpread).toBeLessThan(dark.baseSpread);
   });
 
   it('tightens marksman without unlocking extra sight reach', () => {
@@ -605,7 +647,16 @@ describe('skills & profile', () => {
     expect(SKILLS.marksman.maxRank).toBe(20);
     expect(SKILLS.marksman.perRank.aimReach).toBeUndefined();
     expect(SKILLS.elevation).toBeUndefined();
+    expect(SKILLS.speed).toBeTruthy();
+    expect(SKILLS.firing).toBeTruthy();
     expect(Object.keys(SKILLS).length % 2).toBe(0);
+    const paced = defaultProfile();
+    paced.skillRanks.speed = 4;
+    paced.skillRanks.firing = 5;
+    const starter = resolveStats(defaultProfile());
+    const trained = resolveStats(paced);
+    expect(trained.moveMul).toBeGreaterThan(starter.moveMul);
+    expect(trained.rof).toBeGreaterThan(starter.rof);
   });
 
   it('refunds retired elevation ranks', () => {
@@ -767,7 +818,7 @@ describe('hit impulse', () => {
     applyFlinch(normal, hit);
     expect(normal.stun).toBe(0);
     expect(normal.flinchLean).not.toBe(0);
-    const unhit = 100 - 118 * dt;
+    const unhit = 100 - normal.speed * dt;
     chase(normal);
     expect(normal.worldX).toBeCloseTo(unhit);
 
@@ -853,7 +904,7 @@ describe('kinds & stats schema', () => {
     const rows = gunsmithStatRows(resolveStats(defaultProfile()));
     expect(rows.map((r) => r[0])).toEqual(STATS.filter((s) => s.gunsmith).map((s) => s.gunsmithLabel));
     expect(rows.map((r) => r[0])).toEqual(['DMG', 'ROF', 'MAG', 'VEL', 'PEN', 'RLD', 'Range', 'Sight', 'SPRD']);
-    expect(rows.find((r) => r[0] === 'ROF')[1]).toBe(formatRpm(resolveStats(defaultProfile())));
+    expect(rows.find((r) => r[0] === 'ROF')[1]).toBe(String(Math.round(resolveStats(defaultProfile()).rof * 60)));
     expect(rows.every((r) => r[2])).toBe(true);
     expect(rows.length).toBeGreaterThanOrEqual(8);
   });
@@ -1204,6 +1255,24 @@ describe('simulate loop', () => {
     expect(run.bullets).toHaveLength(1);
     expect(Math.hypot(run.bullets[0].x - b.ox, run.bullets[0].y - b.oy)).toBeGreaterThan(80 * 1.6);
     expect(run.bullets[0].age).toBeUndefined();
+  });
+
+  it('does not kill a spent round when air pen runs out', () => {
+    const run = liveRun();
+    run.enemies.length = 0;
+    const b = spawnBullet(
+      run.player.worldX,
+      40,
+      0,
+      { ...run.stats, bulletSpeed: 500, pen: 0.05, penDecay: 0.02 },
+      false,
+      40,
+    );
+    run.bullets = [b];
+    for (let i = 0; i < 50; i++) stepBullets(run, dt, viewport);
+    expect(run.bullets).toHaveLength(1);
+    expect(run.bullets[0].pen).toBe(0);
+    expect(Math.hypot(run.bullets[0].x - b.ox, run.bullets[0].y - b.oy)).toBeGreaterThan(200);
   });
 });
 
