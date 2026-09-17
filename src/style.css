@@ -63,33 +63,47 @@ body {
   z-index: 10000;
   transform: translate3d(-100px, -100px, 0);
   will-change: transform;
+  contain: layout style;
 }
 
-#soft-cursor.is-hidden {
-  opacity: 0;
+#soft-cursor:not(.is-menu) i,
+#soft-cursor:not(.is-menu) b,
+#soft-cursor:not(.is-menu) em {
+  display: none;
 }
 
-#soft-cursor.is-menu::before {
-  content: "";
+#soft-cursor.is-menu i,
+#soft-cursor.is-menu b {
   display: block;
   width: 0;
   height: 0;
-  border-left: 11px solid var(--gunny-bone);
+  border-left: 11px solid #1a100c;
   border-top: 7px solid transparent;
   border-bottom: 7px solid transparent;
-  filter: drop-shadow(0 1px 0 rgba(20, 14, 10, 0.85));
 }
 
-#soft-cursor.is-menu::after {
-  content: "";
+#soft-cursor.is-menu b {
   position: absolute;
-  left: 2px;
+  left: 0;
+  top: 0;
+  border-left-color: var(--gunny-bone);
+  transform: translate(-1px, -1px);
+}
+
+#soft-cursor.is-menu i {
+  position: absolute;
+  left: 1px;
+  top: 1px;
+}
+
+#soft-cursor.is-menu em {
+  position: absolute;
+  left: 3px;
   top: 9px;
-  width: 8px;
-  height: 10px;
-  background: linear-gradient(135deg, var(--gunny-gold) 0%, var(--gunny-brass) 100%);
-  clip-path: polygon(0 0, 100% 70%, 45% 70%, 70% 100%, 0 55%);
-  opacity: 0.95;
+  width: 7px;
+  height: 7px;
+  background: var(--gunny-gold);
+  transform: rotate(42deg);
 }
 
 #canvas-container {
@@ -177,8 +191,10 @@ canvas {
   align-items: center;
   justify-content: center;
   z-index: 20;
-  padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px))
-    max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  padding: max(clamp(64px, 7vh, 80px), env(safe-area-inset-top, 0px))
+    max(clamp(32px, 5.5vw, 80px), env(safe-area-inset-right, 0px))
+    max(clamp(64px, 7vh, 80px), env(safe-area-inset-bottom, 0px))
+    max(clamp(32px, 5.5vw, 80px), env(safe-area-inset-left, 0px));
   touch-action: auto;
   -webkit-touch-callout: none;
 }
@@ -233,8 +249,8 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .panel-hero {
-  width: min(100%, 1080px);
-  height: min(100%, 660px);
+  width: min(1080px, 100%);
+  height: min(660px, 100%);
   max-width: 100%;
   max-height: 100%;
   margin: 0 auto;
@@ -255,7 +271,16 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .camp-stack > .camp-brand {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 4px 12px 10px;
+}
+
+#overlay-root .end-stack > .workshop-brand {
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -286,16 +311,15 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .page-head .ledger {
-  flex: 0 1 auto;
-  width: fit-content;
+  flex: 1 1 auto;
+  width: auto;
   min-width: 0;
   max-width: 100%;
-  margin-left: auto;
-  margin-right: 0;
+  margin: 0;
 }
 
 #overlay-root .page-head:not(:has(.back)) .ledger {
-  margin-inline: auto;
+  margin: 0;
 }
 
 #overlay-root .page-head .ledger > div {
@@ -354,7 +378,7 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root h1 {
   color: var(--gunny-blood);
-  font-size: clamp(40px, 11vmin, 72px);
+  font-size: clamp(52px, 14vmin, 96px);
   letter-spacing: 0.1em;
   text-shadow: 0 2px 0 #1a0c08;
 }
@@ -368,7 +392,7 @@ html:-webkit-full-screen::backdrop,
 #overlay-root .camp-brand {
   text-align: center;
   flex: 0 0 auto;
-  padding: 10px 12px 8px;
+  padding: 6px 12px 8px;
 }
 
 #overlay-root .workshop-brand {
@@ -387,6 +411,19 @@ html:-webkit-full-screen::backdrop,
 
 #panel-end .workshop-brand h2 {
   font-size: clamp(28px, 7.2vmin, 44px);
+}
+
+#panel-end .end-stack {
+  padding-bottom: 8px;
+}
+
+#panel-end .stats {
+  margin-bottom: 12px;
+  padding-bottom: 4px;
+}
+
+#panel-end .facilities {
+  margin-top: 4px;
 }
 
 #overlay-root .end-verdict {
@@ -434,33 +471,35 @@ html:-webkit-full-screen::backdrop,
 #overlay-root .ledger {
   display: flex;
   flex-wrap: nowrap;
-  justify-content: center;
+  justify-content: space-between;
   align-items: stretch;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0 auto;
-  gap: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  gap: 8px;
   flex-shrink: 0;
-  background: rgba(12, 8, 4, 0.45);
+}
+
+#overlay-root .ledger-funds {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+#overlay-root .ledger-gunner,
+#overlay-root .ledger-funds > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 5.8em;
+  padding: 8px 14px;
+  background: rgba(12, 8, 4, 0.4);
   border: 1px solid #5a4030;
   border-radius: 6px;
-  overflow: hidden;
-}
-
-#overlay-root .ledger > div {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 8px;
-  padding: 7px 16px;
-  background: none;
-  border: none;
-  border-radius: 0;
   white-space: nowrap;
-}
-
-#overlay-root .ledger > div + div {
-  border-left: 1px solid #5a4030;
 }
 
 #overlay-root .ledger-label {
@@ -864,7 +903,7 @@ html:-webkit-full-screen::backdrop,
   margin: 0;
   flex: 1 1 auto;
   min-height: 0;
-  align-content: start;
+  align-content: center;
   grid-auto-rows: minmax(56px, auto);
   overflow: hidden;
 }
@@ -947,7 +986,7 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .camp-foot {
   display: grid;
-  grid-template-columns: 1fr minmax(108px, 32%);
+  grid-template-columns: minmax(108px, 32%) 1fr;
   gap: 10px;
   border-top: 0;
   padding-top: 0;
@@ -955,8 +994,21 @@ html:-webkit-full-screen::backdrop,
   align-items: stretch;
 }
 
+#overlay-root .camp-foot .facility.side {
+  grid-column: 1;
+}
+
+#overlay-root .camp-foot .facility.start {
+  grid-column: 2;
+}
+
 #overlay-root .camp-foot:has(> :only-child) {
   grid-template-columns: 1fr;
+}
+
+#overlay-root .camp-foot:has(> :only-child) .facility.start,
+#overlay-root .camp-foot:has(> :only-child) .facility.side {
+  grid-column: 1;
 }
 
 #overlay-root .skin-picks {
@@ -1035,16 +1087,16 @@ html:-webkit-full-screen::backdrop,
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
-    max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  padding: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px))
+    max(24px, env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px));
   background: rgba(8, 5, 3, 0.55);
 }
 
 #overlay-root .opt-sheet {
-  width: min(100%, 340px);
-  max-height: 100%;
-  min-height: 0;
-  overflow: hidden;
+  width: min(100%, 380px);
+  max-height: min(100%, 90dvh);
+  min-height: min-content;
+  overflow: auto;
   background: var(--panel-wood);
   border: 1px solid var(--gunny-brass);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 230, 190, 0.14);
@@ -1106,7 +1158,22 @@ html:-webkit-full-screen::backdrop,
 #overlay-root .opt-volume {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+#overlay-root .opt-bus {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 48px;
+}
+
+#overlay-root .opt-bus .ledger-label {
+  letter-spacing: 0.12em;
+  position: static;
 }
 
 #overlay-root .opt-volume-row {
@@ -1114,6 +1181,7 @@ html:-webkit-full-screen::backdrop,
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 #overlay-root .opt-mute,
@@ -1131,8 +1199,10 @@ html:-webkit-full-screen::backdrop,
 #overlay-root .opt-slider {
   -webkit-appearance: none;
   appearance: none;
+  display: block;
   width: 100%;
   height: 6px;
+  margin: 6px 0 8px;
   border-radius: 99px;
   background: #2a1c14;
   border: 1px solid #6a5038;
@@ -1217,13 +1287,6 @@ html:-webkit-full-screen::backdrop,
   z-index: 1;
 }
 
-@media (max-width: 1240px) {
-  #overlay-root {
-    padding-left: max(64px, env(safe-area-inset-left, 0px));
-    padding-right: max(64px, env(safe-area-inset-right, 0px));
-  }
-}
-
 @media (max-width: 720px) {
   #overlay-root .slot-row {
     grid-template-columns: 4.6rem minmax(0, 1fr);
@@ -1232,10 +1295,23 @@ html:-webkit-full-screen::backdrop,
 
 @media (max-height: 500px) {
   #overlay-root {
-    padding-top: max(10px, env(safe-area-inset-top, 0px));
-    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
-    padding-left: max(64px, env(safe-area-inset-left, 0px));
-    padding-right: max(64px, env(safe-area-inset-right, 0px));
+    padding-top: max(8px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(56px, env(safe-area-inset-left, 0px));
+    padding-right: max(56px, env(safe-area-inset-right, 0px));
+  }
+
+  #overlay-root .panel-hero {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  #overlay-root .opt-fabs {
+    flex-direction: column;
+    top: max(10px, env(safe-area-inset-top, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
   }
 
   #overlay-root .panel {
@@ -1248,6 +1324,10 @@ html:-webkit-full-screen::backdrop,
   #overlay-root .workshop-brand .kicker,
   #panel-training .stats {
     display: none;
+  }
+
+  #panel-end .workshop-brand .kicker {
+    display: block;
   }
 
   #overlay-root .workshop-brand {
@@ -1268,23 +1348,26 @@ html:-webkit-full-screen::backdrop,
     padding: 4px 8px;
   }
 
+  #overlay-root .end-stack > .workshop-brand {
+    flex: 0 0 auto;
+  }
+
+  #overlay-root .train-grid {
+    align-content: start;
+  }
+
   #overlay-root .camp-brand {
     padding: 2px 8px 0;
   }
 
   #overlay-root h1 {
-    font-size: clamp(28px, 8vmin, 48px);
+    font-size: clamp(36px, 11vmin, 64px);
   }
 
-  #overlay-root .ledger {
-    width: 100%;
-  }
-
-  #overlay-root .ledger > div {
-    flex: 1 1 0;
-    justify-content: center;
+  #overlay-root .ledger-gunner,
+  #overlay-root .ledger-funds > div {
+    min-width: 0;
     padding: 5px 10px;
-    gap: 6px;
   }
 
   #overlay-root .ledger-value {

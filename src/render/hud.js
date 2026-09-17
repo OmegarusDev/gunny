@@ -222,6 +222,22 @@ function drawGun(ctx, run, viewport, m) {
     innerW,
     run.weapon.perfectMag ? GOLD : BONE,
   );
+  const cycle = run.weapon.reloading
+    ? 0
+    : Math.max(0, Math.min(1, 1 - (run.weapon.cooldown || 0) * run.stats.rof));
+  const dry = Math.max(0, Math.min(1, (run.weapon.dryFlash || 0) / 0.14));
+  const cycleY = y + 82 * m.u;
+  const cycleH = 5 * m.u;
+  ctx.fillStyle = 'rgba(8, 4, 2, 0.55)';
+  fillRoundRect(ctx, ix, cycleY, innerW, cycleH, 2);
+  if (cycle > 0.02) {
+    ctx.fillStyle = dry > 0.04 ? `rgba(196, 69, 54, ${0.55 + 0.4 * dry})` : GOLD;
+    fillRoundRect(ctx, ix, cycleY, innerW * cycle, cycleH, 2);
+  }
+  ctx.strokeStyle =
+    dry > 0.04 ? `rgba(196, 69, 54, ${0.5 + 0.4 * dry})` : 'rgba(224, 163, 58, 0.45)';
+  ctx.lineWidth = 1;
+  strokeRoundRect(ctx, ix, cycleY, innerW, cycleH, 2);
 
   ctx.font = `${m.label}px ${SANS}`;
   ctx.letterSpacing = '0.1em';

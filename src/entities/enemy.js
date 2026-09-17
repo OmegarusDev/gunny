@@ -39,22 +39,26 @@ function cacheHitVolumes(enemy) {
   const lethal = enemy.lethalCircleList || (enemy.lethalCircleList = []);
   list.length = 0;
   lethal.length = 0;
-  list.push(
-    circles.head,
-    circles.upper,
-    circles.lower,
-    circles.pelvis,
-    circles.shL,
-    circles.shR,
-    circles.lUpp,
-    circles.lFore,
-    circles.rUpp,
-    circles.rFore,
-    circles.lThigh,
-    circles.rThigh,
-    circles.lLeg,
-    circles.rLeg,
-  );
+  const cover = circles.cover;
+  if (cover) list.push(...cover);
+  else {
+    list.push(
+      circles.head,
+      circles.upper,
+      circles.lower,
+      circles.pelvis,
+      circles.shL,
+      circles.shR,
+      circles.lUpp,
+      circles.lFore,
+      circles.rUpp,
+      circles.rFore,
+      circles.lThigh,
+      circles.rThigh,
+      circles.lLeg,
+      circles.rLeg,
+    );
+  }
   for (const c of list) {
     if (c.zone === 'head' || c.zone === 'upper' || c.zone === 'lower') lethal.push(c);
   }

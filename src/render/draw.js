@@ -87,7 +87,17 @@ function drawPlayer(ctx, run, viewport) {
   ctx.beginPath();
   ctx.arc(mx, my, 7 + bloom, 0, Math.PI * 2);
   ctx.stroke();
-  const shot = Math.max(0, Math.min(1, (w.shotFlash || 0) / 0.075));
+  const cycle = Math.max(0, Math.min(1, 1 - (w.cooldown || 0) * run.stats.rof));
+  const dry = Math.max(0, Math.min(1, (w.dryFlash || 0) / 0.14));
+  if (cycle < 0.995 || dry > 0.04) {
+    ctx.strokeStyle =
+      dry > 0.04 ? `rgba(196, 69, 54, ${0.35 + 0.55 * dry})` : 'rgba(243, 230, 208, 0.55)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(mx, my, 11 + bloom, -Math.PI / 2, -Math.PI / 2 + cycle * Math.PI * 2);
+    ctx.stroke();
+  }
+  const shot = Math.max(0, Math.min(1, (w.shotFlash || 0) / 0.09));
   if (shot > 0.04) {
     ctx.globalCompositeOperation = 'lighter';
     const reach = 36 + shot * 28;
@@ -324,6 +334,6 @@ export function drawBackdrop(ctx, viewport, t, biomeIndex = 0) {
   ctx.restore();
   drawMotes(ctx, viewport, run.biome, t);
   drawKeyLight(ctx, viewport, run.biome);
+  drawGrain(ctx, viewport, 0);
   drawVignette(ctx, viewport, run.biome);
-  drawGrain(ctx, viewport, t);
 }

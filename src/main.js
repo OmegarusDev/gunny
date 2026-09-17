@@ -36,7 +36,6 @@ let lastType = 'campaign';
 let lastLevel = 0;
 let lastSeed = null;
 let endlessBiome = 0;
-let hubFrame = 0;
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener(
@@ -97,7 +96,6 @@ function startRun(type, levelIndex, seed) {
 }
 
 function leaveRun() {
-  hubFrame = 0;
   applyPwa();
   syncCursor();
 }
@@ -105,7 +103,6 @@ function leaveRun() {
 function showHub() {
   mode = 'hub';
   run = null;
-  hubFrame = 0;
   overlays.show('hub');
   renderHub(overlays.hub, profile, { ...handlers, endlessBiome });
   leaveRun();
@@ -242,7 +239,7 @@ function frame(now) {
   } else {
     queuedPointerTap = false;
     queuedReloadTap = false;
-    if ((hubFrame++ & 1) === 0) drawBackdrop(ctx, viewport, now / 1000, profile.unlockedLevel);
+    drawBackdrop(ctx, viewport, now / 1000, profile.unlockedLevel);
   }
   requestAnimationFrame(frame);
 }

@@ -149,14 +149,9 @@ export function drawMotes(ctx, viewport, biome, t) {
 }
 
 export function drawVignette(ctx, viewport, biome) {
-  const g = ctx.createRadialGradient(
-    viewport.w * 0.52,
-    viewport.h * 0.46,
-    viewport.h * 0.16,
-    viewport.w * 0.5,
-    viewport.h * 0.5,
-    Math.hypot(viewport.w, viewport.h) * 0.62,
-  );
+  const cx = viewport.w * 0.5;
+  const cy = viewport.h * 0.5;
+  const g = ctx.createRadialGradient(cx, cy, viewport.h * 0.16, cx, cy, Math.hypot(viewport.w, viewport.h) * 0.62);
   g.addColorStop(0, 'rgba(0,0,0,0)');
   g.addColorStop(0.58, 'rgba(0,0,0,0)');
   g.addColorStop(

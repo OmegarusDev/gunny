@@ -17,6 +17,9 @@ const PELVIS_H = 18 * S;
 const GUT_H = 25 * S;
 const RIB_H = 39 * S;
 const KNEE_BEND = 0.26;
+const STANCE = 0.58;
+/** World pixels → gait time. ~2 plants/s at campaign retreat (70px/s). */
+const GAIT_PER_PX = 0.009;
 
 const GUNNER_PAL = {
   cloth: '#3d3228',
@@ -50,8 +53,8 @@ function between(seed, n, a, b) {
 function gaitFromSeed(kind, seed) {
   if (kind === 'gunner') {
     return {
-      cadence: 1.55,
-      stride: 18 * S,
+      cadence: 1.42,
+      stride: 22 * S,
       lift: 8 * S,
       phase0: 0,
       limp: 0,
@@ -64,7 +67,7 @@ function gaitFromSeed(kind, seed) {
   }
   const hunch0 = KINDS[kind]?.hunch ?? 0.08;
   return {
-    cadence: between(seed, 1, 1.85, 2.25),
+    cadence: between(seed, 1, 1.22, 1.52),
     stride: between(seed, 2, STRIDE * 0.88, STRIDE * 1.12),
     lift: between(seed, 3, LIFT * 0.85, LIFT * 1.15),
     phase0: between(seed, 4, 0, 0.9),
@@ -135,15 +138,14 @@ function ikElbow(shoulder, hand, preferBackX) {
 
 function stepAt(phase, locDir, stride, lift) {
   const p = ((phase % 1) + 1) % 1;
-  const stance = 0.58;
-  if (p < stance) {
-    const u = p / stance;
+  if (p < STANCE) {
+    const u = p / STANCE;
     let pitch = 0;
     if (u < 0.16) pitch = lerp(0.32, 0, u / 0.16);
     else if (u > 0.76) pitch = lerp(0, -0.38, (u - 0.76) / 0.24);
     return { x: lerp(locDir * stride, -locDir * stride, u), planted: true, u, pitch, lift: 0 };
   }
-  const u = (p - stance) / (1 - stance);
+  const u = (p - STANCE) / (1 - STANCE);
   const swing = u * u * (3 - 2 * u);
   const pitch = u < 0.45 ? lerp(-0.28, 0.12, u / 0.45) : lerp(0.12, 0.36, (u - 0.45) / 0.55);
   return {
@@ -394,7 +396,18 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
 }
 
 export function enemyTime(worldX) {
-  return -worldX * 0.016;
+  return -worldX * GAIT_PER_PX;
+}
+
+/** True while that foot is in the planted stance used by `stepAt`. */
+export function gaitPlanted(kind, seed, worldX) {
+  const g = gaitFromSeed(kind, seed);
+  const phase = enemyTime(worldX) * g.cadence + g.phase0;
+  const wrap = (x) => ((x % 1) + 1) % 1;
+  return {
+    L: wrap(phase) < STANCE,
+    R: wrap(phase + 0.5 + g.limp) < STANCE,
+  };
 }
 
 export function poseEnemyLocal(enemy, { flinch = true } = {}) {
@@ -417,9 +430,9 @@ export function posePlayerLocal(player) {
     kind: 'gunner',
     seed: 1,
     t: enemyTime(player.worldX),
-    aimAngle: player.crawling ? 0 : (player.aimAngle || 0) - (player.shotKick || 0) * 0.4,
+    aimAngle: player.crawling ? 0 : (player.aimAngle || 0) - (player.shotKick || 0) * 0.55,
     crawl: !!player.crawling,
-    lean: (player.flinchLean || 0) - (player.shotKick || 0),
+    lean: (player.flinchLean || 0) - (player.shotKick || 0) * 0.28,
   });
 }
 
@@ -445,28 +458,73 @@ function vol(pt, r, zone) {
   return { x: pt.x, y: pt.y, r, zone };
 }
 
-/** Circles that cover the cut-paper silhouette, not just five body dots. */
+function coverBone(out, a, b, r, zone) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy);
+  const n = Math.max(1, Math.ceil(len / Math.max(1, r * 1.05)));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    out.push(vol({ x: a.x + dx * t, y: a.y + dy * t }, r, zone));
+  }
+}
+
+/** Circles that cover the cut-paper silhouette, including along each bone. */
 export function limbCirclesFromPose(p) {
   const crawl = p.crawl;
   const l = p.l;
   const rleg = p.r;
-  const s = p.scale || 1;
-  return {
-    head: vol(p.head, (crawl ? 13 : 16) * S * s, 'head'),
-    upper: vol(p.rib, (crawl ? 14 : 18) * S * s, 'upper'),
-    lower: vol(p.gut, (crawl ? 13 : 16) * S * s, 'lower'),
-    pelvis: vol(p.pelvis, (crawl ? 12 : 14) * S * s, 'lower'),
-    shL: vol(p.shL, 8 * S * s, 'upper'),
-    shR: vol(p.shR, 8 * S * s, 'upper'),
-    lUpp: vol(mid(p.armL.shoulder, p.armL.elbow), 8 * S * s, 'upper'),
-    lFore: vol(mid(p.armL.elbow, p.armL.hand), 7 * S * s, 'upper'),
-    rUpp: vol(mid(p.armR.shoulder, p.armR.elbow), 8 * S * s, 'upper'),
-    rFore: vol(mid(p.armR.elbow, p.armR.hand), 7 * S * s, 'upper'),
-    lThigh: vol(mid(l.hip, l.knee), 13 * S * s, 'lLeg'),
-    rThigh: vol(mid(rleg.hip, rleg.knee), 13 * S * s, 'rLeg'),
-    lLeg: vol(mid(l.knee, l.ankle), 12 * S * s, 'lLeg'),
-    rLeg: vol(mid(rleg.knee, rleg.ankle), 12 * S * s, 'rLeg'),
+  const u = S * (p.scale || 1);
+  const named = {
+    head: vol(p.head, (crawl ? 14 : 17) * u, 'head'),
+    upper: vol(p.rib, (crawl ? 15 : 19) * u, 'upper'),
+    lower: vol(p.gut, (crawl ? 14 : 17) * u, 'lower'),
+    pelvis: vol(p.pelvis, (crawl ? 13 : 15) * u, 'lower'),
+    shL: vol(p.shL, 9 * u, 'upper'),
+    shR: vol(p.shR, 9 * u, 'upper'),
+    lUpp: vol(mid(p.armL.shoulder, p.armL.elbow), 8 * u, 'upper'),
+    lFore: vol(mid(p.armL.elbow, p.armL.hand), 7 * u, 'upper'),
+    rUpp: vol(mid(p.armR.shoulder, p.armR.elbow), 8 * u, 'upper'),
+    rFore: vol(mid(p.armR.elbow, p.armR.hand), 7 * u, 'upper'),
+    lThigh: vol(mid(l.hip, l.knee), 13 * u, 'lLeg'),
+    rThigh: vol(mid(rleg.hip, rleg.knee), 13 * u, 'rLeg'),
+    lLeg: vol(mid(l.knee, l.ankle), 12 * u, 'lLeg'),
+    rLeg: vol(mid(rleg.knee, rleg.ankle), 12 * u, 'rLeg'),
   };
+  const cover = [
+    named.head,
+    named.upper,
+    named.lower,
+    named.pelvis,
+    named.shL,
+    named.shR,
+    named.lUpp,
+    named.lFore,
+    named.rUpp,
+    named.rFore,
+    named.lThigh,
+    named.rThigh,
+    named.lLeg,
+    named.rLeg,
+  ];
+  coverBone(cover, p.head, p.rib, (crawl ? 10 : 12) * u, 'upper');
+  coverBone(cover, p.rib, p.gut, (crawl ? 13 : 15) * u, 'upper');
+  coverBone(cover, p.gut, p.pelvis, (crawl ? 12 : 14) * u, 'lower');
+  coverBone(cover, p.junction, p.jL, 8 * u, 'upper');
+  coverBone(cover, p.junction, p.jR, 8 * u, 'upper');
+  coverBone(cover, p.armL.shoulder, p.armL.elbow, 7 * u, 'upper');
+  coverBone(cover, p.armL.elbow, p.armL.hand, 6 * u, 'upper');
+  coverBone(cover, p.armR.shoulder, p.armR.elbow, 7 * u, 'upper');
+  coverBone(cover, p.armR.elbow, p.armR.hand, 6 * u, 'upper');
+  coverBone(cover, l.hip, l.knee, 10 * u, 'lLeg');
+  coverBone(cover, l.knee, l.ankle, 9 * u, 'lLeg');
+  coverBone(cover, rleg.hip, rleg.knee, 10 * u, 'rLeg');
+  coverBone(cover, rleg.knee, rleg.ankle, 9 * u, 'rLeg');
+  cover.push(vol(p.armL.hand, 6 * u, 'upper'), vol(p.armR.hand, 6 * u, 'upper'));
+  cover.push(vol(l.heel, 6 * u, 'lLeg'), vol(l.toe, 6 * u, 'lLeg'));
+  cover.push(vol(rleg.heel, 6 * u, 'rLeg'), vol(rleg.toe, 6 * u, 'rLeg'));
+  named.cover = cover;
+  return named;
 }
 
 export function gunWorld(player) {

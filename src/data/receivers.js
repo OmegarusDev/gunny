@@ -38,7 +38,7 @@ const SHODDY_BASE = {
   magSize: 1,
   reload: 2.55,
   perfectWidth: 0.07,
-  bulletSpeed: 820,
+  bulletSpeed: 1600,
   pen: 0.5,
   penDecay: 0.0009,
   bloomPerShot: 1.85,
@@ -57,7 +57,7 @@ const SHODDY_BASE = {
 const RECEIVER_PER_RANK = {
   reload: -0.15,
   perfectWidth: 0.01,
-  bulletSpeed: 40,
+  bulletSpeed: 80,
   penDecay: -0.0001,
   bloomPerShot: -0.2,
   bloomRecover: 0.9,

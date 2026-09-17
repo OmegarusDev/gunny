@@ -1,6 +1,5 @@
 import { TRACK_METERS } from '../config.js';
 import { beatenRoadIndexes, biomeFor } from '../data/biomes.js';
-import { PARTS } from '../data/attachments.js';
 import { equippedLabel, formatRpm, resolveStats } from '../entities/loadout.js';
 import { ledgerBlock, statsGrid } from './overlays.js';
 import { facilityButton } from './icons.js';
@@ -13,8 +12,6 @@ export function renderHub(el, profile, handlers) {
     ? handlers.endlessBiome
     : roads[roads.length - 1];
   const endlessPlace = biomeFor(endlessPick).place;
-  const mag = PARTS[profile.loadout.magazine]?.name ?? '—';
-  const barrel = PARTS[profile.loadout.barrel]?.name ?? '—';
   el.innerHTML = `
     <div class="panel-stack camp-stack">
       ${ledgerBlock(profile)}
@@ -38,18 +35,18 @@ export function renderHub(el, profile, handlers) {
       </div>
       <div class="sheet-foot camp-foot">
         ${facilityButton({
-          act: 'deploy',
-          icon: 'deploy',
-          title: 'Start Run',
-          sub: `${next.place} · ${TRACK_METERS}m`,
-          variant: 'start',
-        })}
-        ${facilityButton({
           act: 'endless',
           icon: 'endless',
           title: 'Endless',
           sub: endlessPlace,
           variant: 'side',
+        })}
+        ${facilityButton({
+          act: 'deploy',
+          icon: 'deploy',
+          title: 'Start Run',
+          sub: `${next.place} · ${TRACK_METERS}m`,
+          variant: 'start',
         })}
       </div>
       ${
@@ -72,7 +69,6 @@ export function renderHub(el, profile, handlers) {
         ['Reload', `${stats.reload.toFixed(2)}s`],
         ['Road', `L${profile.unlockedLevel + 1}`],
       ])}
-      <p class="muted kit-line">${barrel} · ${mag}</p>
     </div>
   `;
   el.querySelector('[data-act="deploy"]').onclick = () => handlers.deploy(profile.unlockedLevel);
@@ -92,6 +88,7 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
         ${ledgerBlock(profile)}
       </div>
       <header class="camp-brand workshop-brand">
+        <p class="kicker">${run.endless ? 'Endless' : `Level ${run.levelIndex + 1}`}</p>
         <h2>${biome ? biome.place : 'The road'}</h2>
         <p class="end-verdict">${title}</p>
       </header>
@@ -118,6 +115,13 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
         })}
       </div>
       <div class="sheet-foot camp-foot">
+        ${facilityButton({
+          act: 'hub',
+          icon: 'camp',
+          title: extract ? 'Return' : 'Camp',
+          sub: 'Ledger and kit',
+          variant: extract ? 'start' : 'side',
+        })}
         ${
           extract
             ? ''
@@ -129,13 +133,6 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
                 variant: 'start',
               })
         }
-        ${facilityButton({
-          act: 'hub',
-          icon: 'camp',
-          title: extract ? 'Return' : 'Camp',
-          sub: 'Ledger and kit',
-          variant: extract ? 'start' : 'side',
-        })}
       </div>
     </div>
   `;

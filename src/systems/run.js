@@ -15,7 +15,7 @@ import { createWeather } from '../world/weather.js';
 import { runMeters } from '../world/metrics.js';
 import { createPlayer, screenToWorld, cameraX } from '../entities/player.js';
 import { applyFlinch, cacheEnemyPose, isDead, lethalCircles, stepFlinch, updateLocomotion } from '../entities/enemy.js';
-import { gunWorld, playerCoreFromPose, posePlayerLocal } from '../figure.js';
+import { gaitPlanted, gunWorld, playerCoreFromPose, posePlayerLocal } from '../figure.js';
 import { resolveStats, shotSpreadDeg } from '../entities/loadout.js';
 import { spawnBullet, stepBullets } from './ballistics.js';
 import { stepSpawner } from './spawner.js';
@@ -27,7 +27,7 @@ import { resolveAimPoint } from '../view/aim.js';
 import { roleOf } from '../data/roles.js';
 import { createScore, tickDistance, onHit, onKill, onPerfect, extractBonus } from './scoring.js';
 import { rectCircleOverlap } from './hits.js';
-import { playFlesh, playMuzzle } from '../audio/synth.js';
+import { beginFootFrame, playDry, playFlesh, playFoot, playMuzzle } from '../audio/synth.js';
 
 export function createRun({ profile, viewport, type, levelIndex, seed }) {
   const seeded =
@@ -76,6 +76,8 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
       bloom: 0,
       heat: 0,
       shotFlash: 0,
+      dryFlash: 0,
+      magIn: false,
       reloading: false,
       reloadT: 0,
       reloadDur: stats.reload,
@@ -154,7 +156,7 @@ function applyHits(run) {
   run.pendingHits.length = 0;
 }
 
-function tryFire(run, firing, viewport) {
+function tryFire(run, firing, viewport, tap) {
   const { weapon, stats, player } = run;
   if (weapon.reloading || weapon.suppressFire) return false;
   if (!firing) {
@@ -162,7 +164,13 @@ function tryFire(run, firing, viewport) {
     return false;
   }
   if (weapon.ammo <= 0) return false;
-  if (weapon.cooldown > 0) return false;
+  if (weapon.cooldown > 0) {
+    if (tap) {
+      playDry();
+      weapon.dryFlash = 0.14;
+    }
+    return false;
+  }
   weapon.firing = true;
   weapon.cooldown = 1 / stats.rof;
   weapon.ammo -= 1;
@@ -178,15 +186,15 @@ function tryFire(run, firing, viewport) {
     spawnBullet(muzzle.x, muzzle.y, angle, stats, weapon.perfectMag, effectiveShotRange(stats, viewport)),
   );
   weapon.bloom = Math.min(stats.bloomCap, weapon.bloom + stats.bloomPerShot);
-  weapon.shotFlash = 0.075;
-  player.shotKick = Math.min(0.34, (player.shotKick || 0) + 0.22);
-  run.shakeX = (run.shakeX || 0) - Math.cos(angle) * 5.5;
-  run.shakeY = (run.shakeY || 0) - Math.sin(angle) * 3.5 - 2.2;
-  const sparks = spawnBurst(muzzle.x, muzzle.y, 4, run.rng, Math.cos(angle), Math.sin(angle));
+  weapon.shotFlash = 0.09;
+  player.shotKick = Math.min(0.12, (player.shotKick || 0) + 0.07);
+  run.shakeX = (run.shakeX || 0) - Math.cos(angle) * 2.4;
+  run.shakeY = (run.shakeY || 0) - Math.sin(angle) * 1.5 - 0.9;
+  const sparks = spawnBurst(muzzle.x, muzzle.y, 5, run.rng, Math.cos(angle), Math.sin(angle));
   for (const p of sparks) {
     p.tone = 'spark';
-    p.life = 0.08 + run.rng() * 0.05;
-    p.max = 0.14;
+    p.life = 0.09 + run.rng() * 0.05;
+    p.max = 0.16;
   }
   run.particles.push(...sparks);
   playMuzzle(stats);
@@ -250,6 +258,41 @@ function checkContact(run) {
   }
 }
 
+function emitPlant(ent, planted, play) {
+  if (ent.footL == null) {
+    ent.footL = planted.L;
+    ent.footR = planted.R;
+    return;
+  }
+  if (planted.L && !ent.footL) play();
+  if (planted.R && !ent.footR) play();
+  ent.footL = planted.L;
+  ent.footR = planted.R;
+}
+
+function stepFootfalls(run, viewport) {
+  beginFootFrame();
+  const { player } = run;
+  emitPlant(player, gaitPlanted('gunner', 1, player.worldX), () => playFoot({ voice: 'boot' }));
+  const cam = cameraX(player.worldX, viewport);
+  for (const enemy of run.enemies) {
+    if (!enemy.alive) continue;
+    const sx = enemy.worldX - cam;
+    if (sx < -40 || sx > viewport.w + 40) {
+      enemy.footL = null;
+      enemy.footR = null;
+      continue;
+    }
+    emitPlant(enemy, gaitPlanted(enemy.kind || 'zombie', enemy.id || 1, enemy.worldX), () =>
+      playFoot({
+        voice: enemy.crawling ? 'drag' : 'zombie',
+        dist: Math.abs(enemy.worldX - player.worldX),
+        pan: (sx / viewport.w) * 2 - 1,
+      }),
+    );
+  }
+}
+
 export function simulate(run, dt, viewport, input) {
   if (run.ended || run.paused) return;
   if (run.dying) {
@@ -260,10 +303,11 @@ export function simulate(run, dt, viewport, input) {
   const { player, weapon, stats } = run;
   player.worldX -= V_RETREAT * dt;
   player.y = run.terrain.height(player.worldX);
-  player.shotKick = (player.shotKick || 0) * Math.exp(-dt * 14);
-  run.shakeX = (run.shakeX || 0) * Math.exp(-dt * 16);
-  run.shakeY = (run.shakeY || 0) * Math.exp(-dt * 16);
+  player.shotKick = (player.shotKick || 0) * Math.exp(-dt * 18);
+  run.shakeX = (run.shakeX || 0) * Math.exp(-dt * 18);
+  run.shakeY = (run.shakeY || 0) * Math.exp(-dt * 18);
   weapon.shotFlash = Math.max(0, (weapon.shotFlash || 0) - dt);
+  weapon.dryFlash = Math.max(0, (weapon.dryFlash || 0) - dt);
 
   const gun = gunWorld(player);
   const aim = resolveAimPoint(
@@ -277,12 +321,16 @@ export function simulate(run, dt, viewport, input) {
   run.aim = aim;
   const aimWorld = screenToWorld(aim.x, aim.y, player.worldX, viewport);
   const target = Math.atan2(aimWorld.y - gun.y, aimWorld.x - gun.x);
-  const maxTurn = stats.aimRate * dt;
-  let diff = target - player.aimAngle;
-  while (diff > Math.PI) diff -= Math.PI * 2;
-  while (diff < -Math.PI) diff += Math.PI * 2;
-  if (Math.abs(diff) <= maxTurn) player.aimAngle = target;
-  else player.aimAngle += Math.sign(diff) * maxTurn;
+  if (input.pointerTap) {
+    player.aimAngle = target;
+  } else {
+    const maxTurn = stats.aimRate * dt;
+    let diff = target - player.aimAngle;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    if (Math.abs(diff) <= maxTurn) player.aimAngle = target;
+    else player.aimAngle += Math.sign(diff) * maxTurn;
+  }
 
   weapon.cooldown = Math.max(0, weapon.cooldown - dt);
   if (!input.firing) weapon.suppressFire = false;
@@ -308,7 +356,7 @@ export function simulate(run, dt, viewport, input) {
       if (reloadTap === 'perfect' || reloadTap === 'jam') weapon.suppressFire = true;
     }
   } else {
-    const shot = tryFire(run, holding, viewport);
+    const shot = tryFire(run, holding, viewport, input.pointerTap);
     if (shot && weapon.ammo <= 0) {
       startReload(weapon, stats);
       weapon.suppressFire = true;
@@ -328,6 +376,7 @@ export function simulate(run, dt, viewport, input) {
   }
 
   stepSpawner(run, dt, viewport);
+  stepFootfalls(run, viewport);
   for (const enemy of run.enemies) {
     if (enemy.alive) cacheEnemyPose(enemy);
   }

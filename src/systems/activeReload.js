@@ -1,5 +1,5 @@
 import { JAM_PENALTY, RELOAD_FORGIVE } from '../config.js';
-import { playJam, playPerfect, playReloadTone } from '../audio/synth.js';
+import { playCock, playJam, playMagIn, playMagOut, playPerfect } from '../audio/synth.js';
 import { perfectBand } from '../view/reload.js';
 
 export {
@@ -18,6 +18,8 @@ export function startReload(weapon, stats) {
   weapon.tapped = false;
   weapon.toneAcc = 0;
   weapon.perfectMag = false;
+  weapon.magIn = false;
+  playMagOut();
 }
 
 export function tapReload(weapon, stats) {
@@ -33,6 +35,8 @@ export function tapReload(weapon, stats) {
     weapon.ammo = stats.magSize;
     weapon.perfectMag = true;
     weapon.cooldown = 0;
+    if (!weapon.magIn) playMagIn();
+    weapon.magIn = true;
     playPerfect();
     return 'perfect';
   }
@@ -46,10 +50,9 @@ export function tapReload(weapon, stats) {
 export function stepReload(weapon, stats, dt) {
   if (!weapon.reloading) return;
   weapon.reloadT += dt;
-  weapon.toneAcc += dt;
-  if (weapon.toneAcc > 0.05) {
-    weapon.toneAcc = 0;
-    playReloadTone(Math.min(1, weapon.reloadT / weapon.reloadDur));
+  if (!weapon.magIn && weapon.reloadDur > 0 && weapon.reloadT >= weapon.reloadDur * 0.42) {
+    weapon.magIn = true;
+    playMagIn();
   }
   if (weapon.reloadT >= weapon.reloadDur) {
     weapon.reloading = false;
@@ -59,5 +62,8 @@ export function stepReload(weapon, stats, dt) {
     weapon.jammed = false;
     weapon.tapped = false;
     weapon.cooldown = 0;
+    if (!weapon.magIn) playMagIn();
+    weapon.magIn = true;
+    playCock();
   }
 }

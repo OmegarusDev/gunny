@@ -6,6 +6,7 @@ export function mountSoftCursor() {
     el = document.createElement('div');
     el.id = 'soft-cursor';
     el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = '<i></i><b></b><em></em>';
     document.body.appendChild(el);
   }
 
@@ -22,9 +23,11 @@ export function mountSoftCursor() {
   }
 
   function move(clientX, clientY) {
-    visible = true;
     el.style.transform = `translate3d(${clientX}px, ${clientY}px, 0)`;
-    if (mode !== 'hidden') el.classList.remove('is-hidden');
+    if (!visible) {
+      visible = true;
+      if (mode !== 'hidden') el.classList.remove('is-hidden');
+    }
   }
 
   function hide() {
@@ -36,14 +39,14 @@ export function mountSoftCursor() {
     return e.pointerType === 'mouse' || e.pointerType === 'pen';
   }
 
-  window.addEventListener(
-    'pointermove',
-    (e) => {
-      if (!isFinePointer(e) || coarseUntilFineDown) return;
-      move(e.clientX, e.clientY);
-    },
-    { passive: true },
-  );
+  function onFineMove(e) {
+    if (!isFinePointer(e) || coarseUntilFineDown) return;
+    move(e.clientX, e.clientY);
+  }
+
+  const moveOpts = { passive: true };
+  window.addEventListener('pointerrawupdate', onFineMove, moveOpts);
+  window.addEventListener('pointermove', onFineMove, moveOpts);
   window.addEventListener(
     'pointerdown',
     (e) => {

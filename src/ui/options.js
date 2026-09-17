@@ -1,7 +1,7 @@
-import { resumeAudio, setMasterVolume } from '../audio/synth.js';
+import { applyMixer, resumeAudio } from '../audio/synth.js';
 import { INSTALL_DOWNLOAD } from '../config.js';
 import { enterImmersive, exitImmersive, isStandaloneDisplay } from '../engine/immersive.js';
-import { effectiveVolume, loadSettings, saveSettings } from '../state/settings.js';
+import { loadSettings, saveSettings } from '../state/settings.js';
 
 const HOLD_MS = 1600;
 
@@ -43,7 +43,7 @@ export function mountOptions(root, handlers) {
   let holdFrom = 0;
 
   function applyAudio() {
-    setMasterVolume(effectiveVolume(loadSettings()));
+    applyMixer(loadSettings());
   }
 
   function close() {
@@ -59,7 +59,7 @@ export function mountOptions(root, handlers) {
     view = nextView;
     paint();
     layer.classList.remove('hidden');
-    fab.setAttribute('aria-expanded', view === 'menu' || view === 'reset' ? 'true' : 'false');
+    fab.setAttribute('aria-expanded', view === 'menu' || view === 'reset' || view === 'sound' ? 'true' : 'false');
     installFab.setAttribute('aria-expanded', view === 'install' ? 'true' : 'false');
   }
 
@@ -173,17 +173,54 @@ export function mountOptions(root, handlers) {
       return;
     }
 
+    if (view === 'sound') {
+      sheet.classList.remove('opt-sheet-wide');
+      const bus = (key, label) => `
+        <div class="opt-bus">
+          <span class="ledger-label">${label}</span>
+          <input class="opt-slider" data-bus="${key}" type="range" min="0" max="100" step="1" value="${Math.round(s[key] * 100)}" aria-label="${label}" ${s.muted ? 'disabled' : ''} />
+        </div>`;
+      sheet.innerHTML = `
+        <h2 id="opt-title">Sound</h2>
+        <div class="opt-volume">
+          <div class="opt-volume-row">
+            <span class="ledger-label">Output</span>
+            <button class="opt-mute ${s.muted ? 'is-muted' : ''}" type="button" aria-pressed="${s.muted ? 'true' : 'false'}">${s.muted ? 'Muted' : 'Mute'}</button>
+          </div>
+          ${bus('gunshot', 'Gunshot')}
+          ${bus('footsteps', 'Footsteps')}
+          ${bus('ambient', 'Background')}
+        </div>
+        <button class="ghost opt-cancel" type="button">Back</button>
+      `;
+      sheet.querySelector('.opt-mute').onclick = () => {
+        const next = loadSettings();
+        next.muted = !next.muted;
+        saveSettings(next);
+        applyAudio();
+        if (!next.muted) resumeAudio();
+        paint();
+      };
+      sheet.querySelectorAll('[data-bus]').forEach((slider) => {
+        slider.oninput = (e) => {
+          const next = loadSettings();
+          next[slider.dataset.bus] = Number(e.target.value) / 100;
+          if (next[slider.dataset.bus] > 0) next.muted = false;
+          saveSettings(next);
+          applyAudio();
+        };
+      });
+      sheet.querySelector('.opt-cancel').onclick = () => {
+        view = 'menu';
+        paint();
+      };
+      return;
+    }
+
     sheet.classList.remove('opt-sheet-wide');
     sheet.innerHTML = `
-      <p class="kicker">Camp</p>
       <h2 id="opt-title">Options</h2>
-      <div class="opt-volume">
-        <div class="opt-volume-row">
-          <span class="ledger-label">Volume</span>
-          <button class="opt-mute ${s.muted ? 'is-muted' : ''}" type="button" aria-pressed="${s.muted ? 'true' : 'false'}">${s.muted ? 'Muted' : 'Mute'}</button>
-        </div>
-        <input class="opt-slider" type="range" min="0" max="100" step="1" value="${Math.round(s.volume * 100)}" aria-label="Volume" ${s.muted ? 'disabled' : ''} />
-      </div>
+      <button type="button" data-act="sound">Sound</button>
       <label class="opt-check">
         <input type="checkbox" data-act="fullscreen" ${s.fullscreen ? 'checked' : ''} />
         Fullscreen in all modes
@@ -191,20 +228,9 @@ export function mountOptions(root, handlers) {
       <button class="opt-danger" type="button" data-act="reset">Reset progress</button>
       <button class="ghost opt-done" type="button">Done</button>
     `;
-    sheet.querySelector('.opt-mute').onclick = () => {
-      const next = loadSettings();
-      next.muted = !next.muted;
-      saveSettings(next);
-      applyAudio();
-      if (!next.muted) resumeAudio();
+    sheet.querySelector('[data-act="sound"]').onclick = () => {
+      view = 'sound';
       paint();
-    };
-    sheet.querySelector('.opt-slider').oninput = (e) => {
-      const next = loadSettings();
-      next.volume = Number(e.target.value) / 100;
-      if (next.volume > 0) next.muted = false;
-      saveSettings(next);
-      applyAudio();
     };
     sheet.querySelector('[data-act="fullscreen"]').onchange = (e) => {
       const next = loadSettings();

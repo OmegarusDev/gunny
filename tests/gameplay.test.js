@@ -36,7 +36,7 @@ import { RECEIVERS, RECEIVER_COST_BASE, RECEIVER_COST_RATE, RECEIVER_STAT_RATE }
 import { CHASE_FLOOR, ROLE_UNLOCK, ROLES, pickRole, roleUnlocked } from '../src/data/roles.js';
 import { SKILLS, emptyRanks, refundRetiredRanks, skillCost } from '../src/data/skills.js';
 import { formatRpm, gunsmithStatRows, resolveStats, shotSpreadDeg, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
-import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, lethalCircles, lethalHpRatio, limbCircles, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
+import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, lethalCircles, lethalHpRatio, limbCircleList, limbCircles, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile, buyPart, owns } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
 import { wantsImmersive, usesHtmlFullscreen, isPortrait } from '../src/engine/immersive.js';
@@ -46,7 +46,7 @@ import { uhash } from '../src/util/hash.js';
 import { mixHex, mixTone } from '../src/util/color.js';
 import { createTerrain } from '../src/world/terrain.js';
 import { createPlayer } from '../src/entities/player.js';
-import { playerCoreFromPose, playerHeadClearance, poseEnemyLocal, posePlayerLocal } from '../src/figure.js';
+import { gaitPlanted, playerCoreFromPose, playerHeadClearance, poseEnemyLocal, posePlayerLocal } from '../src/figure.js';
 import { shotEnergy } from '../src/systems/impulse.js';
 import { cullFrozenCorpses, spawnRagdoll } from '../src/systems/ragdoll.js';
 import { stepGibs } from '../src/systems/gibs.js';
@@ -690,15 +690,19 @@ describe('hit impulse', () => {
     const foe = createEnemy(400, { height: () => 400 }, 1, 80, 'zombie');
     cacheEnemyPose(foe);
     const c = limbCircles(foe);
-    const vols = Object.values(c);
+    const vols = limbCircleList(foe);
     const left = Math.min(...vols.map((v) => v.x - v.r)) - 40;
     const right = Math.max(...vols.map((v) => v.x + v.r)) + 40;
     const top = c.head.y - c.head.r + 2;
-    const bot = c.pelvis.y + c.pelvis.r - 2;
-    for (let y = top; y <= bot; y += 5) {
+    const bot = Math.max(c.pelvis.y + c.pelvis.r, c.lLeg.y + c.lLeg.r, c.rLeg.y + c.rLeg.r) - 2;
+    for (let y = top; y <= bot; y += 3) {
       const hit = vols.some((v) => segmentHitsCircle(left, y, right, y, v.x, v.y, v.r));
       expect(hit).toBe(true);
     }
+    const cx = (c.upper.x + c.pelvis.x) * 0.5;
+    const above = c.head.y - c.head.r - 30;
+    const below = bot + 40;
+    expect(vols.some((v) => segmentHitsCircle(cx, above, cx, below, v.x, v.y, v.r))).toBe(true);
   });
 
   it('drops lethal hp on the bar and springs damage floaters', () => {
@@ -844,6 +848,21 @@ describe('simulate loop', () => {
     expect(run.paused).toBe(false);
   });
 
+  it('snaps aim to the tap before the shot leaves', () => {
+    const run = liveRun();
+    run.spawnTimer = 1e9;
+    run.enemies.length = 0;
+    run.player.aimAngle = -Math.PI / 2;
+    run.weapon.ammo = 4;
+    run.weapon.cooldown = 0;
+    simulate(run, dt, viewport, { ...idle, pointerX: 900, pointerY: 400, firing: true, pointerTap: true });
+    expect(run.bullets.length).toBe(1);
+    const ang = Math.atan2(run.bullets[0].vy, run.bullets[0].vx);
+    expect(ang).toBeGreaterThan(-0.55);
+    expect(ang).toBeLessThan(0.35);
+    expect(run.player.aimAngle).toBeCloseTo(ang, 1);
+  });
+
   it('retreats the player and extracts campaign at TRACK_METERS', () => {
     const run = liveRun();
     const x0 = run.player.worldX;
@@ -870,6 +889,24 @@ describe('simulate loop', () => {
     run.player.worldX = -TRACK_METERS * PX_PER_M - 400;
     simulate(run, dt, viewport, idle);
     expect(run.ended).not.toBe('extract');
+  });
+
+  it('clicks dry and does not fire again until the cycle is up', () => {
+    const run = liveRun();
+    run.spawnTimer = 1e9;
+    run.enemies.length = 0;
+    run.stats.magSize = 4;
+    run.weapon.ammo = 4;
+    run.weapon.cooldown = 0;
+    simulate(run, dt, viewport, { ...idle, firing: true });
+    expect(run.weapon.ammo).toBe(3);
+    simulate(run, dt, viewport, { ...idle, firing: true, pointerTap: true });
+    expect(run.weapon.ammo).toBe(3);
+    expect(run.weapon.dryFlash).toBeGreaterThan(0);
+    const steps = Math.ceil(1 / run.stats.rof / dt) + 1;
+    for (let i = 0; i < steps; i++) simulate(run, dt, viewport, idle);
+    simulate(run, dt, viewport, { ...idle, firing: true });
+    expect(run.weapon.ammo).toBe(2);
   });
 
   it('starts reload after the last round and ragdolls on torso contact', () => {
@@ -913,6 +950,17 @@ describe('simulate loop', () => {
     expect(crawling.crawl).toBe(true);
     expect(crawling.pelvis.y).toBeGreaterThan(standing.pelvis.y);
     expect(crawling.armL.hand.y).toBeGreaterThan(standing.armL.hand.y);
+  });
+
+  it('plants footsteps on the same stance the legs use', () => {
+    const gunner = posePlayerLocal({ worldX: -12 });
+    const feet = gaitPlanted('gunner', 1, -12);
+    expect(feet.L).toBe(gunner.l.planted);
+    expect(feet.R).toBe(gunner.r.planted);
+    const walker = poseEnemyLocal({ id: 7, kind: 'zombie', worldX: -40, y: 0, scale: 1 });
+    const zed = gaitPlanted('zombie', 7, -40);
+    expect(zed.L).toBe(walker.l.planted);
+    expect(zed.R).toBe(walker.r.planted);
   });
 
   it('forgives fire-spam taps at the start of reload so they do not jam', () => {

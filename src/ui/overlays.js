@@ -39,17 +39,19 @@ export function fmtMoney(n) {
 
 export function ledgerBlock(profile) {
   return `<div class="ledger" role="group" aria-label="Ledger">
-    <div>
-      <span class="ledger-label">Cash</span>
-      <span class="ledger-value">${fmtMoney(profile.cash)}</span>
-    </div>
-    <div>
-      <span class="ledger-label">XP</span>
-      <span class="ledger-value">${Math.floor(profile.xp)}</span>
-    </div>
-    <div>
+    <div class="ledger-gunner">
       <span class="ledger-label">Gunner</span>
       <span class="ledger-value">Lv ${gunnerLevel(profile)}</span>
+    </div>
+    <div class="ledger-funds">
+      <div>
+        <span class="ledger-label">Cash</span>
+        <span class="ledger-value">${fmtMoney(profile.cash)}</span>
+      </div>
+      <div>
+        <span class="ledger-label">XP</span>
+        <span class="ledger-value">${Math.floor(profile.xp)}</span>
+      </div>
     </div>
   </div>`;
 }

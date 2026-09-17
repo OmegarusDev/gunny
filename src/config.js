@@ -88,7 +88,7 @@ export const HEADSHOT_PEN = 0.12;
 export const CRIT_PEN = 0.12;
 /** Pen × speed → hit impulse. No extra ammo mass stat. */
 export const HIT_IMPULSE = {
-  refSpeed: 820,
+  refSpeed: 1600,
   overpen: 0.35,
   ragdollKick: 10,
   flinchLean: 0.5,
