@@ -117,12 +117,15 @@ function ikPair(origin, target, a, b) {
   ];
 }
 
-function ikKnee(hip, ankle, preferX) {
+function ikKnee(hip, ankle, face, bend = KNEE_BEND) {
   const [p, q] = ikPair(hip, ankle, THIGH, SHIN);
-  const bent = Math.abs(p.x - preferX) < Math.abs(q.x - preferX) ? p : q;
+  const ax = ankle.x - hip.x;
+  const ay = ankle.y - hip.y;
+  const side = (k) => ((k.x - hip.x) * ay - (k.y - hip.y) * ax) * face;
+  const bent = side(p) >= side(q) ? p : q;
   const t = THIGH / (THIGH + SHIN);
-  const straight = { x: hip.x + (ankle.x - hip.x) * t, y: hip.y + (ankle.y - hip.y) * t };
-  return mix(straight, bent, KNEE_BEND);
+  const straight = { x: hip.x + ax * t, y: hip.y + ay * t };
+  return mix(straight, bent, bend);
 }
 
 function ikElbow(shoulder, hand, preferBackX) {
@@ -312,7 +315,7 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
   hipBR.y += 2 * S;
   const lf = placeFoot(hipX + ls.x, ls, locDir);
   const rf = placeFoot(hipX + rs.x, rs, locDir);
-  const prefer = hipX + locDir * 10 * S;
+  const kneeBend = chase ? KNEE_BEND : 0.48;
 
   let armL;
   let armR;
@@ -372,7 +375,7 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
     hipBR,
     l: {
       hip: hipBL,
-      knee: ikKnee(hipBL, lf.ankle, prefer),
+      knee: ikKnee(hipBL, lf.ankle, face, kneeBend),
       ankle: lf.ankle,
       heel: lf.heel,
       toe: lf.toe,
@@ -380,7 +383,7 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
     },
     r: {
       hip: hipBR,
-      knee: ikKnee(hipBR, rf.ankle, prefer),
+      knee: ikKnee(hipBR, rf.ankle, face, kneeBend),
       ankle: rf.ankle,
       heel: rf.heel,
       toe: rf.toe,

@@ -114,7 +114,7 @@ function magDesc(size, kind) {
 }
 
 function beltReload(size) {
-  // Big reload tax; grows with belt depth (base reload ~2.5s).
+  // Big reload tax; grows with belt depth (base reload 3s).
   return Number((0.85 + ((size - 80) / 40) * 1.15).toFixed(2));
 }
 
@@ -574,8 +574,6 @@ export const STARTER_PARTS = [
   'laser_none',
 ];
 
-export const STARTER_OWNED = [...STARTER_RECEIVERS, ...STARTER_PARTS];
-
 export const STARTER_LOADOUT = {
   receiver: 't1_stock',
   magazine: 'mag_1',
@@ -598,22 +596,6 @@ export function partsForSlot(slot) {
   return Object.values(PARTS)
     .filter((p) => p.slot === slot)
     .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
-}
-
-export function catalogWindow(items, { focusId, start = 0, size = CATALOG_WINDOW, keepStart = false } = {}) {
-  if (!items.length) return { items: [], start: 0, total: 0 };
-  if (items.length <= size) return { items, start: 0, total: items.length };
-  let s = Number.isFinite(start) ? start : 0;
-  s = Math.max(0, Math.min(s, items.length - size));
-  if (!keepStart) {
-    const focus = items.findIndex((i) => i.id === focusId);
-    if (focus >= 0) {
-      if (focus < s) s = focus;
-      if (focus >= s + size) s = focus - size + 1;
-    }
-    s = Math.max(0, Math.min(s, items.length - size));
-  }
-  return { items: items.slice(s, s + size), start: s, total: items.length };
 }
 
 /** Four chips, chunked to the next purchasable rung. No skip-ahead, no pager. */

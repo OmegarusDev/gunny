@@ -6,7 +6,7 @@ import {
   STARTER_RECEIVERS,
   partRequirement,
 } from '../data/attachments.js';
-import { emptyRanks, refundRetiredRanks } from '../data/skills.js';
+import { emptyRanks, sanitizeRanks } from '../data/skills.js';
 
 const KEY = 'gunny.profile.v3';
 
@@ -106,28 +106,25 @@ export function hydrateProfile(parsed = {}) {
       if (!kits[id]) kits[id] = starterKit();
     }
   }
-  const skillRanks = { ...base.skillRanks, ...(parsed.skillRanks || {}) };
-  const refund = refundRetiredRanks(skillRanks);
   const next = {
     ...base,
     cash: Math.max(0, Number(parsed.cash) || 0),
-    xp: Math.max(0, Number(parsed.xp) || 0) + refund,
+    xp: Math.max(0, Number(parsed.xp) || 0),
     unlockedLevel: Math.max(0, Number(parsed.unlockedLevel) || 0),
     owned: ownedReceivers,
     loadout: { ...STARTER_LOADOUT, receiver: recId },
     kits,
-    skillRanks,
+    skillRanks: sanitizeRanks(parsed.skillRanks),
   };
   applyKit(next);
-  return { profile: next, refund };
+  return { profile: next };
 }
 
 export function loadProfile() {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultProfile();
-    const { profile, refund } = hydrateProfile(JSON.parse(raw));
-    if (refund > 0) saveProfile(profile);
+    const { profile } = hydrateProfile(JSON.parse(raw));
     return profile;
   } catch {
     return defaultProfile();

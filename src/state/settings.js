@@ -20,13 +20,13 @@ export function loadSettings() {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultSettings();
     const parsed = JSON.parse(raw);
-    const legacy = clamp01(parsed.volume, 0.8);
+    const d = defaultSettings();
     return {
       muted: !!parsed.muted,
       fullscreen: !!parsed.fullscreen,
-      gunshot: clamp01(parsed.gunshot, legacy),
-      footsteps: clamp01(parsed.footsteps, legacy),
-      ambient: clamp01(parsed.ambient, Math.min(1, legacy * 0.7)),
+      gunshot: clamp01(parsed.gunshot, d.gunshot),
+      footsteps: clamp01(parsed.footsteps, d.footsteps),
+      ambient: clamp01(parsed.ambient, d.ambient),
     };
   } catch {
     return defaultSettings();
@@ -37,9 +37,4 @@ export function saveSettings(settings) {
   if (typeof localStorage === 'undefined') return settings;
   localStorage.setItem(KEY, JSON.stringify(settings));
   return settings;
-}
-
-export function effectiveVolume(settings) {
-  if (!settings || settings.muted) return 0;
-  return 1;
 }

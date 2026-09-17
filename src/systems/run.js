@@ -3,7 +3,6 @@ import {
   effectiveAimReach,
   effectiveShotRange,
   HIT_IMPULSE,
-  PERFECT_MAG_MULT,
   TRACK_METERS,
   usesFullScreenAim,
   V_RETREAT,
@@ -16,7 +15,7 @@ import { runMeters } from '../world/metrics.js';
 import { createPlayer, screenToWorld, cameraX } from '../entities/player.js';
 import { applyFlinch, cacheEnemyPose, isDead, lethalCircles, stepFlinch, updateLocomotion } from '../entities/enemy.js';
 import { gaitPlanted, gunWorld, playerCoreFromPose, posePlayerLocal } from '../figure.js';
-import { resolveStats, shotSpreadDeg } from '../entities/loadout.js';
+import { magRof, resolveStats, shotSpreadDeg } from '../entities/loadout.js';
 import { rangeSpreadDeg, spawnBullet, stepBullets } from './ballistics.js';
 import { stepSpawner } from './spawner.js';
 import { spawnRagdoll, stepRagdolls } from './ragdoll.js';
@@ -104,10 +103,9 @@ function applyHits(run) {
     if (!enemy.alive) continue;
     const crit = hit.crit ?? (run.rng() < stats.critChance);
     const loc = hit.locational;
-    const perfect = hit.bullet?.perfect ? PERFECT_MAG_MULT : 1;
     const critMul = crit ? stats.critMult : 1;
     const rangeMul = hit.rangeMul ?? 1;
-    const dmg = stats.damage * loc * critMul * perfect * rangeMul;
+    const dmg = stats.damage * loc * critMul * rangeMul;
     const zone = hit.zone;
     const pool = zone === 'head' ? 'head' : zone === 'lLeg' || zone === 'rLeg' ? zone : 'torso';
     const remaining = Math.max(0, enemy.hp[pool]);
@@ -172,7 +170,7 @@ function tryFire(run, firing, viewport, tap) {
     return false;
   }
   weapon.firing = true;
-  weapon.cooldown = 1 / stats.rof;
+  weapon.cooldown = 1 / magRof(stats, weapon);
   weapon.ammo -= 1;
   const gun = gunWorld(player);
   const shotRange = effectiveShotRange(stats, viewport);

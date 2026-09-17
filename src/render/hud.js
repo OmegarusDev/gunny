@@ -1,7 +1,7 @@
 import { hudScale, hudTypeScale, TRACK_METERS } from '../config.js';
 import { fillRoundRect, strokeRoundRect } from '../util/color.js';
 import { perfectBand, reloadGaugeBounds, reloadNorm } from '../view/reload.js';
-import { runMeters } from '../world/metrics.js';
+import { magRof } from '../entities/loadout.js';
 
 const BONE = '#f3e6d0';
 const GOLD = '#e0a33a';
@@ -237,7 +237,7 @@ function drawGun(ctx, run, viewport, m) {
   );
   const cycle = run.weapon.reloading
     ? 0
-    : Math.max(0, Math.min(1, 1 - (run.weapon.cooldown || 0) * run.stats.rof));
+    : Math.max(0, Math.min(1, 1 - (run.weapon.cooldown || 0) * magRof(run.stats, run.weapon)));
   const dry = Math.max(0, Math.min(1, (run.weapon.dryFlash || 0) / 0.14));
   const cycleY = y + 82 * m.u;
   const cycleH = 5 * m.u;

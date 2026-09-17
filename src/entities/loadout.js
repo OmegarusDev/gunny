@@ -1,4 +1,4 @@
-import { AIM_REACH_MAX, AIM_REACH_MIN, SHOT_REACH_MAX, SHOT_REACH_MIN, BLOOM_CAP_DEG, BASE_CRIT_CHANCE, BASE_CRIT_MULT } from '../config.js';
+import { AIM_REACH_MAX, AIM_REACH_MIN, SHOT_REACH_MAX, SHOT_REACH_MIN, BLOOM_CAP_DEG, BASE_CRIT_CHANCE, BASE_CRIT_MULT, PERFECT_MAG_ROF } from '../config.js';
 import { RECEIVERS, SLOT_MIN_TIER, SLOTS } from '../data/receivers.js';
 import { PARTS } from '../data/attachments.js';
 import { SKILLS } from '../data/skills.js';
@@ -15,17 +15,22 @@ export function formatRpm(stats) {
   return String(Math.round(effectiveRps(stats) * 60));
 }
 
+export function magRof(stats, weapon) {
+  const rof = Math.max(0.01, stats?.rof || 0);
+  return weapon?.perfectMag ? rof * PERFECT_MAG_ROF : rof;
+}
+
 /**
  * Gun stats. `stack: 'add'` sums onto the receiver base (Mul keys still start at 1 and add).
  * `stack: 'mul'` multiplies the running value. Unknown part keys are ignored.
  */
 export const STATS = [
   { id: 'damage', stack: 'add', min: 6, gunsmith: true, gunsmithLabel: 'DMG', format: (v) => v.toFixed(1), hint: 'Damage per shot, before crits and range falloff.' },
-  { id: 'rof', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => String(Math.round((v || 0) * 60)), hint: 'Cyclic rate in rounds per minute. Reload is separate.' },
+  { id: 'rof', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => String(Math.round((v || 0) * 60)), hint: 'Cyclic rate in rounds per minute. Reload is separate. A perfect reload adds 10% for that mag.' },
   { id: 'magSize', stack: 'add', min: 1, round: true, gunsmith: true, gunsmithLabel: 'MAG', format: (v) => String(v), hint: 'Rounds in the magazine.' },
   { id: 'bulletSpeed', stack: 'add', min: 280, gunsmith: true, gunsmithLabel: 'VEL', format: (v) => v.toFixed(0), hint: 'Muzzle velocity. Faster rounds hit harder at range and fly farther before drop-off.' },
   { id: 'pen', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2), hint: 'Needs over 1.00 to punch through. Headshots and crits each add 0.12. Shoddy only gets there with magnum ammo, a headshot, and a crit together.' },
-  { id: 'reload', stack: 'add', min: 0.7, gunsmith: true, gunsmithLabel: 'RLD', format: (v) => `${v.toFixed(2)}s`, hint: 'Seconds to reload an empty mag.' },
+  { id: 'reload', stack: 'add', min: 0.7, gunsmith: true, gunsmithLabel: 'RLD', format: (v) => `${v.toFixed(2)}s`, hint: 'Seconds to reload an empty mag. The gold band sits just before two-thirds of the bar.' },
   { id: 'shotRange', stack: 'add', min: SHOT_REACH_MIN, max: SHOT_REACH_MAX, gunsmith: true, gunsmithLabel: 'Range', format: (v) => String(Math.round(v)), hint: 'Distance before damage and accuracy start to fall off. Rounds still fly.' },
   { id: 'aimReach', stack: 'add', min: AIM_REACH_MIN, max: AIM_REACH_MAX, gunsmith: true, gunsmithLabel: 'Sight', format: (v) => String(Math.round(v)), hint: 'How far you can hold the reticle. Optics only.' },
   { id: 'baseSpread', stack: 'add', min: 0.2, max: 4.5, gunsmith: true, gunsmithLabel: 'SPRD', format: (v) => `${v.toFixed(2)}°`, hint: 'Starting cone of fire, in degrees. Bloom stacks on top.' },

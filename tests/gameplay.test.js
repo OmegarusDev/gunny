@@ -9,7 +9,7 @@ import {
   FLESH_PEN_COST,
   HIT_IMPULSE,
   MAX_DPR,
-  PERFECT_MAG_MULT,
+  PERFECT_MAG_ROF,
   PLAYER_SCREEN_X_RATIO,
   PX_PER_M,
   SHOT_REACH_BASE,
@@ -29,19 +29,19 @@ import {
   threatForDistance,
   usesFullScreenAim,
 } from '../src/config.js';
-import { PARTS, catalogProgressWindow, catalogWindow, ladderCost, partsForSlot } from '../src/data/attachments.js';
+import { PARTS, catalogProgressWindow, ladderCost, partsForSlot } from '../src/data/attachments.js';
 import { BIOMES, beatenRoadIndexes, biomeFor } from '../src/data/biomes.js';
 import { KINDS } from '../src/data/kinds.js';
 import { RECEIVERS, RECEIVER_COST_BASE, RECEIVER_COST_RATE, RECEIVER_STAT_RATE, SLOTS, SLOT_MIN_TIER } from '../src/data/receivers.js';
 import { CHASE_FLOOR, ROLE_UNLOCK, ROLES, pickRole, roleUnlocked } from '../src/data/roles.js';
-import { SKILLS, emptyRanks, refundRetiredRanks, skillCost } from '../src/data/skills.js';
-import { formatRpm, gunsmithStatRows, resolveStats, shotSpreadDeg, slotUnlockedFor, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
+import { SKILLS, sanitizeRanks, skillCost } from '../src/data/skills.js';
+import { formatRpm, gunsmithStatRows, magRof, resolveStats, shotSpreadDeg, slotUnlockedFor, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
 import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, lethalCircles, lethalHpRatio, limbCircleList, limbCircles, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile, buyPart, owns, hydrateProfile, equipPart } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
 import { wantsImmersive, usesHtmlFullscreen, isPortrait } from '../src/engine/immersive.js';
 import { clampAimPoint, clampToViewport, resolveAimPoint } from '../src/view/aim.js';
-import { perfectBand, reloadNorm } from '../src/view/reload.js';
+import { PERFECT_MARK, PERFECT_MARK_IN_BAND, perfectBand, reloadNorm } from '../src/view/reload.js';
 import { uhash } from '../src/util/hash.js';
 import { mixHex, mixTone } from '../src/util/color.js';
 import { createTerrain } from '../src/world/terrain.js';
@@ -60,33 +60,44 @@ import { pwaUpdateBlocked } from '../src/engine/pwaBusy.js';
 import { deciduousH, pineH } from '../src/render/scenery/util.js';
 
 describe('threat pacing', () => {
-  it('keeps the next-road start shift smaller than the within-road span', () => {
-    expect(THREAT.step).toBeLessThan(THREAT.span);
+  it('keeps the in-road climb larger than the per-road step so the next open is a breather', () => {
+    expect(THREAT.roadHpRamp).toBeGreaterThan(THREAT.roadHpStep);
+    expect(THREAT.roadDensityRamp).toBeGreaterThan(THREAT.roadDensityStep);
+    expect(THREAT.roadHpStep).toBe(THREAT.roadDensityStep);
+    expect(THREAT.roadHpRamp).toBe(THREAT.roadDensityRamp);
   });
 
-  it('steps spawn pressure across the 250m track', () => {
+  it('climbs HP a little across the 250m', () => {
     const early = threatForDistance(20, 0, false);
     const mid = threatForDistance(100, 0, false);
     const late = threatForDistance(200, 0, false);
     expect(early.spawnInterval).toBeGreaterThan(mid.spawnInterval);
     expect(mid.spawnInterval).toBeGreaterThan(late.spawnInterval);
-    expect(late.maxAlive).toBeGreaterThan(early.maxAlive);
+    expect(late.maxAlive).toBeGreaterThanOrEqual(early.maxAlive);
     expect(late.hpMul).toBeGreaterThan(early.hpMul);
+    expect(enemyHp(1).torso).toBe(50);
+    expect(enemyHp(threatForDistance(0, 0, false).hpMul).torso).toBe(50);
+    expect(enemyHp(threatForDistance(TRACK_METERS, 0, false).hpMul).torso).toBe(60);
+    expect(THREAT.roadHpStep).toBe(0.1);
+    expect(THREAT.roadHpRamp).toBe(0.2);
   });
 
-  it('opens the next road harder than this opening but not harder than this finale', () => {
-    const l0s = threatForDistance(0, 0, false);
-    const l0e = threatForDistance(TRACK_METERS, 0, false);
-    const l1s = threatForDistance(0, 1, false);
-    expect(l0s.maxAlive).toBeLessThan(l0e.maxAlive);
-    expect(l0s.spawnInterval).toBeGreaterThan(l0e.spawnInterval);
-    expect(l1s.spawnInterval).toBeLessThan(l0s.spawnInterval);
-    expect(l1s.maxAlive).toBeGreaterThanOrEqual(l0s.maxAlive);
-    expect(l1s.spawnInterval).toBeGreaterThan(l0e.spawnInterval);
-    expect(l1s.maxAlive).toBeLessThanOrEqual(l0e.maxAlive);
+  it('opens the next road harder than the last open, easier than the last extract', () => {
+    for (let L = 0; L < 8; L++) {
+      const open = threatForDistance(0, L, false);
+      const extract = threatForDistance(TRACK_METERS, L, false);
+      const nextOpen = threatForDistance(0, L + 1, false);
+      const nextExtract = threatForDistance(TRACK_METERS, L + 1, false);
+      expect(nextOpen.hpMul).toBeGreaterThan(open.hpMul);
+      expect(nextOpen.hpMul).toBeLessThan(extract.hpMul);
+      expect(nextExtract.hpMul).toBeGreaterThan(extract.hpMul);
+      expect(nextOpen.spawnInterval).toBeLessThan(open.spawnInterval);
+      expect(nextOpen.spawnInterval).toBeGreaterThan(extract.spawnInterval);
+    }
+    expect(threatForDistance(0, 0, false).maxAlive).toBeGreaterThanOrEqual(2);
   });
 
-  it('steps campaign grunt HP per road, with a small climb inside the 250m', () => {
+  it('steps campaign grunt HP per road, with a larger climb inside the 250m', () => {
     const l0s = threatForDistance(0, 0, false);
     const l0e = threatForDistance(TRACK_METERS, 0, false);
     const l2s = threatForDistance(80, 2, false);
@@ -142,8 +153,6 @@ describe('threat pacing', () => {
 
   it('chases a bit quicker and only sprints very late', () => {
     expect(THREAT.chill.speed).toBeGreaterThanOrEqual(118);
-    expect(THREAT.hectic.speed).toBeGreaterThan(THREAT.chill.speed);
-    expect(THREAT.hectic.speed).toBeLessThan(THREAT.speedCap);
     expect(THREAT.speedCap).toBeLessThan(THREAT.speedSprint);
 
     const l0s = threatForDistance(0, 0, false);
@@ -194,20 +203,22 @@ describe('economy & ladders', () => {
   });
 
   it('keeps Shoddy slow and grows receiver RoF and damage 1.5× per rank', () => {
-    expect(RECEIVERS.t1_stock.base.rof).toBe(0.5);
-    expect(RECEIVERS.t2_tactical.base.rof).toBeCloseTo(0.5 * RECEIVER_STAT_RATE);
-    expect(RECEIVERS.t3_ordnance.base.rof).toBeCloseTo(0.5 * RECEIVER_STAT_RATE ** 2);
-    expect(RECEIVERS.t4_advanced.base.rof).toBeCloseTo(0.5 * RECEIVER_STAT_RATE ** 3);
-    expect(RECEIVERS.t2_tactical.base.damage).toBeCloseTo(13 * RECEIVER_STAT_RATE, 1);
+    expect(RECEIVERS.t1_stock.base.rof).toBeCloseTo(40 / 60);
+    expect(RECEIVERS.t2_tactical.base.rof).toBeCloseTo((40 / 60) * RECEIVER_STAT_RATE);
+    expect(RECEIVERS.t3_ordnance.base.rof).toBeCloseTo((40 / 60) * RECEIVER_STAT_RATE ** 2);
+    expect(RECEIVERS.t4_advanced.base.rof).toBeCloseTo((40 / 60) * RECEIVER_STAT_RATE ** 3);
+    expect(RECEIVERS.t2_tactical.base.damage).toBeCloseTo(15 * RECEIVER_STAT_RATE, 1);
     expect(RECEIVERS.t4_advanced.base.damage).toBeGreaterThan(RECEIVERS.t3_ordnance.base.damage);
     expect(RECEIVERS.t4_advanced.base.pen).toBeGreaterThan(RECEIVERS.t3_ordnance.base.pen);
-    expect(STAT_BY_ID.rof.min).toBeLessThanOrEqual(0.5);
-    expect(resolveStats(defaultProfile()).rof).toBe(0.5);
+    expect(STAT_BY_ID.rof.min).toBeLessThanOrEqual(40 / 60);
+    expect(resolveStats(defaultProfile()).rof).toBeCloseTo(40 / 60);
     const starter = resolveStats(defaultProfile());
     expect(starter.magSize).toBe(1);
+    expect(starter.reload).toBe(3);
+    expect(starter.damage).toBe(15);
     expect(formatRpm(starter)).toBe(String(Math.round((1 / starter.reload) * 60)));
     expect(Number(formatRpm(starter))).toBeLessThan(Math.round(starter.rof * 60));
-    expect(Math.round(starter.rof * 60)).toBe(30);
+    expect(Math.round(starter.rof * 60)).toBe(40);
     const mag2 = defaultProfile();
     mag2.loadout.magazine = 'mag_2';
     expect(Number(formatRpm(resolveStats(mag2)))).toBeGreaterThan(Number(formatRpm(starter)));
@@ -236,7 +247,6 @@ describe('economy & ladders', () => {
     expect(RECEIVERS.t2_tactical.base.pen + hitPenBonus('head', false)).toBeGreaterThan(FLESH_PEN_COST);
     expect(RECEIVERS.t2_tactical.base.pen + hitPenBonus('torso', true)).toBeGreaterThan(FLESH_PEN_COST);
     expect(spawnBullet(0, 0, 0, starter, true).pen).toBe(starter.pen);
-    expect(spawnBullet(0, 0, 0, starter, true).pen).not.toBe(starter.pen * PERFECT_MAG_MULT);
     expect(PARTS.barrel_stub.mods.pen).toBeGreaterThan(0);
     expect(PARTS.barrel_carbine.mods.pen).toBeGreaterThan(PARTS.barrel_stub.mods.pen);
     expect(PARTS.barrel_rifle.mods.pen).toBeGreaterThan(PARTS.barrel_carbine.mods.pen);
@@ -327,18 +337,9 @@ describe('gunsmith catalog', () => {
 
   it('windows long catalogs to four visible rungs', () => {
     const mags = partsForSlot('magazine');
-    const first = catalogWindow(mags, { focusId: 'mag_1' });
-    expect(first.items).toHaveLength(4);
-    expect(first.items.map((p) => p.id)).toEqual(['mag_1', 'mag_2', 'mag_3', 'mag_4']);
-    const later = catalogWindow(mags, { focusId: 'mag_40' });
-    expect(later.items.map((p) => p.id)).toContain('mag_40');
-    expect(later.items).toHaveLength(4);
-    const paged = catalogWindow(mags, { focusId: 'mag_1', start: 8, keepStart: true });
-    expect(paged.start).toBe(8);
-    expect(paged.items[0].id).not.toBe('mag_1');
     expect(catalogProgressWindow(mags, { nextId: mags[3].id }).items.map((p) => p.id)).toEqual(mags.slice(0, 4).map((p) => p.id));
     expect(catalogProgressWindow(mags, { nextId: mags[4].id }).items.map((p) => p.id)).toEqual(mags.slice(4, 8).map((p) => p.id));
-    expect(paged.items[0].id).not.toBe('mag_1');
+    expect(catalogProgressWindow(mags, { nextId: mags[0].id }).items).toHaveLength(4);
   });
 
   it('keeps at least four rungs on every attachment slot', () => {
@@ -633,10 +634,20 @@ describe('reload helpers', () => {
     expect(reloadNorm({ reloading: true, reloadT: 1, reloadDur: 2 })).toBe(0.5);
   });
 
-  it('builds a symmetric perfect band from perfectWidth', () => {
-    const band = perfectBand({ perfectWidth: 0.1 });
-    expect(band.b - band.a).toBeCloseTo(0.1, 6);
-    expect((band.a + band.b) / 2).toBeCloseTo(0.58, 6);
+  it('places the perfect band so 2s is 20% through on a 3s reload', () => {
+    const starter = resolveStats(defaultProfile());
+    expect(starter.reload).toBe(3);
+    const band = perfectBand(starter);
+    expect(band.b - band.a).toBeCloseTo(starter.perfectWidth, 6);
+    const twoSeconds = 2 / starter.reload;
+    expect((twoSeconds - band.a) / (band.b - band.a)).toBeCloseTo(PERFECT_MARK_IN_BAND, 5);
+    expect(twoSeconds).toBeCloseTo(PERFECT_MARK, 10);
+  });
+
+  it('raises cyclic rate 10% on a perfect mag', () => {
+    const starter = resolveStats(defaultProfile());
+    expect(magRof(starter, { perfectMag: false })).toBeCloseTo(starter.rof);
+    expect(magRof(starter, { perfectMag: true })).toBeCloseTo(starter.rof * PERFECT_MAG_ROF);
   });
 });
 
@@ -646,7 +657,6 @@ describe('skills & profile', () => {
     expect(SKILLS.critChance.maxRank).toBe(20);
     expect(SKILLS.marksman.maxRank).toBe(20);
     expect(SKILLS.marksman.perRank.aimReach).toBeUndefined();
-    expect(SKILLS.elevation).toBeUndefined();
     expect(SKILLS.speed).toBeTruthy();
     expect(SKILLS.firing).toBeTruthy();
     expect(Object.keys(SKILLS).length % 2).toBe(0);
@@ -659,12 +669,12 @@ describe('skills & profile', () => {
     expect(trained.rof).toBeGreaterThan(starter.rof);
   });
 
-  it('refunds retired elevation ranks', () => {
-    const ranks = { elevation: 2, marksman: 1 };
-    const xp = refundRetiredRanks(ranks);
+  it('drops unknown skill ranks and clamps known ones', () => {
+    const ranks = sanitizeRanks({ elevation: 2, marksman: 1, recoil: 99 });
     expect(ranks.elevation).toBeUndefined();
     expect(ranks.marksman).toBe(1);
-    expect(xp).toBe(skillCost({ baseCost: 35 }, 0) + skillCost({ baseCost: 35 }, 1));
+    expect(ranks.recoil).toBe(SKILLS.recoil.maxRank);
+    expect(ranks.firing).toBe(0);
   });
 
   it('prices skill ranks with a mild curve', () => {
@@ -978,6 +988,18 @@ describe('walker roles', () => {
     expect(endless.enemies.some((e) => e.role === 'behemoth')).toBe(true);
   });
 
+  it('can cluster two walkers inside a single gap instead of spacing a line', () => {
+    const viewport = { w: 1280, h: 720 };
+    const run = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: 0, seed: 1 });
+    run.spawnTimer = 0;
+    run.rng = () => 0;
+    stepSpawner(run, 0.016, viewport);
+    const living = run.enemies.filter((e) => e.alive);
+    expect(living.length).toBe(2);
+    expect(Math.abs(living[1].worldX - living[0].worldX)).toBeLessThan(ROLES.grunt.gap);
+    expect(Math.abs(living[1].worldX - living[0].worldX)).toBeGreaterThanOrEqual(THREAT.clusterGapMin);
+  });
+
   it('forces the first late-road pick to be a behemoth', () => {
     const run = { endless: false, levelIndex: 19, spawnedBehemoth: false, rng: () => 0.99 };
     expect(pickRole(run, 40, [])).toBe('behemoth');
@@ -1117,6 +1139,16 @@ describe('simulate loop', () => {
     expect(zed.R).toBe(walker.r.planted);
   });
 
+  it('bends the gunner knee toward facing so it does not buckle backward', () => {
+    const side = (hip, knee, ankle, face) =>
+      ((knee.x - hip.x) * (ankle.y - hip.y) - (knee.y - hip.y) * (ankle.x - hip.x)) * face;
+    for (let x = 0; x >= -360; x -= 18) {
+      const p = posePlayerLocal({ worldX: x, aimAngle: 0 });
+      expect(side(p.l.hip, p.l.knee, p.l.ankle, p.face)).toBeGreaterThan(-1);
+      expect(side(p.r.hip, p.r.knee, p.r.ankle, p.face)).toBeGreaterThan(-1);
+    }
+  });
+
   it('forgives fire-spam taps at the start of reload so they do not jam', () => {
     const run = liveRun();
     run.weapon.ammo = 1;
@@ -1183,6 +1215,16 @@ describe('simulate loop', () => {
     simulate(run, dt, viewport, idle);
     simulate(run, dt, viewport, { ...idle, firing: true });
     expect(run.weapon.ammo).toBeLessThan(run.stats.magSize);
+  });
+
+  it('fires a perfect mag 10% faster', () => {
+    const run = liveRun();
+    run.weapon.perfectMag = true;
+    run.weapon.ammo = 2;
+    run.stats.magSize = 2;
+    run.weapon.cooldown = 0;
+    simulate(run, dt, viewport, { ...idle, firing: true });
+    expect(run.weapon.cooldown).toBeCloseTo(1 / (run.stats.rof * PERFECT_MAG_ROF));
   });
 
   it('bakes perfect-mag onto the emptying shot', () => {

@@ -77,7 +77,8 @@ export function effectiveShotRange(stats, viewport) {
 export const BASE_SPREAD_DEG = 2.35;
 export const JAM_PENALTY = 0.9;
 export const RELOAD_FORGIVE = 0.32;
-export const PERFECT_MAG_MULT = 1.25;
+/** Perfect reload: +10% cyclic rate for the mag you just seated. */
+export const PERFECT_MAG_ROF = 1.1;
 export const RAGDOLL_FREEZE_SPEED = 0.05;
 export const MAX_FROZEN = 28;
 export const GRAVITY = 980;
@@ -101,34 +102,37 @@ export const HIT_IMPULSE = {
 };
 export const TRACK_METERS = 250;
 
-/** Within-road swarm ramp (SPAN) is larger than per-road start shift (STEP). */
+/**
+ * Two linear scales, compounded. In-road +20%, per-road +10% at open, so
+ * Road n+1 opens harder than Road n opened, but easier than Road n extracted.
+ * Density uses the same pair. Rhythm (clusters / rests) lives in the spawner.
+ */
 export const THREAT = {
-  step: 0.35,
-  span: 1,
-  chill: { spawn: 3.4, max: 1, speed: 138, packChance: 0.02 },
-  hectic: { spawn: 1.05, max: 7, speed: 202, packChance: 0.45 },
-  /** Campaign L0 grunt toughness at 0m. */
+  chill: { spawn: 2.9, max: 2, speed: 138, packChance: 0.18 },
+  /** Campaign L0 grunt toughness at 0m. Torso is 50 at hpMul 1. */
   gruntHp: 1,
-  /** Each later road’s baseline HP. */
-  roadHpStep: 0.18,
-  /** Subtle extra HP across one 250m extract (~10%). */
-  roadHpRamp: 0.1,
-  /** Endless HP and swarm vs the same campaign metres. */
+  roadHpStep: 0.1,
+  roadHpRamp: 0.2,
+  roadDensityStep: 0.1,
+  roadDensityRamp: 0.2,
+  speedStep: 0.025,
+  speedRamp: 0.045,
+  /** Endless HP and density vs the same campaign metres. */
   endlessHard: 2,
-  /** Extra swarm so Endless 0m is not an empty road. */
-  endlessOpen: 0.45,
-  /** Determined chase. Below a sprint for almost the whole game. */
   speedCap: 222,
-  /** Late-campaign / deep-endless only — urgent, not a blur. */
   speedSprint: 252,
-  speedOver: 0.1,
-  /** Campaign `over` before the sprint band. ~road 13 finale. */
-  sprintOver: 4.5,
+  /** Campaign depth (road + extract t) before the sprint band. ~road 13. */
+  sprintRoad: 13,
   /** Endless extra units ((m-250)/120) before the sprint band. ~1.9km. */
   sprintEndless: 14,
-  spawnFloor: 0.45,
+  spawnFloor: 0.55,
   maxAliveCap: 14,
-  packCap: 0.55,
+  packCap: 0.42,
+  packGrow: 0.05,
+  restChance: 0.2,
+  followChance: 0.12,
+  clusterGapMin: 36,
+  clusterGapMax: 78,
 };
 
 export const LOCATIONAL = {
@@ -185,26 +189,10 @@ export function hudTypeScale(viewport) {
   return blendTowardCss(hudRaw(viewport), 0.4, HUD_TYPE_MAX);
 }
 
-function swarmFromPressure(pressure) {
-  const { chill, hectic } = THREAT;
-  const rawU = THREAT.span > 0 ? pressure / THREAT.span : 0;
-  const u = Math.max(0, Math.min(1, rawU));
-  const over = Math.max(0, rawU - 1);
-  const lerp = (a, b) => a + (b - a) * u;
-
-  let spawn = Math.max(THREAT.spawnFloor, lerp(chill.spawn, hectic.spawn));
-  let maxAlive = Math.max(1, Math.round(lerp(chill.max, hectic.max)));
-  let speed = lerp(chill.speed, hectic.speed);
-  let packChance = lerp(chill.packChance, hectic.packChance);
-
-  if (over > 0) {
-    spawn = Math.max(THREAT.spawnFloor, spawn / (1 + over * 0.18));
-    maxAlive = Math.min(THREAT.maxAliveCap, Math.floor(maxAlive + over * 1.2));
-    speed *= 1 + over * THREAT.speedOver;
-    packChance += over * 0.04;
-  }
-
-  return { spawn, maxAlive, speed, packChance, over };
+function compoundLinear(levelIndex, trackT, step, ramp) {
+  const L = Math.max(0, levelIndex || 0);
+  const t = Math.max(0, Math.min(1, trackT || 0));
+  return (1 + L * step) * (1 + t * ramp);
 }
 
 /**
@@ -223,59 +211,62 @@ export function campaignProgress(meters) {
 }
 
 /**
- * Campaign: per-road HP baseline, plus a small climb toward extract.
- * Endless: twice that campaign-at-the-same-metres curve, plus a little open swarm.
+ * Campaign: per-road linear × in-road linear for HP and density.
+ * Next open is a step up from the last open, and a step down from that extract.
+ * Endless: twice that campaign-at-the-same-metres curve.
  */
 export function threatForDistance(meters, levelIndex, endless) {
   const m = Math.max(0, meters || 0);
-  const L = Math.max(0, levelIndex || 0);
-  const trackT = Math.max(0, Math.min(1, m / TRACK_METERS));
-
-  let pressure;
-  let hpMul;
+  let L = Math.max(0, levelIndex || 0);
+  let trackT = TRACK_METERS > 0 ? Math.max(0, Math.min(1, m / TRACK_METERS)) : 0;
   if (endless) {
     const prog = campaignProgress(m);
-    pressure =
-      THREAT.endlessHard * (prog.levelIndex * THREAT.step + prog.trackT * THREAT.span) +
-      THREAT.endlessOpen * THREAT.span;
-    hpMul =
-      THREAT.endlessHard *
-      THREAT.gruntHp *
-      (1 + prog.levelIndex * THREAT.roadHpStep) *
-      (1 + prog.trackT * THREAT.roadHpRamp);
+    L = prog.levelIndex;
+    trackT = prog.trackT;
+  }
+
+  const scale = endless ? THREAT.endlessHard : 1;
+  const hpMul = scale * THREAT.gruntHp * compoundLinear(L, trackT, THREAT.roadHpStep, THREAT.roadHpRamp);
+  const dens = scale * compoundLinear(L, trackT, THREAT.roadDensityStep, THREAT.roadDensityRamp);
+
+  const spawn = Math.max(THREAT.spawnFloor, THREAT.chill.spawn / dens);
+  const maxAlive = Math.min(THREAT.maxAliveCap, Math.max(THREAT.chill.max, Math.round(THREAT.chill.max * dens)));
+  let speed = THREAT.chill.speed * compoundLinear(L, trackT, THREAT.speedStep, THREAT.speedRamp);
+
+  const depth = L + trackT;
+  if (endless) {
+    const extra = m > TRACK_METERS ? (m - TRACK_METERS) / 120 : 0;
+    const sprintT = Math.max(0, extra - THREAT.sprintEndless) / 10;
+    speed = Math.min(speed, THREAT.speedCap);
+    if (sprintT > 0) {
+      const t = Math.min(1, sprintT);
+      speed = THREAT.speedCap + (THREAT.speedSprint - THREAT.speedCap) * t;
+    }
   } else {
-    pressure = L * THREAT.step + trackT * THREAT.span;
-    hpMul = THREAT.gruntHp * (1 + L * THREAT.roadHpStep) * (1 + trackT * THREAT.roadHpRamp);
+    speed = Math.min(speed, THREAT.speedCap);
+    const sprintT = Math.max(0, depth - THREAT.sprintRoad) / 8;
+    if (sprintT > 0) {
+      const t = Math.min(1, sprintT);
+      speed = THREAT.speedCap + (THREAT.speedSprint - THREAT.speedCap) * t;
+    }
   }
 
-  const swarm = swarmFromPressure(pressure);
-  let { spawn, maxAlive, speed, packChance, over } = swarm;
-
-  const extra = endless && m > TRACK_METERS ? (m - TRACK_METERS) / 120 : 0;
-  speed = Math.min(speed, THREAT.speedCap);
-  const sprintT = endless
-    ? Math.max(0, extra - THREAT.sprintEndless) / 10
-    : Math.max(0, over - THREAT.sprintOver) / 8;
-  if (sprintT > 0) {
-    const t = Math.min(1, sprintT);
-    speed = THREAT.speedCap + (THREAT.speedSprint - THREAT.speedCap) * t;
-  }
-
+  const packChance = Math.max(0, Math.min(THREAT.packCap, THREAT.chill.packChance + (dens - 1) * THREAT.packGrow));
   return {
     spawnInterval: spawn,
-    maxAlive: Math.min(THREAT.maxAliveCap, maxAlive),
+    maxAlive,
     speed,
     hpMul,
-    packChance: Math.max(0, Math.min(THREAT.packCap, packChance)),
+    packChance,
   };
 }
 
 export function enemyHp(hpMul) {
   const m = Math.max(0.2, hpMul);
   return {
-    head: Math.max(1, 40 * m),
-    torso: Math.max(1, 56 * m),
-    lLeg: Math.max(1, 22 * m),
-    rLeg: Math.max(1, 22 * m),
+    head: Math.max(1, 36 * m),
+    torso: Math.max(1, 50 * m),
+    lLeg: Math.max(1, 20 * m),
+    rLeg: Math.max(1, 20 * m),
   };
 }

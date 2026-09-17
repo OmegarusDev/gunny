@@ -84,23 +84,13 @@ export function emptyRanks() {
   return ranks;
 }
 
-/** Old skill trees — XP is refunded on load so retired ranks are not lost. */
-export const RETIRED_SKILLS = {
-  elevation: { id: 'elevation', maxRank: 8, baseCost: 35 },
-};
-
-export function refundRetiredRanks(ranks) {
-  if (!ranks) return 0;
-  let xp = 0;
-  for (const [id, def] of Object.entries(RETIRED_SKILLS)) {
-    const rank = ranks[id] || 0;
-    for (let r = 0; r < rank; r++) xp += skillCost(def, r);
-    delete ranks[id];
+export function sanitizeRanks(ranks) {
+  const next = emptyRanks();
+  for (const id of Object.keys(next)) {
+    const n = Math.floor(Number(ranks?.[id]) || 0);
+    next[id] = Math.max(0, Math.min(SKILLS[id].maxRank, n));
   }
-  for (const id of Object.keys(ranks)) {
-    if (!SKILLS[id]) delete ranks[id];
-  }
-  return xp;
+  return next;
 }
 
 export function xpInvested(ranks) {

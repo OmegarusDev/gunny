@@ -41,11 +41,11 @@ export const RECEIVER_COST_RATE = 2;
 export const MILITIA_PEN = 0.9;
 
 const SHODDY_BASE = {
-  damage: 13,
-  rof: 0.5,
+  damage: 15,
+  rof: 40 / 60,
   magSize: 1,
-  reload: 2.55,
-  perfectWidth: 0.07,
+  reload: 3,
+  perfectWidth: 0.1,
   bulletSpeed: 1600,
   pen: 0.5,
   penDecay: 0.0009,

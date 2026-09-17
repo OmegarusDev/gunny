@@ -59,10 +59,6 @@ export function applyMixer(settings = {}) {
   syncBuses();
 }
 
-export function setMasterVolume(value) {
-  applyMixer({ ...mixer, muted: !(Number(value) > 0), gunshot: Number(value) || mixer.gunshot });
-}
-
 export function setPortraitMute(on) {
   portraitMute = !!on;
   syncBuses();
