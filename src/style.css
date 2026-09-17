@@ -948,13 +948,13 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .pips {
   display: flex;
-  gap: 2px;
+  gap: 1px;
   flex-wrap: wrap;
 }
 
 #overlay-root .pips i {
   display: block;
-  width: 7px;
+  width: 5px;
   height: 7px;
   border-radius: 1px;
   background: #3a2a1c;

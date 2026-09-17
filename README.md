@@ -26,7 +26,7 @@ A perfect reload is a timing tap on the gold band. Miss after the forgive window
 
 Cash from kills (and a 250m extract bonus) buys kit. XP buys Training. Clear 250m to unlock the next road. Campaign cycles Forest Road → Fen Causeway → Transylvanian Lane → Desert Wadi → Bone Quarry. Endless uses any road you’ve already extracted from, and is about twice as hard as the same campaign metres.
 
-**ROF** is rounds per minute, including the empty-mag reload. Shoddy starts at 24 RPM with a 1-round mag. Receivers are Shoddy → Militia → Ordnance → Advanced (damage and RoF about 1.5× each rank). Muzzle devices are compensators and brakes, not a suppressor.
+**ROF** is rounds per minute, including the empty-mag reload. Shoddy starts at 24 RPM with a 1-round mag. Its three parts are mag, bolt (RoF), and ammo (damage + a little pen). Each later receiver is a fresh kit that unlocks two more slots: Militia barrel and springs, Ordnance optic and stock, Advanced muzzle and gas. Switching back keeps that gun’s parts. Receivers still raise damage and RoF about 1.5× each rank. Muzzle devices are compensators and brakes, not a suppressor.
 
 Walkers: Walker, Tank (Road 5 / Endless 200m), Heavy Tank (Road 10 / Endless 500m), Behemoth (Road 20 / Endless 1km). Heavies are bigger versions of that road’s creature, not unique models.
 
@@ -39,7 +39,7 @@ Contact with a living enemy’s **head or torso** ends the run. Legs don’t.
 - Road 20 and Endless 1km will wreck a starter kit. Upgrade first.
 - Tanks and the Behemoth look like larger biome walkers (bigger zombie, bigger vampire, …).
 - Crits are a Training RNG roll. They are not headshots. Both add 0.12 pen and stack.
-- Shoddy only punches through with a Long barrel plus a headshot and a crit together. Militia starts at 0.9 and needs a headshot, a crit, or barrel pen.
+- Shoddy only punches through with magnum ammo plus a headshot and a crit together. Militia starts at 0.9 and needs a headshot, a crit, or barrel pen.
 - If a round does exit a body, leftover travel can still wound the next one.
 - A new app update waits until you are back at camp. It will not reload mid-run.
 - Portrait mode pauses the sim and asks you to rotate.

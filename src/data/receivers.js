@@ -2,27 +2,29 @@ import { AIM_REACH_BASE, SHOT_REACH_BASE } from '../config.js';
 
 export const SLOTS = [
   'receiver',
-  'barrel',
   'magazine',
+  'bolt',
+  'ammo',
+  'barrel',
   'springs',
   'optic',
   'stock',
   'muzzle',
-  'trigger',
   'gasBlock',
 ];
 
-/** Springs unlock on T1 so reload is available before optic/stock. */
+/** Shoddy: mag, RoF, damage. Each later receiver unlocks two more slots. */
 export const SLOT_MIN_TIER = {
   receiver: 1,
-  barrel: 1,
   magazine: 1,
-  springs: 1,
-  optic: 2,
-  stock: 2,
-  muzzle: 2,
-  trigger: 3,
-  gasBlock: 3,
+  bolt: 1,
+  ammo: 1,
+  barrel: 2,
+  springs: 2,
+  optic: 3,
+  stock: 3,
+  muzzle: 4,
+  gasBlock: 4,
 };
 
 /** Damage and RoF grow by this each receiver rank. Shoddy is rank 0. Pen is special-cased. */
@@ -104,25 +106,25 @@ const META = [
     id: 't1_stock',
     name: 'Shoddy Receiver',
     short: 'Shoddy',
-    desc: 'Jury-rigged receiver. Barrel, mag, and springs. Heavy, slow, hot.',
+    desc: 'Jury-rigged receiver. Mag, bolt, and ammo. Heavy, slow, hot.',
   },
   {
     id: 't2_tactical',
     name: 'Militia Receiver',
     short: 'Militia',
-    desc: 'Militia-grade. Opens optic, stock, and muzzle. Better heat path.',
+    desc: 'Militia-grade. Opens barrel and springs. Better heat path.',
   },
   {
     id: 't3_ordnance',
     name: 'Ordnance Receiver',
     short: 'Ordnance',
-    desc: 'Full internals: trigger and gas. High RoF ceiling.',
+    desc: 'Full internals: optic and stock. High RoF ceiling.',
   },
   {
     id: 't4_advanced',
     name: 'Advanced Receiver',
     short: 'Advanced',
-    desc: 'Machined successor. Same rails as Ordnance, hotter ceiling.',
+    desc: 'Opens muzzle and gas. Same rails as Ordnance, hotter ceiling.',
   },
 ];
 

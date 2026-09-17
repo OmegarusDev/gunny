@@ -6,15 +6,18 @@ const MAG_DRUM = [40, 45, 50, 55, 60, 65, 70, 75];
 const MAG_BELT = [80, 90, 100, 110, 120];
 
 export const PART_COST_RATE = 1.7;
-export const TRIGGER_COST_RATE = 1.9;
+export const BOLT_COST_RATE = 1.9;
 export const BARREL_COST_BASE = 140;
 export const OPTIC_COST_BASE = 200;
 export const STOCK_COST_BASE = 160;
 export const MUZZLE_COST_BASE = 160;
-export const TRIGGER_COST_BASE = 400;
+export const BOLT_COST_BASE = 400;
 export const GAS_COST_BASE = 320;
 export const SPRING_COST_BASE = 120;
-export const TRIGGER_ROF_PER_RANK = 0.1;
+export const AMMO_COST_BASE = 160;
+export const AMMO_DAMAGE_PER_RANK = 2.2;
+export const AMMO_PEN_PER_RANK = 0.09;
+export const BOLT_ROF_PER_RANK = 0.1;
 export const MUZZLE_RECOIL_STEP = -0.14;
 export const MUZZLE_SPREAD_STEP = -0.12;
 
@@ -143,7 +146,7 @@ export const PARTS = {
     short: 'Stub',
     cost: 0,
     desc: 'Short range. Snappy, imprecise.',
-    mods: { bulletSpeed: -90, bloomPerShot: 0.35, aimRate: 0.4, baseSpread: 0.35 },
+    mods: { bulletSpeed: -90, bloomPerShot: 0.35, aimRate: 0.4, baseSpread: 0.35, pen: 0.05 },
   },
   barrel_carbine: {
     id: 'barrel_carbine',
@@ -180,6 +183,39 @@ export const PARTS = {
   },
 
   ...buildMagParts(),
+
+  ...rankedSlot({
+    slot: 'ammo',
+    baseCost: AMMO_COST_BASE,
+    costRate: PART_COST_RATE,
+    perRank: { damage: AMMO_DAMAGE_PER_RANK, bloomPerShot: 0.05, pen: AMMO_PEN_PER_RANK },
+    starter: {
+      id: 'ammo_factory',
+      name: 'Factory Load',
+      short: 'Factory',
+      desc: 'Soft point. What the Shoddy ships with.',
+    },
+    rungs: [
+      {
+        id: 'ammo_hot',
+        name: 'Hot Load',
+        short: 'Hot',
+        desc: 'More powder. Hits harder and bites a little deeper.',
+      },
+      {
+        id: 'ammo_plusp',
+        name: '+P Load',
+        short: '+P',
+        desc: 'Overpressure. Still shy of a pass-through on Shoddy.',
+      },
+      {
+        id: 'ammo_magnum',
+        name: 'Magnum Load',
+        short: 'Magnum',
+        desc: 'Hottest charge. On Shoddy, only a headshot and a crit together punch through.',
+      },
+    ],
+  }),
 
   optic_none: {
     id: 'optic_none',
@@ -312,34 +348,34 @@ export const PARTS = {
   }),
 
   ...rankedSlot({
-    slot: 'trigger',
-    baseCost: TRIGGER_COST_BASE,
-    costRate: TRIGGER_COST_RATE,
-    perRank: { rof: TRIGGER_ROF_PER_RANK, bloomPerShot: 0.12, heatBuild: 0.04 },
+    slot: 'bolt',
+    baseCost: BOLT_COST_BASE,
+    costRate: BOLT_COST_RATE,
+    perRank: { rof: BOLT_ROF_PER_RANK, bloomPerShot: 0.12, heatBuild: 0.04 },
     starter: {
-      id: 'trigger_milspec',
-      name: 'Milspec Trigger',
-      short: 'Milspec',
-      desc: 'Factory pull.',
+      id: 'bolt_factory',
+      name: 'Factory Bolt',
+      short: 'Factory',
+      desc: 'Heavy, slow cycle. What the Shoddy ships with.',
     },
     rungs: [
       {
-        id: 'trigger_match',
-        name: 'Match Trigger',
-        short: 'Match',
-        desc: 'Higher RoF, cleaner break.',
+        id: 'bolt_polished',
+        name: 'Polished Bolt',
+        short: 'Polished',
+        desc: 'Smoother raceways. Faster cycle, a bit more bounce.',
       },
       {
-        id: 'trigger_binary',
-        name: 'Binary Trigger',
-        short: 'Binary',
-        desc: 'RoF ceiling. Bloom hungry.',
+        id: 'bolt_light',
+        name: 'Lightened Bolt',
+        short: 'Light',
+        desc: 'Metal cut away. Snappy, bloom hungry.',
       },
       {
-        id: 'trigger_volt',
-        name: 'Lightning Trigger',
-        short: 'Volt',
-        desc: 'Hair-split cycle. Heat soars.',
+        id: 'bolt_fluted',
+        name: 'Fluted Bolt',
+        short: 'Fluted',
+        desc: 'Fastest cycle the action will take. Heat soars.',
       },
     ],
   }),
@@ -413,28 +449,41 @@ export const PARTS = {
   }),
 };
 
-export const STARTER_OWNED = [
-  't1_stock',
-  'barrel_stub',
+export const STARTER_RECEIVERS = ['t1_stock'];
+
+export const STARTER_PARTS = [
   'mag_1',
+  'bolt_factory',
+  'ammo_factory',
+  'barrel_stub',
+  'spring_factory',
   'optic_none',
   'stock_none',
   'muzzle_none',
-  'trigger_milspec',
   'gas_factory',
-  'spring_factory',
 ];
+
+export const STARTER_OWNED = [...STARTER_RECEIVERS, ...STARTER_PARTS];
 
 export const STARTER_LOADOUT = {
   receiver: 't1_stock',
-  barrel: 'barrel_stub',
   magazine: 'mag_1',
+  bolt: 'bolt_factory',
+  ammo: 'ammo_factory',
+  barrel: 'barrel_stub',
+  springs: 'spring_factory',
   optic: 'optic_none',
   stock: 'stock_none',
   muzzle: 'muzzle_none',
-  trigger: 'trigger_milspec',
   gasBlock: 'gas_factory',
-  springs: 'spring_factory',
+};
+
+/** Old trigger ids from pre-kit saves. */
+export const LEGACY_PART_IDS = {
+  trigger_milspec: 'bolt_factory',
+  trigger_match: 'bolt_polished',
+  trigger_binary: 'bolt_light',
+  trigger_volt: 'bolt_fluted',
 };
 
 export const CATALOG_WINDOW = 4;

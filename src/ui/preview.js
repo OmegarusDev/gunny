@@ -1,5 +1,5 @@
 import { biomeFor } from '../data/biomes.js';
-import { defaultProfile } from '../state/profile.js';
+import { defaultProfile, ensureKit, grant, applyKit } from '../state/profile.js';
 import { createCanvas } from '../engine/canvas.js';
 import { drawBackdrop, drawWorld } from '../render/draw.js';
 import { drawHud } from '../render/hud.js';
@@ -39,10 +39,18 @@ function demoProfile() {
   profile.cash = 860;
   profile.xp = 240;
   profile.unlockedLevel = 3;
-  profile.owned.push('t2_tactical', 'mag_2', 'mag_3', 'barrel_carbine', 'spring_tuned');
+  grant(profile, 't2_tactical');
   profile.loadout.receiver = 't2_tactical';
+  applyKit(profile);
+  grant(profile, 'mag_2', 'mag_3', 'barrel_carbine', 'spring_tuned');
   profile.loadout.magazine = 'mag_3';
   profile.loadout.barrel = 'barrel_carbine';
+  profile.loadout.springs = 'spring_tuned';
+  Object.assign(ensureKit(profile).loadout, {
+    magazine: 'mag_3',
+    barrel: 'barrel_carbine',
+    springs: 'spring_tuned',
+  });
   profile.skillRanks.marksman = 2;
   profile.skillRanks.scavenger = 1;
   return profile;

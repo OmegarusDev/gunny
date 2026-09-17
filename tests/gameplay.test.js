@@ -32,12 +32,12 @@ import {
 import { PARTS, catalogProgressWindow, catalogWindow, ladderCost, partsForSlot } from '../src/data/attachments.js';
 import { BIOMES, beatenRoadIndexes, biomeFor } from '../src/data/biomes.js';
 import { KINDS } from '../src/data/kinds.js';
-import { RECEIVERS, RECEIVER_COST_BASE, RECEIVER_COST_RATE, RECEIVER_STAT_RATE } from '../src/data/receivers.js';
+import { RECEIVERS, RECEIVER_COST_BASE, RECEIVER_COST_RATE, RECEIVER_STAT_RATE, SLOTS, SLOT_MIN_TIER } from '../src/data/receivers.js';
 import { CHASE_FLOOR, ROLE_UNLOCK, ROLES, pickRole, roleUnlocked } from '../src/data/roles.js';
 import { SKILLS, emptyRanks, refundRetiredRanks, skillCost } from '../src/data/skills.js';
-import { formatRpm, gunsmithStatRows, resolveStats, shotSpreadDeg, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
+import { formatRpm, gunsmithStatRows, resolveStats, shotSpreadDeg, slotUnlockedFor, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
 import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, lethalCircles, lethalHpRatio, limbCircleList, limbCircles, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
-import { defaultProfile, resetProfile, buyPart, owns } from '../src/state/profile.js';
+import { defaultProfile, resetProfile, buyPart, owns, hydrateProfile, equipPart } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
 import { wantsImmersive, usesHtmlFullscreen, isPortrait } from '../src/engine/immersive.js';
 import { clampAimPoint, clampToViewport, resolveAimPoint } from '../src/view/aim.js';
@@ -207,7 +207,6 @@ describe('economy & ladders', () => {
     expect(formatRpm(starter)).toBe(String(Math.round((1 / starter.reload) * 60)));
     expect(Number(formatRpm(starter))).toBeLessThan(Math.round(starter.rof * 60));
     const mag2 = defaultProfile();
-    mag2.owned.push('mag_2');
     mag2.loadout.magazine = 'mag_2';
     expect(Number(formatRpm(resolveStats(mag2)))).toBeGreaterThan(Number(formatRpm(starter)));
     expect(starter.pen).toBe(0.5);
@@ -215,23 +214,29 @@ describe('economy & ladders', () => {
     expect(RECEIVERS.t2_tactical.base.pen).toBe(0.9);
     expect(RECEIVERS.t2_tactical.base.pen).toBeLessThan(FLESH_PEN_COST);
     expect(RECEIVERS.t3_ordnance.base.pen).toBeCloseTo(0.9 * RECEIVER_STAT_RATE, 2);
-    const longShoddy = defaultProfile();
-    longShoddy.owned.push('barrel_long');
-    longShoddy.loadout.barrel = 'barrel_long';
-    const kitPen = resolveStats(longShoddy).pen;
+    const magnum = defaultProfile();
+    magnum.loadout.ammo = 'ammo_magnum';
+    const kitPen = resolveStats(magnum).pen;
+    expect(kitPen).toBeCloseTo(0.5 + PARTS.ammo_magnum.mods.pen);
     expect(kitPen + hitPenBonus('head', false)).toBeLessThanOrEqual(FLESH_PEN_COST);
     expect(kitPen + hitPenBonus('torso', true)).toBeLessThanOrEqual(FLESH_PEN_COST);
     expect(kitPen + hitPenBonus('head', true)).toBeGreaterThan(FLESH_PEN_COST);
-    const rifle = defaultProfile();
-    rifle.owned.push('barrel_rifle');
-    rifle.loadout.barrel = 'barrel_rifle';
-    expect(resolveStats(rifle).pen + hitPenBonus('head', true)).toBeLessThanOrEqual(FLESH_PEN_COST);
+    const plusp = defaultProfile();
+    plusp.loadout.ammo = 'ammo_plusp';
+    expect(resolveStats(plusp).pen + hitPenBonus('head', true)).toBeLessThanOrEqual(FLESH_PEN_COST);
+    const militia = defaultProfile();
+    militia.loadout.receiver = 't2_tactical';
+    expect(resolveStats(militia).pen).toBeCloseTo(0.9 + PARTS.barrel_stub.mods.pen);
+    const longMilitia = defaultProfile();
+    longMilitia.loadout.receiver = 't2_tactical';
+    longMilitia.loadout.barrel = 'barrel_long';
+    expect(resolveStats(longMilitia).pen).toBeCloseTo(0.9 + PARTS.barrel_long.mods.pen);
     expect(RECEIVERS.t2_tactical.base.pen + hitPenBonus('head', false)).toBeGreaterThan(FLESH_PEN_COST);
     expect(RECEIVERS.t2_tactical.base.pen + hitPenBonus('torso', true)).toBeGreaterThan(FLESH_PEN_COST);
     expect(spawnBullet(0, 0, 0, starter, true).pen).toBe(starter.pen);
     expect(spawnBullet(0, 0, 0, starter, true).pen).not.toBe(starter.pen * PERFECT_MAG_MULT);
-    expect(PARTS.barrel_stub.mods.pen).toBeUndefined();
-    expect(PARTS.barrel_carbine.mods.pen).toBeGreaterThan(0);
+    expect(PARTS.barrel_stub.mods.pen).toBeGreaterThan(0);
+    expect(PARTS.barrel_carbine.mods.pen).toBeGreaterThan(PARTS.barrel_stub.mods.pen);
     expect(PARTS.barrel_rifle.mods.pen).toBeGreaterThan(PARTS.barrel_carbine.mods.pen);
     expect(PARTS.barrel_long.mods.pen).toBeGreaterThan(PARTS.barrel_rifle.mods.pen);
   });
@@ -265,6 +270,44 @@ describe('economy & ladders', () => {
     expect(owns(profile, 'mag_2')).toBe(true);
     expect(profile.loadout.magazine).toBe('mag_2');
   });
+
+  it('keeps a separate kit per receiver and restores it on switch', () => {
+    const profile = defaultProfile();
+    profile.cash = 2000;
+    expect(buyPart(profile, 'mag_2', PARTS.mag_2.cost)).toBe(true);
+    expect(resolveStats(profile).magSize).toBe(2);
+    expect(buyPart(profile, 't2_tactical', RECEIVERS.t2_tactical.cost)).toBe(true);
+    expect(profile.loadout.receiver).toBe('t2_tactical');
+    expect(resolveStats(profile).magSize).toBe(1);
+    expect(owns(profile, 'mag_2')).toBe(false);
+    expect(buyPart(profile, 'mag_2', PARTS.mag_2.cost)).toBe(true);
+    expect(resolveStats(profile).magSize).toBe(2);
+    expect(equipPart(profile, 'receiver', 't1_stock')).toBe(true);
+    expect(profile.loadout.receiver).toBe('t1_stock');
+    expect(resolveStats(profile).magSize).toBe(2);
+    expect(owns(profile, 'mag_2')).toBe(true);
+    expect(equipPart(profile, 'receiver', 't2_tactical')).toBe(true);
+    expect(profile.kits.t1_stock.loadout.magazine).toBe('mag_2');
+    expect(profile.kits.t2_tactical.loadout.magazine).toBe('mag_2');
+  });
+
+  it('hydrates pre-kit saves onto the equipped receiver only', () => {
+    const { profile } = hydrateProfile({
+      cash: 10,
+      owned: ['t1_stock', 't2_tactical', 'mag_2', 'trigger_match'],
+      loadout: { receiver: 't1_stock', magazine: 'mag_2', trigger: 'trigger_match' },
+    });
+    expect(profile.owned).toEqual(['t1_stock', 't2_tactical']);
+    expect(profile.loadout.magazine).toBe('mag_2');
+    expect(profile.loadout.bolt).toBe('bolt_polished');
+    expect(owns(profile, 'mag_2')).toBe(true);
+    expect(equipPart(profile, 'receiver', 't2_tactical')).toBe(true);
+    expect(profile.loadout.magazine).toBe('mag_1');
+    expect(owns(profile, 'mag_2')).toBe(false);
+    expect(equipPart(profile, 'receiver', 't1_stock')).toBe(true);
+    expect(profile.loadout.magazine).toBe('mag_2');
+    expect(profile.loadout.bolt).toBe('bolt_polished');
+  });
 });
 
 describe('gunsmith catalog', () => {
@@ -297,15 +340,72 @@ describe('gunsmith catalog', () => {
   });
 
   it('keeps at least four rungs on every attachment slot', () => {
-    for (const slot of ['barrel', 'magazine', 'springs', 'optic', 'stock', 'muzzle', 'trigger', 'gasBlock']) {
+    for (const slot of ['magazine', 'bolt', 'ammo', 'barrel', 'springs', 'optic', 'stock', 'muzzle', 'gasBlock']) {
       expect(partsForSlot(slot).length).toBeGreaterThanOrEqual(4);
     }
   });
 
+  it('unlocks mag, bolt, and ammo on Shoddy, then two slots per later receiver', () => {
+    expect(SLOTS).toEqual([
+      'receiver',
+      'magazine',
+      'bolt',
+      'ammo',
+      'barrel',
+      'springs',
+      'optic',
+      'stock',
+      'muzzle',
+      'gasBlock',
+    ]);
+    expect(SLOT_MIN_TIER).toEqual({
+      receiver: 1,
+      magazine: 1,
+      bolt: 1,
+      ammo: 1,
+      barrel: 2,
+      springs: 2,
+      optic: 3,
+      stock: 3,
+      muzzle: 4,
+      gasBlock: 4,
+    });
+    expect(slotUnlockedFor('t1_stock', 'magazine')).toBe(true);
+    expect(slotUnlockedFor('t1_stock', 'bolt')).toBe(true);
+    expect(slotUnlockedFor('t1_stock', 'ammo')).toBe(true);
+    expect(slotUnlockedFor('t1_stock', 'barrel')).toBe(false);
+    expect(slotUnlockedFor('t1_stock', 'springs')).toBe(false);
+    expect(slotUnlockedFor('t2_tactical', 'barrel')).toBe(true);
+    expect(slotUnlockedFor('t2_tactical', 'springs')).toBe(true);
+    expect(slotUnlockedFor('t2_tactical', 'optic')).toBe(false);
+    expect(slotUnlockedFor('t3_ordnance', 'optic')).toBe(true);
+    expect(slotUnlockedFor('t3_ordnance', 'stock')).toBe(true);
+    expect(slotUnlockedFor('t3_ordnance', 'muzzle')).toBe(false);
+    expect(slotUnlockedFor('t4_advanced', 'muzzle')).toBe(true);
+    expect(slotUnlockedFor('t4_advanced', 'gasBlock')).toBe(true);
+  });
+
+  it('lets Shoddy raise mag, RoF, and damage through parts', () => {
+    const starter = resolveStats(defaultProfile());
+    expect(starter.magSize).toBe(1);
+    expect(defaultProfile().loadout.ammo).toBe('ammo_factory');
+    const mag = defaultProfile();
+    mag.loadout.magazine = 'mag_2';
+    expect(resolveStats(mag).magSize).toBe(2);
+    const bolt = defaultProfile();
+    bolt.loadout.bolt = 'bolt_polished';
+    expect(resolveStats(bolt).rof).toBeGreaterThan(starter.rof);
+    const ammo = defaultProfile();
+    ammo.loadout.ammo = 'ammo_hot';
+    expect(resolveStats(ammo).damage).toBeCloseTo(starter.damage + PARTS.ammo_hot.mods.damage);
+    expect(PARTS.ammo_hot.mods.damage).toBeCloseTo(2.2);
+    expect(PARTS.ammo_magnum.mods.damage).toBeGreaterThan(PARTS.ammo_plusp.mods.damage);
+  });
+
   it('prices later rungs from a base cost and a rate', () => {
-    expect(PARTS.trigger_match.cost).toBe(400);
-    expect(PARTS.trigger_binary.cost).toBe(ladderCost(400, 1.9, 2));
-    expect(PARTS.trigger_volt.cost).toBeGreaterThan(PARTS.trigger_binary.cost);
+    expect(PARTS.bolt_polished.cost).toBe(400);
+    expect(PARTS.bolt_light.cost).toBe(ladderCost(400, 1.9, 2));
+    expect(PARTS.bolt_fluted.cost).toBeGreaterThan(PARTS.bolt_light.cost);
     expect(PARTS.muzzle_brake.cost).toBeGreaterThan(PARTS.muzzle_comp.cost);
     expect(PARTS.muzzle_hybrid.cost).toBeGreaterThan(PARTS.muzzle_ported.cost);
   });
@@ -333,8 +433,8 @@ describe('gunsmith catalog', () => {
 
   it('keeps Piston Drive a cycle upgrade over Overgassed', () => {
     const profile = defaultProfile();
-    profile.owned.push('t2_tactical', 't3_ordnance', 'gas_adjust', 'gas_over', 'gas_piston');
-    profile.loadout.receiver = 't3_ordnance';
+    profile.owned.push('t2_tactical', 't3_ordnance', 't4_advanced', 'gas_adjust', 'gas_over', 'gas_piston');
+    profile.loadout.receiver = 't4_advanced';
     profile.loadout.gasBlock = 'gas_over';
     const over = resolveStats(profile);
     profile.loadout.gasBlock = 'gas_piston';
@@ -374,8 +474,8 @@ describe('loadout aim stats', () => {
 
   it('lets optics extend the sight picture and tighten spread without adding gun range', () => {
     const profile = defaultProfile();
-    profile.owned.push('t2_tactical', 'optic_dot', 'optic_acog');
-    profile.loadout.receiver = 't2_tactical';
+    profile.owned.push('t2_tactical', 't3_ordnance', 'optic_dot', 'optic_acog');
+    profile.loadout.receiver = 't3_ordnance';
     const irons = resolveStats(profile);
     profile.loadout.optic = 'optic_dot';
     const dot = resolveStats(profile);
@@ -420,7 +520,8 @@ describe('loadout aim stats', () => {
 
   it('lets barrels add gun range without stretching the reticle', () => {
     const profile = defaultProfile();
-    profile.owned.push('barrel_carbine', 'barrel_rifle');
+    profile.owned.push('t2_tactical', 'barrel_carbine', 'barrel_rifle');
+    profile.loadout.receiver = 't2_tactical';
     const stub = resolveStats(profile);
     profile.loadout.barrel = 'barrel_rifle';
     const rifle = resolveStats(profile);
@@ -434,8 +535,8 @@ describe('loadout aim stats', () => {
   it('tightens marksman without unlocking extra sight reach', () => {
     const profile = defaultProfile();
     profile.skillRanks.marksman = 8;
-    profile.owned.push('t2_tactical', 'stock_wire', 'stock_combat', 'stock_precision');
-    profile.loadout.receiver = 't2_tactical';
+    profile.owned.push('t2_tactical', 't3_ordnance', 'stock_wire', 'stock_combat', 'stock_precision');
+    profile.loadout.receiver = 't3_ordnance';
     profile.loadout.stock = 'stock_precision';
     const stats = resolveStats(profile);
     const stock = resolveStats(defaultProfile());
@@ -499,7 +600,9 @@ describe('reload helpers', () => {
 
 describe('skills & profile', () => {
   it('includes marksman in empty ranks', () => {
-    expect(emptyRanks().marksman).toBe(0);
+    expect(SKILLS.recoil.maxRank).toBe(20);
+    expect(SKILLS.critChance.maxRank).toBe(20);
+    expect(SKILLS.marksman.maxRank).toBe(20);
     expect(SKILLS.marksman.perRank.aimReach).toBeUndefined();
     expect(SKILLS.elevation).toBeUndefined();
     expect(Object.keys(SKILLS).length % 2).toBe(0);
@@ -764,13 +867,13 @@ describe('kinds & stats schema', () => {
     const stats = resolveStats(profile);
     expect(stats.cashMul).toBeCloseTo(1.14);
     const ghost = defaultProfile();
-    ghost.loadout.barrel = 'barrel_stub';
-    PARTS.barrel_stub.mods.notAStat = 99;
+    ghost.loadout.ammo = 'ammo_factory';
+    PARTS.ammo_factory.mods.notAStat = 99;
     try {
       const after = resolveStats(ghost);
       expect(after.notAStat).toBeUndefined();
     } finally {
-      delete PARTS.barrel_stub.mods.notAStat;
+      delete PARTS.ammo_factory.mods.notAStat;
     }
   });
 });

@@ -7,13 +7,14 @@ import { bindGameScroll } from './scroll.js';
 
 const SLOT_LABEL = {
   receiver: 'Receiver',
-  barrel: 'Barrel',
   magazine: 'Mag',
+  bolt: 'Bolt',
+  ammo: 'Ammo',
+  barrel: 'Barrel',
   springs: 'Spring',
   optic: 'Optic',
   stock: 'Stock',
   muzzle: 'Muzzle',
-  trigger: 'Trigger',
   gasBlock: 'Gas',
 };
 
