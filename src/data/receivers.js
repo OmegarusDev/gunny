@@ -16,7 +16,7 @@ export const SLOTS = [
   'laser',
 ];
 
-/** Shoddy: mag, bolt, ammo. Later guns open two slots, Advanced opens the last three. */
+/** Shoddy: mag, bolt, ammo. Later guns open two slots, Elite opens the last three. */
 export const SLOT_MIN_TIER = {
   receiver: 1,
   magazine: 1,
@@ -36,9 +36,9 @@ export const SLOT_MIN_TIER = {
 /** Damage and RoF grow by this each receiver rank. Shoddy is rank 0. Pen is special-cased. */
 export const RECEIVER_STAT_RATE = 1.5;
 export const RECEIVER_COST_BASE = 500;
-/** Militia ~30m, then +1h / +2h / +4h. Round hundreds; leftover kit fills the long tail. */
+/** Basic ~30m, then +1h / +2h / +4h. Round hundreds; leftover kit fills the long tail. */
 export const RECEIVER_COSTS = [0, 500, 2000, 4000, 8000];
-/** Militia (rank 1) pen. Later ranks still 1.5× from here so they can punch through. */
+/** Basic (rank 1) pen. Later ranks still 1.5× from here so they can punch through. */
 export const MILITIA_PEN = 0.9;
 
 const SHODDY_BASE = {
@@ -118,26 +118,26 @@ const META = [
   },
   {
     id: 't2_tactical',
-    name: 'Militia Receiver',
-    short: 'Militia',
-    desc: 'Militia-grade. Opens barrel and springs.',
+    name: 'Basic Receiver',
+    short: 'Basic',
+    desc: 'Opens barrel and springs.',
   },
   {
     id: 't3_ordnance',
-    name: 'Ordnance Receiver',
-    short: 'Ordnance',
+    name: 'Advanced Receiver',
+    short: 'Advanced',
     desc: 'Opens grip and optic. A cleaner hold and a longer sight.',
   },
   {
     id: 't4_duty',
-    name: 'Duty Receiver',
-    short: 'Duty',
+    name: 'Expert Receiver',
+    short: 'Expert',
     desc: 'Opens stock and trigger. Planted fire.',
   },
   {
     id: 't5_advanced',
-    name: 'Advanced Receiver',
-    short: 'Advanced',
+    name: 'Elite Receiver',
+    short: 'Elite',
     desc: 'Opens muzzle, gas, and a laser. Hottest ceiling.',
   },
 ];

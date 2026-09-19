@@ -26,7 +26,7 @@ export function renderHub(el, profile, handlers) {
         ['ROF', String(Math.round(stats.rof * 60))],
         ['Reload', formatReload(stats.reload)],
         ['Road', String(profile.unlockedLevel + 1)],
-      ])}
+      ], 'stats-row')}
       <div class="facilities">
         ${facilityButton({
           act: 'gunsmith',

@@ -224,10 +224,10 @@ describe('economy & ladders', () => {
     expect(RECEIVERS.t3_ordnance.cost).toBe(2000);
     expect(RECEIVERS.t3_ordnance.cost).toBeGreaterThan(RECEIVERS.t2_tactical.cost);
     expect(RECEIVERS.t4_duty.requires).toBe('t3_ordnance');
-    expect(RECEIVERS.t4_duty.short).toBe('Duty');
+    expect(RECEIVERS.t4_duty.short).toBe('Expert');
     expect(RECEIVERS.t4_duty.cost).toBe(4000);
     expect(RECEIVERS.t5_advanced.requires).toBe('t4_duty');
-    expect(RECEIVERS.t5_advanced.short).toBe('Advanced');
+    expect(RECEIVERS.t5_advanced.short).toBe('Elite');
     expect(RECEIVERS.t5_advanced.cost).toBe(8000);
     expect(RECEIVERS.t5_advanced.cost).toBeGreaterThan(RECEIVERS.t4_duty.cost);
     expect(RECEIVER_COSTS).toEqual([0, 500, 2000, 4000, 8000]);
@@ -406,13 +406,13 @@ describe('gunsmith catalog', () => {
       expect(upgradeCost(slot, SLOT_MAX)).toBe(0);
     }
     expect(RECEIVERS.t1_stock.short).toBe('Shoddy');
-    expect(RECEIVERS.t2_tactical.short).toBe('Militia');
-    expect(RECEIVERS.t3_ordnance.short).toBe('Ordnance');
-    expect(RECEIVERS.t4_duty.short).toBe('Duty');
-    expect(RECEIVERS.t5_advanced.short).toBe('Advanced');
+    expect(RECEIVERS.t2_tactical.short).toBe('Basic');
+    expect(RECEIVERS.t3_ordnance.short).toBe('Advanced');
+    expect(RECEIVERS.t4_duty.short).toBe('Expert');
+    expect(RECEIVERS.t5_advanced.short).toBe('Elite');
   });
 
-  it('unlocks mag, bolt, and ammo on Shoddy, then two slots per later gun, three on Advanced', () => {
+  it('unlocks mag, bolt, and ammo on Shoddy, then two slots per later gun, three on Elite', () => {
     expect(SLOTS).toEqual([
       'receiver',
       'magazine',
@@ -604,7 +604,7 @@ describe('loadout aim stats', () => {
     expect(slotMods('barrel', 1).damage).toBeGreaterThan(0);
   });
 
-  it('gives Ordnance a grip, Duty a trigger, and Advanced a laser', () => {
+  it('gives Advanced a grip, Expert a trigger, and Elite a laser', () => {
     const grooved = resolveStats(gunAt('t3_ordnance', { grip: 60 }));
     expect(grooved.baseSpread).toBeLessThan(resolveStats(gunAt('t3_ordnance')).baseSpread);
 

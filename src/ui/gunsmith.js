@@ -1,4 +1,4 @@
-import { RECEIVERS, SLOTS, SLOT_MIN_TIER } from '../data/receivers.js';
+import { RECEIVERS, SLOTS } from '../data/receivers.js';
 import { SLOT_MAX, SLOT_UPGRADES, upgradeCost } from '../data/upgrades.js';
 import { resolveStats, slotUnlockedFor, gunsmithStatRows } from '../entities/loadout.js';
 import { buyBlockedReason, buyPart, equipPart, owns, slotRank, upgradeSlot } from '../state/profile.js';
@@ -14,20 +14,14 @@ export function renderGunsmith(el, profile, handlers) {
   const rec = RECEIVERS[recId];
   const owned = owns(profile, recId);
   const equipped = profile.loadout.receiver === recId;
-  const viewProfile = {
-    ...profile,
-    loadout: { receiver: recId },
-    kits: owned ? profile.kits : { ...profile.kits, [recId]: { ranks: {} } },
-  };
-  const viewStats = resolveStats(viewProfile);
+  const loadoutStats = resolveStats(profile);
   const gate = buyBlockedReason(profile, recId);
 
-  const parts = SLOTS.filter((slot) => slot !== 'receiver').map((slot) => {
-    const unlocked = slotUnlockedFor(recId, slot);
+  const parts = SLOTS.filter((slot) => slot !== 'receiver' && slotUnlockedFor(recId, slot)).map((slot) => {
     const rank = owned ? slotRank(profile, slot, recId) : 0;
     const maxed = rank >= SLOT_MAX;
     const cost = upgradeCost(slot, rank);
-    return { slot, def: SLOT_UPGRADES[slot], unlocked, rank, maxed, cost };
+    return { slot, def: SLOT_UPGRADES[slot], rank, maxed, cost };
   });
 
   el.innerHTML = `
@@ -40,23 +34,25 @@ export function renderGunsmith(el, profile, handlers) {
         <p class="kicker">Facility</p>
         <h2>Gunsmith</h2>
       </header>
-      <div class="rec-tabs" role="tablist" aria-label="Receivers">
-        ${recList
-          .map((r) => {
-            const have = owns(profile, r.id);
-            const on = r.id === recId;
-            const eq = profile.loadout.receiver === r.id;
-            return `<button class="chip rec-tab ${on ? 'selected' : ''} ${have ? '' : 'unowned'} ${eq ? 'equipped-chip' : ''}" type="button" data-rec="${r.id}" role="tab" aria-selected="${on}">${r.short}</button>`;
-          })
-          .join('')}
-      </div>
-      ${statsGrid(gunsmithStatRows(viewStats), 'stats-wide')}
-      <div class="gs-scroll-wrap">
-        <div class="part-grid" style="--part-cols: 3">
-          ${parts.map((p) => partCard(p, owned, profile.cash)).join('')}
+      ${statsGrid(gunsmithStatRows(loadoutStats), 'stats-wide')}
+      <div class="gs-board">
+        <div class="rec-tabs" role="tablist" aria-label="Receivers">
+          ${recList
+            .map((r) => {
+              const have = owns(profile, r.id);
+              const on = r.id === recId;
+              const eq = profile.loadout.receiver === r.id;
+              return `<button class="rec-tab ${on ? 'selected' : ''} ${have ? '' : 'unowned'} ${eq ? 'equipped-chip' : ''}" type="button" data-rec="${r.id}" role="tab" aria-selected="${on}">${r.short}</button>`;
+            })
+            .join('')}
         </div>
-        <div class="gs-scroll" role="scrollbar" aria-label="Gunsmith parts">
-          <div class="scroll-thumb"></div>
+        <div class="gs-scroll-wrap">
+          <div class="part-grid" style="--part-cols: 3">
+            ${parts.map((p) => partCard(p, owned, profile.cash)).join('')}
+          </div>
+          <div class="gs-scroll" role="scrollbar" aria-label="Gunsmith parts">
+            <div class="scroll-thumb"></div>
+          </div>
         </div>
       </div>
       <div class="sheet-foot" id="gs-actions"></div>
@@ -115,10 +111,8 @@ export function renderGunsmith(el, profile, handlers) {
   el.querySelectorAll('.part-card').forEach((card) => {
     const def = SLOT_UPGRADES[card.dataset.slot];
     if (!def) return;
-    const locked = card.classList.contains('locked');
-    const text = locked ? `Needs ${slotLockName(card.dataset.slot)}.` : `${def.name} · ${def.desc}`;
-    card.addEventListener('pointerenter', () => setHint(text));
-    card.addEventListener('focusin', () => setHint(text));
+    card.addEventListener('pointerenter', () => setHint(`${def.name} · ${def.desc}`));
+    card.addEventListener('focusin', () => setHint(`${def.name} · ${def.desc}`));
   });
   el.querySelectorAll('.stats [data-tip]').forEach((n) => {
     const text = `${n.dataset.tipTitle} · ${n.dataset.tip}`;
@@ -146,20 +140,8 @@ export function renderGunsmith(el, profile, handlers) {
   }
 }
 
-function slotLockName(slot) {
-  const tier = SLOT_MIN_TIER[slot];
-  const rec = Object.values(RECEIVERS).find((r) => r.tier === tier);
-  return rec ? rec.short : `T${tier}`;
-}
-
-function partCard({ slot, def, unlocked, rank, maxed, cost }, owned, cash) {
+function partCard({ slot, def, rank, maxed, cost }, owned, cash) {
   if (!def) return '';
-  if (!unlocked) {
-    return `<div class="part-card locked" data-slot="${slot}">
-      <strong>${def.short}</strong>
-      <span class="muted slot-lock">Needs ${slotLockName(slot)}</span>
-    </div>`;
-  }
   const fill = Math.max(0, Math.min(1, rank / SLOT_MAX));
   const can = owned && !maxed && cash >= cost;
   return `<div class="part-card" data-slot="${slot}">
