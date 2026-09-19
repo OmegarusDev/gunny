@@ -1,56 +1,37 @@
 import { RECEIVERS, SLOTS, SLOT_MIN_TIER } from '../data/receivers.js';
-import { catalogProgressWindow, partsForSlot } from '../data/attachments.js';
+import { SLOT_MAX, SLOT_UPGRADES, upgradeCost } from '../data/upgrades.js';
 import { resolveStats, slotUnlockedFor, gunsmithStatRows } from '../entities/loadout.js';
-import { buyBlockedReason, buyPart, equipPart, owns } from '../state/profile.js';
+import { buyBlockedReason, buyPart, equipPart, owns, slotRank, upgradeSlot } from '../state/profile.js';
 import { fmtMoney, backButton, ledgerBlock, statsGrid } from './overlays.js';
 import { bindGameScroll } from './scroll.js';
 
-const SLOT_LABEL = {
-  receiver: 'Receiver',
-  magazine: 'Mag',
-  bolt: 'Bolt',
-  ammo: 'Ammo',
-  barrel: 'Barrel',
-  springs: 'Spring',
-  grip: 'Grip',
-  optic: 'Optic',
-  stock: 'Stock',
-  trigger: 'Trigger',
-  muzzle: 'Muzzle',
-  gasBlock: 'Gas',
-  laser: 'Laser',
-};
-
 export function renderGunsmith(el, profile, handlers) {
-  const recId = profile.loadout.receiver;
-  const stats = resolveStats(profile);
+  const recList = Object.values(RECEIVERS).sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
+  let recId = el.dataset.rec || profile.loadout.receiver;
+  if (!RECEIVERS[recId]) recId = profile.loadout.receiver;
+  el.dataset.rec = recId;
 
-  const selected = el.dataset.slot || 'receiver';
-  const rows = SLOTS.map((slot) => {
-    const locked = slot !== 'receiver' && !slotUnlockedFor(recId, slot);
-    const items = locked ? [] : catalog(slot, recId);
-    return { slot, locked, items, win: visibleWindow(profile, items, slot) };
+  const rec = RECEIVERS[recId];
+  const owned = owns(profile, recId);
+  const equipped = profile.loadout.receiver === recId;
+  const viewProfile = {
+    ...profile,
+    loadout: { receiver: recId },
+    kits: owned ? profile.kits : { ...profile.kits, [recId]: { ranks: {} } },
+  };
+  const viewStats = resolveStats(viewProfile);
+  const gate = buyBlockedReason(profile, recId);
+
+  const parts = SLOTS.filter((slot) => slot !== 'receiver').map((slot) => {
+    const unlocked = slotUnlockedFor(recId, slot);
+    const rank = owned ? slotRank(profile, slot, recId) : 0;
+    const maxed = rank >= SLOT_MAX;
+    const cost = upgradeCost(slot, rank);
+    return { slot, def: SLOT_UPGRADES[slot], unlocked, rank, maxed, cost };
   });
 
-  let picked = el.dataset.part;
-  const selectedRow = rows.find((r) => r.slot === selected);
-  const visible = selectedRow?.win.items || [];
-  if (!picked || !visible.some((i) => i.id === picked)) {
-    picked =
-      visible.find((i) => !owns(profile, i.id))?.id ||
-      visible.find((i) => isEquipped(profile, selected, i.id))?.id ||
-      visible[0]?.id;
-  }
-  const item = selectedRow?.items.find((i) => i.id === picked);
-  el.dataset.prevSlot = selected;
-  el.dataset.prevPart = picked || '';
-  const have = item ? owns(profile, item.id) : false;
-  const equipped = item ? isEquipped(profile, selected, item.id) : false;
-  const gate = item ? buyBlockedReason(profile, item.id) : null;
-  const lockedSlot = !!selectedRow?.locked;
-
   el.innerHTML = `
-    <div class="panel-stack">
+    <div class="panel-stack gs-stack">
       <div class="page-head">
         ${backButton()}
         ${ledgerBlock(profile)}
@@ -59,10 +40,20 @@ export function renderGunsmith(el, profile, handlers) {
         <p class="kicker">Facility</p>
         <h2>Gunsmith</h2>
       </header>
-      ${statsGrid(gunsmithStatRows(stats), 'stats-wide')}
+      <div class="rec-tabs" role="tablist" aria-label="Receivers">
+        ${recList
+          .map((r) => {
+            const have = owns(profile, r.id);
+            const on = r.id === recId;
+            const eq = profile.loadout.receiver === r.id;
+            return `<button class="chip rec-tab ${on ? 'selected' : ''} ${have ? '' : 'unowned'} ${eq ? 'equipped-chip' : ''}" type="button" data-rec="${r.id}" role="tab" aria-selected="${on}">${r.short}</button>`;
+          })
+          .join('')}
+      </div>
+      ${statsGrid(gunsmithStatRows(viewStats), 'stats-wide')}
       <div class="gs-scroll-wrap">
-        <div class="slot-matrix">
-          ${rows.map(({ slot, locked, win }) => slotRow(profile, slot, locked, win.items, selected, picked)).join('')}
+        <div class="part-grid" style="--part-cols: 3">
+          ${parts.map((p) => partCard(p, owned, profile.cash)).join('')}
         </div>
         <div class="gs-scroll" role="scrollbar" aria-label="Gunsmith parts">
           <div class="scroll-thumb"></div>
@@ -73,59 +64,62 @@ export function renderGunsmith(el, profile, handlers) {
   `;
 
   el.querySelector('[data-act="hub"]').onclick = () => (handlers.back || handlers.hub)();
-  el.querySelectorAll('[data-id]').forEach((n) => {
-    n.onclick = () => {
-      el.dataset.slot = n.dataset.slot;
-      el.dataset.part = n.dataset.id;
+  el.querySelectorAll('[data-rec]').forEach((btn) => {
+    btn.onclick = () => {
+      el.dataset.rec = btn.dataset.rec;
       renderGunsmith(el, profile, handlers);
     };
   });
-  el.querySelectorAll('.slot-label').forEach((label) => {
-    label.addEventListener('click', () => {
-      el.dataset.slot = label.dataset.slot;
-      el.dataset.part = '';
-      renderGunsmith(el, profile, handlers);
-    });
-  });
 
-  const actions = el.querySelector('#gs-actions');
   const hint = document.createElement('p');
   hint.className = 'muted foot-hint';
+  const actions = el.querySelector('#gs-actions');
   const setHint = (text) => {
     hint.textContent = text || '';
   };
-  const partHint = item ? `${item.name}${item.desc ? ' · ' + item.desc : ''}` : '';
-  if (lockedSlot) {
-    setHint(`Needs ${slotLockName(selected)}.`);
-    actions.appendChild(hint);
-  } else if (item) {
-    setHint(partHint);
-    actions.appendChild(hint);
+  setHint(owned ? rec.desc : `${rec.name} · ${rec.desc}`);
+  actions.appendChild(hint);
+
+  if (!owned) {
     const b = document.createElement('button');
     b.className = 'primary';
-    if (!have) {
-      if (gate && gate !== 'Owned') {
-        b.textContent = gate;
-        b.disabled = true;
-      } else {
-        b.textContent = `Buy ${fmtMoney(item.cost)}`;
-        b.disabled = profile.cash < item.cost;
-        b.onclick = () => {
-          if (buyPart(profile, item.id, item.cost)) renderGunsmith(el, profile, handlers);
-        };
-      }
+    if (gate && gate !== 'Owned') {
+      b.textContent = gate;
+      b.disabled = true;
     } else {
-      b.textContent = equipped ? 'Equipped' : 'Equip';
-      b.disabled = equipped;
+      b.textContent = `Buy ${fmtMoney(rec.cost)}`;
+      b.disabled = profile.cash < rec.cost;
       b.onclick = () => {
-        if (equipPart(profile, selected, item.id)) renderGunsmith(el, profile, handlers);
+        if (buyPart(profile, rec.id, rec.cost)) {
+          el.dataset.rec = rec.id;
+          renderGunsmith(el, profile, handlers);
+        }
       };
     }
     actions.appendChild(b);
-  } else {
-    actions.appendChild(hint);
+  } else if (!equipped) {
+    const b = document.createElement('button');
+    b.className = 'primary';
+    b.textContent = 'Equip';
+    b.onclick = () => {
+      if (equipPart(profile, 'receiver', rec.id)) renderGunsmith(el, profile, handlers);
+    };
+    actions.appendChild(b);
   }
 
+  el.querySelectorAll('[data-upgrade]').forEach((btn) => {
+    btn.onclick = () => {
+      if (upgradeSlot(profile, btn.dataset.upgrade, recId)) renderGunsmith(el, profile, handlers);
+    };
+  });
+  el.querySelectorAll('.part-card').forEach((card) => {
+    const def = SLOT_UPGRADES[card.dataset.slot];
+    if (!def) return;
+    const locked = card.classList.contains('locked');
+    const text = locked ? `Needs ${slotLockName(card.dataset.slot)}.` : `${def.name} · ${def.desc}`;
+    card.addEventListener('pointerenter', () => setHint(text));
+    card.addEventListener('focusin', () => setHint(text));
+  });
   el.querySelectorAll('.stats [data-tip]').forEach((n) => {
     const text = `${n.dataset.tipTitle} · ${n.dataset.tip}`;
     n.addEventListener('pointerdown', (e) => {
@@ -135,25 +129,17 @@ export function renderGunsmith(el, profile, handlers) {
     n.addEventListener('click', () => setHint(text));
     n.addEventListener('pointerenter', () => setHint(text));
     n.addEventListener('focusin', () => setHint(text));
-    n.addEventListener('pointerleave', () => setHint(partHint));
-  });
-  el.querySelectorAll('[data-id]').forEach((n) => {
-    const it = selectedRow?.items.find((i) => i.id === n.dataset.id) || rows.find((r) => r.slot === n.dataset.slot)?.items.find((i) => i.id === n.dataset.id);
-    if (!it) return;
-    const text = `${it.name}${it.desc ? ' · ' + it.desc : ''}`;
-    n.addEventListener('pointerenter', () => setHint(text));
-    n.addEventListener('focusin', () => setHint(text));
   });
 
-  const matrix = el.querySelector('.slot-matrix');
+  const grid = el.querySelector('.part-grid');
   const track = el.querySelector('.gs-scroll');
-  if (matrix && track) {
-    matrix.scrollTop = Number(el.dataset.gsScroll || 0);
-    bindGameScroll(matrix, track, { persist: el.dataset });
-    matrix.addEventListener(
+  if (grid && track) {
+    grid.scrollTop = Number(el.dataset.gsScroll || 0);
+    bindGameScroll(grid, track, { persist: el.dataset });
+    grid.addEventListener(
       'scroll',
       () => {
-        el.dataset.gsScroll = String(matrix.scrollTop);
+        el.dataset.gsScroll = String(grid.scrollTop);
       },
       { passive: true },
     );
@@ -166,42 +152,23 @@ function slotLockName(slot) {
   return rec ? rec.short : `T${tier}`;
 }
 
-function visibleWindow(profile, items, slot) {
-  if (slot === 'receiver') return { items, start: 0, total: items.length };
-  const next = items.find((i) => !owns(profile, i.id)) || items[items.length - 1];
-  return catalogProgressWindow(items, { nextId: next?.id });
-}
-
-function slotRow(profile, slot, locked, items, selected, picked) {
-  return `<div class="slot-row ${locked ? 'locked' : ''} ${slot === selected ? 'is-active' : ''}">
-    <div class="slot-meta">
-      <span class="slot-label" data-slot="${slot}">${SLOT_LABEL[slot]}</span>
-    </div>
-    <div class="chips" role="listbox" style="--chip-cols: ${Math.max(items.length, 1)}">
-      ${
-        locked
-          ? `<span class="muted slot-lock">Needs ${slotLockName(slot)}</span>`
-          : items
-              .map((it) => {
-                const on = slot === selected && it.id === picked;
-                const eq = isEquipped(profile, slot, it.id);
-                const own = owns(profile, it.id);
-                return `<button class="chip part-chip ${on ? 'selected' : ''} ${eq ? 'equipped-chip' : ''} ${own ? '' : 'unowned'}" data-slot="${slot}" data-id="${it.id}">${it.short || it.name}</button>`;
-              })
-              .join('')
-      }
-    </div>
-  </div>`;
-}
-
-function catalog(slot, recId) {
-  if (slot === 'receiver') {
-    return Object.values(RECEIVERS).sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
+function partCard({ slot, def, unlocked, rank, maxed, cost }, owned, cash) {
+  if (!def) return '';
+  if (!unlocked) {
+    return `<div class="part-card locked" data-slot="${slot}">
+      <strong>${def.short}</strong>
+      <span class="muted slot-lock">Needs ${slotLockName(slot)}</span>
+    </div>`;
   }
-  if (!slotUnlockedFor(recId, slot)) return [];
-  return partsForSlot(slot);
-}
-
-function isEquipped(profile, slot, id) {
-  return profile.loadout[slot] === id;
+  const fill = Math.max(0, Math.min(1, rank / SLOT_MAX));
+  const can = owned && !maxed && cash >= cost;
+  return `<div class="part-card" data-slot="${slot}">
+    <strong>${def.short}</strong>
+    <span class="part-bar" aria-hidden="true"><i style="transform: scaleX(${fill})"></i></span>
+    ${
+      maxed
+        ? `<button type="button" disabled>MAX</button>`
+        : `<button type="button" class="${can ? 'primary' : ''}" data-upgrade="${slot}" ${owned && can ? '' : 'disabled'}>Upgrade ${fmtMoney(cost)}</button>`
+    }
+  </div>`;
 }

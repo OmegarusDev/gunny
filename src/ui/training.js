@@ -25,7 +25,7 @@ export function renderTraining(el, profile, handlers) {
         [
           'Sight',
           stats.fullScreenAim ? 'Full' : Math.round(stats.aimReach),
-          stats.fullScreenAim ? 'LPVO: hold the reticle anywhere on screen.' : 'How far you can hold the reticle. Optics only.',
+          stats.fullScreenAim ? 'High optic ranks hold the reticle anywhere on screen.' : 'How far you can hold the reticle. Optics only.',
         ],
         ['Range', Math.round(stats.shotRange), 'Distance before a round starts to lose damage and accuracy. Rounds still fly.'],
         ['Spread', `${stats.baseSpread.toFixed(2)}°`, 'Starting cone of fire. Bloom stacks on top.'],
@@ -37,20 +37,17 @@ export function renderTraining(el, profile, handlers) {
             const maxed = rank >= def.maxRank;
             const cost = skillCost(def, rank);
             const can = !maxed && profile.xp >= cost;
-            const pips = Array.from(
-              { length: def.maxRank },
-              (_, i) => `<i class="${i < rank ? 'on' : ''}"></i>`,
-            ).join('');
+            const fill = Math.max(0, Math.min(1, rank / def.maxRank));
             return `<div class="skill-row" data-pick="${def.id}">
               <div class="skill-main">
                 <div class="card-top">
                   <strong>${def.short || def.name}</strong>
                   <span class="tag">${rank}/${def.maxRank}</span>
                 </div>
-                <div class="pips">${pips}</div>
+                <span class="part-bar" aria-hidden="true"><i style="transform: scaleX(${fill})"></i></span>
               </div>
               <button class="${can ? 'primary' : ''}" data-skill="${def.id}" ${can ? '' : 'disabled'}>
-                ${maxed ? 'Max' : cost + ' XP'}
+                ${maxed ? 'MAX' : cost + ' XP'}
               </button>
             </div>`;
           })

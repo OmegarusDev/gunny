@@ -19,6 +19,14 @@ export function renderHub(el, profile, handlers) {
         <h1>GUNNY</h1>
         <p class="lede">a game with a gun</p>
       </header>
+      ${statsGrid([
+        ['Kit', equippedLabel(profile)],
+        ['DMG', Number.isInteger(Math.round(stats.damage * 10) / 10) ? String(Math.round(stats.damage * 10) / 10) : stats.damage.toFixed(1)],
+        ['Mag', stats.magSize],
+        ['ROF', String(Math.round(stats.rof * 60))],
+        ['Reload', formatReload(stats.reload)],
+        ['Road', String(profile.unlockedLevel + 1)],
+      ])}
       <div class="facilities">
         ${facilityButton({
           act: 'gunsmith',
@@ -61,14 +69,6 @@ export function renderHub(el, profile, handlers) {
       </div>`
           : ''
       }
-      ${statsGrid([
-        ['Kit', equippedLabel(profile)],
-        ['DMG', Number.isInteger(Math.round(stats.damage * 10) / 10) ? String(Math.round(stats.damage * 10) / 10) : stats.damage.toFixed(1)],
-        ['Mag', stats.magSize],
-        ['ROF', String(Math.round(stats.rof * 60))],
-        ['Reload', formatReload(stats.reload)],
-        ['Road', String(profile.unlockedLevel + 1)],
-      ])}
     </div>
   `;
   el.querySelector('[data-act="deploy"]').onclick = () => handlers.deploy(profile.unlockedLevel);

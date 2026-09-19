@@ -1,75 +1,31 @@
-import { RECEIVERS, SLOTS, receiverRequirement } from '../data/receivers.js';
-import {
-  PARTS,
-  STARTER_LOADOUT,
-  STARTER_PARTS,
-  STARTER_RECEIVERS,
-  partRequirement,
-} from '../data/attachments.js';
+import { RECEIVERS, SLOT_MIN_TIER, receiverRequirement } from '../data/receivers.js';
+import { SLOT_MAX, STARTER_LOADOUT, emptySlotRanks, ranksFromLegacyKit, sanitizeSlotRanks, upgradeCost } from '../data/upgrades.js';
 import { emptyRanks, sanitizeRanks } from '../data/skills.js';
 
-const KEY = 'gunny.profile.v3';
+const KEY = 'gunny.profile.v4';
+const LEGACY_KEYS = ['gunny.profile.v3', 'gunny.profile.v2'];
 
 function starterKit() {
-  const loadout = { ...STARTER_LOADOUT };
-  delete loadout.receiver;
-  return { owned: [...STARTER_PARTS], loadout };
+  return { ranks: emptySlotRanks() };
 }
 
 export function ensureKit(profile, recId = profile.loadout?.receiver) {
   if (!profile.kits) profile.kits = {};
   if (!RECEIVERS[recId]) recId = STARTER_LOADOUT.receiver;
   if (!profile.kits[recId]) profile.kits[recId] = starterKit();
+  profile.kits[recId].ranks = sanitizeSlotRanks(profile.kits[recId].ranks);
   return profile.kits[recId];
 }
 
-function slotLoadoutFrom(src = {}) {
-  const loadout = { ...starterKit().loadout };
-  for (const slot of SLOTS) {
-    if (slot === 'receiver') continue;
-    const id = src[slot];
-    if (PARTS[id] && PARTS[id].slot === slot) loadout[slot] = id;
-  }
-  return loadout;
-}
-
-function sanitizeKit(raw) {
-  const kit = starterKit();
-  const owned = Array.from(new Set([...(raw?.owned || []), ...STARTER_PARTS])).filter((id) => PARTS[id]);
-  kit.owned = owned;
-  kit.loadout = slotLoadoutFrom(raw?.loadout);
-  for (const slot of Object.keys(kit.loadout)) {
-    const id = kit.loadout[slot];
-    if (!owned.includes(id)) kit.loadout[slot] = STARTER_LOADOUT[slot];
-  }
-  return kit;
-}
-
-function persistReceiverKit(profile) {
-  const recId = profile.loadout.receiver;
-  if (!RECEIVERS[recId]) return;
-  const kit = ensureKit(profile, recId);
-  kit.loadout = slotLoadoutFrom(profile.loadout);
-}
-
 export function applyKit(profile) {
-  const kit = ensureKit(profile);
-  for (const slot of SLOTS) {
-    if (slot === 'receiver') continue;
-    const id = kit.loadout[slot];
-    profile.loadout[slot] = PARTS[id] ? id : STARTER_LOADOUT[slot];
-  }
+  ensureKit(profile);
 }
 
 export function grant(profile, ...ids) {
   for (const id of ids) {
-    if (RECEIVERS[id]) {
-      if (!profile.owned.includes(id)) profile.owned.push(id);
-      ensureKit(profile, id);
-    } else if (PARTS[id]) {
-      const owned = ensureKit(profile).owned;
-      if (!owned.includes(id)) owned.push(id);
-    }
+    if (!RECEIVERS[id]) continue;
+    if (!profile.owned.includes(id)) profile.owned.push(id);
+    ensureKit(profile, id);
   }
 }
 
@@ -78,7 +34,7 @@ export function defaultProfile() {
     cash: 0,
     xp: 0,
     unlockedLevel: 0,
-    owned: [...STARTER_RECEIVERS],
+    owned: [STARTER_LOADOUT.receiver],
     loadout: { ...STARTER_LOADOUT },
     kits: { [STARTER_LOADOUT.receiver]: starterKit() },
     skillRanks: emptyRanks(),
@@ -103,7 +59,7 @@ function fillReceiverLadder(ids) {
 export function hydrateProfile(parsed = {}) {
   const base = defaultProfile();
   const ownedReceivers = fillReceiverLadder(
-    Array.from(new Set([...(parsed.owned || []).map(remapReceiverId), ...STARTER_RECEIVERS])).filter(
+    Array.from(new Set([...(parsed.owned || []).map(remapReceiverId), STARTER_LOADOUT.receiver])).filter(
       (id) => RECEIVERS[id],
     ),
   );
@@ -112,8 +68,8 @@ export function hydrateProfile(parsed = {}) {
   const savedKits = parsed.kits && typeof parsed.kits === 'object' ? parsed.kits : {};
   const kits = {};
   for (const id of ownedReceivers) {
-    const raw = savedKits[id] || (id === 't5_advanced' ? savedKits.t4_advanced : null);
-    kits[id] = sanitizeKit(raw);
+    const raw = savedKits[id] || (id === 't5_advanced' ? savedKits.t4_advanced : null) || {};
+    kits[id] = { ranks: ranksFromLegacyKit(raw) };
   }
   const next = {
     ...base,
@@ -121,7 +77,7 @@ export function hydrateProfile(parsed = {}) {
     xp: Math.max(0, Number(parsed.xp) || 0),
     unlockedLevel: Math.max(0, Number(parsed.unlockedLevel) || 0),
     owned: ownedReceivers,
-    loadout: { ...STARTER_LOADOUT, receiver: recId },
+    loadout: { receiver: recId },
     kits,
     skillRanks: sanitizeRanks(parsed.skillRanks),
   };
@@ -131,9 +87,12 @@ export function hydrateProfile(parsed = {}) {
 
 export function loadProfile() {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return defaultProfile();
-    return hydrateProfile(JSON.parse(raw));
+    for (const key of [KEY, ...LEGACY_KEYS]) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      return hydrateProfile(JSON.parse(raw));
+    }
+    return defaultProfile();
   } catch {
     return defaultProfile();
   }
@@ -153,59 +112,52 @@ export function resetProfile(profile) {
 }
 
 export function owns(profile, id) {
-  if (RECEIVERS[id]) return profile.owned.includes(id);
-  if (PARTS[id]) return ensureKit(profile).owned.includes(id);
-  return false;
+  return !!RECEIVERS[id] && profile.owned.includes(id);
 }
 
-function itemRequirement(id) {
-  return partRequirement(id) || receiverRequirement(id);
-}
-
-/** Next ladder step only — cannot skip parts. */
-function canBuy(profile, id, cost) {
-  if (owns(profile, id)) return false;
-  if (profile.cash < cost) return false;
-  const req = itemRequirement(id);
-  if (req && !owns(profile, req)) return false;
-  return true;
+export function slotRank(profile, slot, recId = profile.loadout?.receiver) {
+  return ensureKit(profile, recId).ranks[slot] || 0;
 }
 
 export function buyBlockedReason(profile, id) {
   if (owns(profile, id)) return 'Owned';
-  const req = itemRequirement(id);
-  if (req && !owns(profile, req)) {
-    const name = PARTS[req]?.name || RECEIVERS[req]?.name || req;
-    return `Need ${name}`;
-  }
+  const req = receiverRequirement(id);
+  if (req && !owns(profile, req)) return `Need ${RECEIVERS[req]?.short || req}`;
   return null;
 }
 
 export function buyPart(profile, id, cost) {
-  if (!canBuy(profile, id, cost)) return false;
+  if (!RECEIVERS[id] || owns(profile, id)) return false;
+  if (profile.cash < cost) return false;
+  const req = receiverRequirement(id);
+  if (req && !owns(profile, req)) return false;
   profile.cash -= cost;
   grant(profile, id);
-  const part = PARTS[id];
-  const slot = part?.slot || (RECEIVERS[id] ? 'receiver' : null);
-  if (slot) equipPart(profile, slot, id);
-  else saveProfile(profile);
+  return equipPart(profile, 'receiver', id);
+}
+
+export function upgradeSlot(profile, slot, recId = profile.loadout?.receiver) {
+  if (!RECEIVERS[recId] || !owns(profile, recId)) return false;
+  if (slot === 'receiver') return false;
+  if ((RECEIVERS[recId].tier || 1) < (SLOT_MIN_TIER[slot] || 1)) return false;
+  const kit = ensureKit(profile, recId);
+  const rank = kit.ranks[slot] || 0;
+  if (rank >= SLOT_MAX) return false;
+  const cost = upgradeCost(slot, rank);
+  if (profile.cash < cost) return false;
+  profile.cash -= cost;
+  kit.ranks[slot] = rank + 1;
+  saveProfile(profile);
   return true;
 }
 
 export function equipPart(profile, slot, id) {
-  if (slot === 'receiver') {
-    const rec = RECEIVERS[id];
-    if (!rec || !owns(profile, id)) return false;
-    if (profile.loadout.receiver !== id) {
-      persistReceiverKit(profile);
-      profile.loadout.receiver = id;
-      applyKit(profile);
-    }
-  } else {
-    const part = PARTS[id];
-    if (!part || part.slot !== slot || !owns(profile, id)) return false;
-    profile.loadout[slot] = id;
-    ensureKit(profile).loadout[slot] = id;
+  if (slot !== 'receiver') return false;
+  const rec = RECEIVERS[id];
+  if (!rec || !owns(profile, id)) return false;
+  if (profile.loadout.receiver !== id) {
+    profile.loadout.receiver = id;
+    applyKit(profile);
   }
   saveProfile(profile);
   return true;

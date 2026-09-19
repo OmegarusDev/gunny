@@ -43,14 +43,11 @@ function demoProfile() {
   grant(profile, 't2_tactical');
   profile.loadout.receiver = 't2_tactical';
   applyKit(profile);
-  grant(profile, 'mag_2', 'mag_3', 'barrel_carbine', 'spring_tuned');
-  profile.loadout.magazine = 'mag_3';
-  profile.loadout.barrel = 'barrel_carbine';
-  profile.loadout.springs = 'spring_tuned';
-  Object.assign(ensureKit(profile).loadout, {
-    magazine: 'mag_3',
-    barrel: 'barrel_carbine',
-    springs: 'spring_tuned',
+  Object.assign(ensureKit(profile).ranks, {
+    magazine: 12,
+    barrel: 20,
+    springs: 20,
+    ammo: 8,
   });
   profile.skillRanks.marksman = 2;
   profile.skillRanks.scavenger = 1;

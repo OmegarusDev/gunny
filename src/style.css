@@ -268,7 +268,7 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .camp-stack {
-  justify-content: flex-start;
+  justify-content: space-between;
 }
 
 #overlay-root .camp-stack > .camp-brand {
@@ -277,7 +277,7 @@ html:-webkit-full-screen::backdrop,
   flex-direction: column;
   justify-content: center;
   min-height: 0;
-  padding: 4px 12px 10px;
+  padding: 4px 8px 2px;
 }
 
 #overlay-root .end-stack > .workshop-brand {
@@ -300,8 +300,15 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .camp-stack .stats {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 0;
+  flex: 0 0 auto;
+  align-content: center;
+  gap: 8px;
+}
+
+#overlay-root .camp-stack .stats div {
+  padding: 12px 10px;
 }
 
 #overlay-root .page-head {
@@ -379,7 +386,7 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root h1 {
   color: var(--gunny-blood);
-  font-size: clamp(52px, 14vmin, 96px);
+  font-size: clamp(40px, 9vmin, 64px);
   letter-spacing: 0.1em;
   text-shadow: 0 2px 0 #1a0c08;
 }
@@ -445,6 +452,19 @@ html:-webkit-full-screen::backdrop,
   gap: 8px;
   justify-content: flex-start;
   min-height: 0;
+}
+
+#panel-gunsmith .workshop-brand,
+#panel-training .workshop-brand {
+  padding: 0 0 2px;
+}
+
+#panel-training .stats {
+  gap: 6px;
+}
+
+#panel-training .stats div {
+  padding: 6px 8px;
 }
 
 #overlay-root .lede {
@@ -743,6 +763,94 @@ html:-webkit-full-screen::backdrop,
   align-items: stretch;
 }
 
+#overlay-root .rec-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+#overlay-root .rec-tabs .chip {
+  min-height: 34px;
+  padding: 5px 4px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+#overlay-root .part-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--part-cols, 3), minmax(0, 1fr));
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+  scrollbar-width: none;
+  align-content: start;
+}
+
+#overlay-root .part-grid::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+#overlay-root .gs-scroll-wrap .part-grid {
+  flex: none;
+  height: 100%;
+}
+
+#overlay-root .part-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 8px 7px;
+  background: rgba(12, 8, 4, 0.28);
+  border: 1px solid #5a4030;
+  border-radius: 6px;
+}
+
+#overlay-root .part-card strong {
+  font-size: clamp(12px, 2.1vmin, 14px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gunny-muted);
+  font-weight: 600;
+}
+
+#overlay-root .part-card.locked {
+  opacity: 0.55;
+}
+
+#overlay-root .part-card button {
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+#overlay-root .part-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(90, 64, 48, 0.7);
+  overflow: hidden;
+}
+
+#overlay-root .part-bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: var(--gunny-gold);
+}
+
 #overlay-root .chip {
   display: flex;
   justify-content: center;
@@ -779,8 +887,11 @@ html:-webkit-full-screen::backdrop,
   color: #fff6ea;
 }
 
-#overlay-root .chip.equipped-chip {
-  border-color: var(--gunny-blood);
+#overlay-root .chip.equipped-chip:not(.selected) {
+  box-shadow: inset 0 -2px 0 var(--gunny-blood);
+}
+
+#overlay-root .chip.selected.equipped-chip {
   box-shadow: inset 0 -2px 0 var(--gunny-blood);
 }
 
@@ -923,10 +1034,9 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .slot-lock {
-  padding: 0 4px;
+  padding: 0;
   font-size: 11px;
-  grid-column: 1 / -1;
-  align-self: center;
+  line-height: 1.25;
 }
 
 #overlay-root .train-grid {
@@ -975,7 +1085,7 @@ html:-webkit-full-screen::backdrop,
 #overlay-root .skill-main {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -1400,7 +1510,27 @@ html:-webkit-full-screen::backdrop,
   }
 
   #overlay-root h1 {
-    font-size: clamp(36px, 11vmin, 64px);
+    font-size: clamp(28px, 8vmin, 48px);
+  }
+
+  #overlay-root .camp-stack .stats {
+    flex: 0 1 auto;
+  }
+
+  #overlay-root .rec-tabs .chip {
+    min-height: 28px;
+    font-size: 10px;
+    padding: 4px 2px;
+  }
+
+  #overlay-root .part-card {
+    padding: 6px 6px 5px;
+    gap: 4px;
+  }
+
+  #overlay-root .part-card button {
+    min-height: 26px;
+    font-size: 11px;
   }
 
   #overlay-root .ledger-gunner,

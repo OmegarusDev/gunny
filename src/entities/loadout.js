@@ -1,6 +1,6 @@
 import { AIM_REACH_MAX, AIM_REACH_MIN, SHOT_REACH_MAX, SHOT_REACH_MIN, BLOOM_CAP_DEG, BASE_CRIT_CHANCE, BASE_CRIT_MULT, PERFECT_MAG_ROF } from '../config.js';
 import { RECEIVERS, SLOT_MIN_TIER, SLOTS } from '../data/receivers.js';
-import { PARTS } from '../data/attachments.js';
+import { slotMods } from '../data/upgrades.js';
 import { SKILLS } from '../data/skills.js';
 
 function effectiveRps(stats) {
@@ -29,7 +29,7 @@ export const STATS = [
   { id: 'rof', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'ROF', format: (v) => String(Math.round((v || 0) * 60)), hint: 'Cyclic rate in rounds per minute. Reload is separate. A perfect reload adds 10% for that mag.' },
   { id: 'magSize', stack: 'add', min: 1, round: true, gunsmith: true, gunsmithLabel: 'MAG', format: (v) => String(v), hint: 'Rounds in the magazine.' },
   { id: 'bulletSpeed', stack: 'add', min: 280, gunsmith: true, gunsmithLabel: 'VEL', format: (v) => v.toFixed(0), hint: 'Muzzle velocity. Faster rounds hit harder at range and fly farther before drop-off.' },
-  { id: 'pen', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2), hint: 'Needs over 1.00 to punch through. Headshots and crits each add 0.12. Shoddy only gets there with magnum ammo, a headshot, and a crit together.' },
+  { id: 'pen', stack: 'add', min: 0.4, gunsmith: true, gunsmithLabel: 'PEN', format: (v) => v.toFixed(2), hint: 'Needs over 1.00 to punch through. Headshots and crits each add 0.12. Shoddy only gets there with a hot ammo rank, a headshot, and a crit together.' },
   { id: 'reload', stack: 'add', min: 0.7, gunsmith: true, gunsmithLabel: 'RLD', format: (v) => `${formatStat(v, 2)}s`, hint: 'Seconds to reload an empty mag. The gold band sits just before two-thirds of the bar.' },
   { id: 'shotRange', stack: 'add', min: SHOT_REACH_MIN, max: SHOT_REACH_MAX, gunsmith: true, gunsmithLabel: 'Range', format: (v) => String(Math.round(v)), hint: 'Distance before damage and accuracy start to fall off. Rounds still fly.' },
   { id: 'aimReach', stack: 'add', min: AIM_REACH_MIN, max: AIM_REACH_MAX, gunsmith: true, gunsmithLabel: 'Sight', format: (v) => String(Math.round(v)), hint: 'How far you can hold the reticle. Optics only.' },
@@ -106,13 +106,14 @@ export function resolveStats(profile) {
   stats.receiverTier = rec.tier;
   stats.receiverName = rec.name;
 
+  const ranks = profile.kits?.[rec.id]?.ranks || {};
   for (const slot of SLOTS) {
     if (slot === 'receiver') continue;
     if (!slotUnlockedFor(rec.id, slot)) continue;
-    const id = profile.loadout[slot];
-    const part = PARTS[id];
-    if (part) applyMods(stats, part.mods);
+    applyMods(stats, slotMods(slot, ranks[slot] || 0));
   }
+  const overMag = Math.max(0, stats.magSize - 8);
+  if (overMag) stats.reload += overMag * 0.012;
 
   for (const def of Object.values(SKILLS)) {
     const rank = profile.skillRanks[def.id] || 0;

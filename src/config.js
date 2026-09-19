@@ -22,14 +22,14 @@ export const TERRAIN_HEADROOM = 0.18;
 /** Typical half-span; real min/max come from floor pad + headroom. */
 export const TERRAIN_AMP = 0.18;
 export const BLOOM_CAP_DEG = 12;
-/** Irons: sight picture to ~35% of the screen. Optics push this out. LPVO is viewport-wide. */
+/** Irons: sight picture to ~35% of the screen. Optics push this out. High ranks fill the viewport. */
 export const AIM_SCREEN_FRAC = 0.35;
 /** Bullets: two-thirds across. Barrels extend this, optics do not. */
 export const SHOT_SCREEN_FRAC = 2 / 3;
 export const DESIGN_W = DESIGN_H * (16 / 9);
 export const AIM_REACH_BASE = DESIGN_W * (AIM_SCREEN_FRAC - PLAYER_SCREEN_X_RATIO);
 export const AIM_REACH_MIN = Math.round(AIM_REACH_BASE * 0.72);
-/** Last disc optic (ACOG). LPVO ignores this and clamps to the viewport. */
+/** Last disc optic before full-screen aim. High optic ranks ignore this and clamp to the viewport. */
 export const AIM_REACH_MAX = 520;
 export const SHOT_REACH_BASE = DESIGN_W * (SHOT_SCREEN_FRAC - PLAYER_SCREEN_X_RATIO);
 export const SHOT_REACH_MIN = Math.round(SHOT_REACH_BASE * 0.72);
@@ -145,10 +145,10 @@ export const LOCATIONAL = {
 export const BASE_CRIT_CHANCE = 0.05;
 export const BASE_CRIT_MULT = 1.1;
 
-/** Kill cash is the only early store fuel. mag_2 costs 100 ≈ 10 kills.
+/** Kill cash is the only early store fuel. First mag upgrade is $100 ≈ 10 kills.
  * XP is distance + kills + heads. First grunt is 5 XP, then × hpMul by road.
  * A 250m clear is $150 on Forest (+$50 per later road, cap $400) — a real payday,
- * never a receiver ($500 Militia). */
+ * never a receiver ($500 Militia). Slot upgrades drip ~6% per level up to a silent 100. */
 export const ECONOMY = {
   cashPerKill: 10,
   xpPerMeter: 0.1,
