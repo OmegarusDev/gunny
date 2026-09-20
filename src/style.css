@@ -313,6 +313,7 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .page-head {
+  position: relative;
   display: flex;
   align-items: stretch;
   gap: 10px;
@@ -336,19 +337,24 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .page-title {
-  flex: 1 1 auto;
-  min-width: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
   margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: stretch;
   text-align: center;
+  text-transform: uppercase;
   color: var(--gunny-gold);
   font-size: clamp(22px, 5.2vmin, 32px);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   line-height: 1;
   white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
 }
 
 #overlay-root .page-head .ledger-gunner,
@@ -870,11 +876,14 @@ html:-webkit-full-screen::backdrop,
   pointer-events: none;
 }
 
-#overlay-root .gs-buy-layer button {
+#overlay-root .gs-buy-layer button,
+#overlay-root .gs-buy-layer button:disabled {
   pointer-events: auto;
   min-width: min(220px, 70%);
   min-height: 48px;
   margin: 0;
+  opacity: 1;
+  filter: none;
 }
 
 #overlay-root .rec-tab {

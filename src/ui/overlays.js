@@ -49,13 +49,12 @@ export function formatMetres(m) {
   return Number.isInteger(rounded) ? `${rounded}m` : `${rounded.toFixed(1)}m`;
 }
 
-export function ledgerBlock(profile, title = '') {
+export function ledgerBlock(profile) {
   return `<div class="ledger" role="group" aria-label="Ledger">
     <div class="ledger-gunner">
       <span class="ledger-label">Gunner</span>
       <span class="ledger-value">Lv ${gunnerLevel(profile)}</span>
     </div>
-    ${title ? `<h2 class="page-title">${title}</h2>` : ''}
     <div class="ledger-funds">
       <div>
         <span class="ledger-label">Cash</span>
@@ -72,7 +71,8 @@ export function ledgerBlock(profile, title = '') {
 export function pageHead(profile, title) {
   return `<div class="page-head">
     ${backButton()}
-    ${ledgerBlock(profile, title)}
+    ${ledgerBlock(profile)}
+    ${title ? `<h2 class="page-title">${title}</h2>` : ''}
   </div>`;
 }
 
