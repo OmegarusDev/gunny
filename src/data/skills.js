@@ -24,7 +24,7 @@ export const SKILLS = {
     desc: 'Tighter first-shot cone and faster aim settle.',
     maxRank: 20,
     baseCost: 40,
-    perRank: { baseSpread: -0.12, aimRate: 0.35 },
+    perRank: { baseSpread: -0.08, aimRate: 0.35 },
   },
   scavenger: {
     id: 'scavenger',

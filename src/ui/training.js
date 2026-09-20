@@ -1,5 +1,5 @@
 import { SKILLS, skillCost } from '../data/skills.js';
-import { resolveStats } from '../entities/loadout.js';
+import { resolveStats, trainingStatRows } from '../entities/loadout.js';
 import { saveProfile } from '../state/profile.js';
 import { pageHead, statsGrid } from './overlays.js';
 
@@ -11,18 +11,7 @@ export function renderTraining(el, profile, handlers) {
   el.innerHTML = `
     <div class="panel-stack">
       ${pageHead(profile, 'Training')}
-      ${statsGrid([
-        ['Crit', `${(stats.critChance * 100).toFixed(0)}%`, 'Chance a shot crits. Adds pen. Separate from headshots.'],
-        ['Crit ×', stats.critMult.toFixed(2), 'Extra crit damage. Crits also add a flat pen bonus.'],
-        ['Cash', `×${stats.cashMul.toFixed(2)}`, 'Cash from kills. Scavenger raises this.'],
-        [
-          'Sight',
-          stats.fullScreenAim ? 'Full' : Math.round(stats.aimReach),
-          stats.fullScreenAim ? 'High optic ranks hold the reticle anywhere on screen.' : 'How far you can hold the reticle. Optics only.',
-        ],
-        ['Range', Math.round(stats.shotRange), 'Distance before a round starts to lose damage and accuracy. Rounds still fly.'],
-        ['Spread', `${stats.baseSpread.toFixed(2)}°`, 'Starting cone of fire. Bloom stacks on top.'],
-      ])}
+      ${statsGrid(trainingStatRows(stats), 'stats-row stats-skills')}
       <div class="train-grid">
         ${skills
           .map((def) => {

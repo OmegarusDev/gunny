@@ -33,7 +33,7 @@ export const STATS = [
   { id: 'reload', stack: 'add', min: 0.7, gunsmith: true, gunsmithLabel: 'RLD', format: (v) => `${formatStat(v, 2)}s`, hint: 'Seconds to reload an empty mag. The gold band sits just before two-thirds of the bar.' },
   { id: 'shotRange', stack: 'add', min: SHOT_REACH_MIN, max: SHOT_REACH_MAX, gunsmith: true, gunsmithLabel: 'Range', format: (v) => String(Math.round(v)), hint: 'Distance before damage and accuracy start to fall off. Rounds still fly.' },
   { id: 'aimReach', stack: 'add', min: AIM_REACH_MIN, max: AIM_REACH_MAX, gunsmith: true, gunsmithLabel: 'Sight', format: (v) => String(Math.round(v)), hint: 'How far you can hold the reticle. Optics only.' },
-  { id: 'baseSpread', stack: 'add', min: 0.2, max: 4.5, gunsmith: true, gunsmithLabel: 'SPRD', format: (v) => `${v.toFixed(2)}°`, hint: 'Starting cone of fire, in degrees. Bloom stacks on top.' },
+  { id: 'baseSpread', stack: 'add', min: 0, gunsmith: true, gunsmithLabel: 'SPRD', format: (v) => `${v.toFixed(2)}°`, hint: 'First-shot half-cone in degrees. Bloom and heat stack on top. A finished Elite kit plus max Marksman can settle this to 0°.' },
   { id: 'perfectWidth', stack: 'add', min: 0.04, max: 0.28 },
   { id: 'penDecay', stack: 'add', min: 0 },
   { id: 'bloomPerShot', stack: 'add', min: 0.25 },
@@ -64,6 +64,20 @@ export function gunsmithStatRows(stats) {
     if (s.id === 'aimReach' && stats.fullScreenAim) return [s.gunsmithLabel, 'Full', s.hint];
     return [s.gunsmithLabel, s.format(stats[s.id]), s.hint];
   });
+}
+
+/** One chip per Training skill, in list order. Live loadout values, not rank pips. */
+export function trainingStatRows(stats) {
+  return [
+    ['Bloom', formatStat(stats.bloomPerShot, 2), 'Bloom added per shot. Recoil lowers this. Separate from first-shot spread.'],
+    ['Reload', `${formatStat(stats.reload, 2)}s`, 'Seconds to seat an empty mag. Reload skill also widens the perfect band.'],
+    ['Spread', `${Number(stats.baseSpread).toFixed(2)}°`, 'First-shot half-cone. Marksman tightens this. Bloom stacks on top.'],
+    ['Cash', `×${Number(stats.cashMul).toFixed(2)}`, 'Cash from kills. Scavenger raises this.'],
+    ['Crit', `${(stats.critChance * 100).toFixed(0)}%`, 'Chance a shot crits. Adds pen. Separate from headshots.'],
+    ['Crit×', Number(stats.critMult).toFixed(2), 'Extra crit damage. Crits also add a flat pen bonus.'],
+    ['Speed', `×${Number(stats.moveMul).toFixed(2)}`, 'How fast you walk the road. Enemies still close.'],
+    ['ROF', String(Math.round((stats.rof || 0) * 60)), 'Cyclic rate. Firing adds a little; bolt and trigger do the heavy lifting.'],
+  ];
 }
 
 function clampStat(stats, def) {

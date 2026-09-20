@@ -34,7 +34,7 @@ Death flavour is an escape (`You barely escape alive...`). Extract is `You made 
 
 ## The gun
 
-**ROF** on the HUD and in Gunsmith is **cyclic rounds per minute**. Reload is separate. Shoddy starts at **15 damage**, **40 RPM**, a **1-round mag**, and a **3s** reload.
+**ROF** on the HUD and in Gunsmith is **cyclic rounds per minute**. Reload is separate. Shoddy starts at **15 damage**, **40 RPM**, a **1-round mag**, a **3s** reload, and a **4°** first-shot half-cone.
 
 **Irons** hold the reticle about a third of the way across the screen. **Optics** push that sight picture out; high optic ranks (50+) fill the viewport. **Barrels** extend how far a round keeps full energy — they do not stretch the reticle. Marksman does not add sight reach.
 
@@ -45,7 +45,7 @@ Past effective range, tracers **keep flying**. Damage and accuracy fall with **d
 - **Shoddy** starts at **0.5**. Ammo around rank **60** plus a **headshot and a crit together** can punch through. Anything short of that stays in the first body.
 - **Basic** starts at **0.9**. A headshot or a crit is enough; a long barrel also gets you there. Unupgraded Basic without those does not overpen.
 
-**Bloom** is per-shot cone growth. **Heat** is hold-to-open: it dumps when you stop firing. Gas and letting off keep it honest.
+**SPRD** is first-shot half-cone. Later receivers start a little tighter. Bloom and heat stack on top — they are not this stat. A finished Elite kit plus max Marksman can settle first-shot to **0°**; earlier guns cannot.
 
 ## Gunsmith
 
@@ -80,7 +80,7 @@ XP buys skills (max 20 each). Every skill starts at **40 XP**, then **+20 XP** p
 - **Speed** — walk the road a little faster; they still close
 - **Firing** — a little more cyclic rate; bolt and trigger still do the heavy lifting
 
-Hover or tap a row or a stat chip for the hint. Nothing stays “selected.”
+The one-row strip is the live values those skills change. Hover or tap a row or a chip for the hint. Nothing stays “selected.”
 
 ## Roads and walkers
 

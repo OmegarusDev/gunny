@@ -36,7 +36,7 @@ export const SLOT_UPGRADES = {
     short: 'Barrel',
     desc: 'Reach, punch, and a cleaner cone. Does not extend the sight picture.',
     baseCost: 120,
-    perRank: { damage: 0.04, bulletSpeed: 4, bloomPerShot: -0.006, pen: 0.006, baseSpread: -0.01, shotRange: 2.2 },
+    perRank: { damage: 0.04, bulletSpeed: 4, bloomPerShot: -0.006, pen: 0.006, baseSpread: -0.005, shotRange: 2.2 },
   },
   springs: {
     id: 'springs',
@@ -52,7 +52,7 @@ export const SLOT_UPGRADES = {
     short: 'Grip',
     desc: 'Tighter first-shot cone.',
     baseCost: 150,
-    perRank: { baseSpread: -0.006 },
+    perRank: { baseSpread: -0.004 },
   },
   optic: {
     id: 'optic',
@@ -60,7 +60,7 @@ export const SLOT_UPGRADES = {
     short: 'Optic',
     desc: 'Hold farther. High ranks fill the screen.',
     baseCost: 180,
-    perRank: { bloomPerShot: -0.01, aimReach: 6, baseSpread: -0.008, critChance: 0.0008 },
+    perRank: { bloomPerShot: -0.01, aimReach: 6, baseSpread: -0.005, critChance: 0.0008 },
     thresholds: [{ at: 50, mods: { fullScreenAim: 1 } }],
   },
   stock: {
@@ -69,7 +69,7 @@ export const SLOT_UPGRADES = {
     short: 'Stock',
     desc: 'Bloom recovery and slope settle.',
     baseCost: 200,
-    perRank: { bloomRecover: 0.04, aimRate: 0.022, bloomPerShot: -0.004, baseSpread: -0.006 },
+    perRank: { bloomRecover: 0.04, aimRate: 0.022, bloomPerShot: -0.004, baseSpread: -0.004 },
   },
   trigger: {
     id: 'trigger',
@@ -85,7 +85,7 @@ export const SLOT_UPGRADES = {
     short: 'Muzzle',
     desc: 'Dumps recoil and tightens the cone. Compensator, not a suppressor.',
     baseCost: 250,
-    perRank: { bloomPerShot: -0.006, baseSpread: -0.005 },
+    perRank: { bloomPerShot: -0.006, baseSpread: -0.003 },
   },
   gasBlock: {
     id: 'gasBlock',
@@ -101,7 +101,7 @@ export const SLOT_UPGRADES = {
     short: 'Laser',
     desc: 'A visible beam while you hold. Tighter cone.',
     baseCost: 220,
-    perRank: { baseSpread: -0.007 },
+    perRank: { baseSpread: -0.004 },
     thresholds: [{ at: 1, mods: { laserSight: 1 } }],
   },
 };

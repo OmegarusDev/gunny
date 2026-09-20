@@ -39,7 +39,7 @@ import { RECEIVERS, RECEIVER_COST_BASE, RECEIVER_COSTS, RECEIVER_STAT_RATE, SLOT
 import { SLOT_COST_RATE, SLOT_MAX, SLOT_UPGRADES, sanitizeSlotRanks, slotMods, upgradeCost } from '../src/data/upgrades.js';
 import { CHASE_FLOOR, ROLE_UNLOCK, ROLES, pickRole, roleUnlocked } from '../src/data/roles.js';
 import { SKILLS, sanitizeRanks, skillCost } from '../src/data/skills.js';
-import { formatRpm, gunsmithStatRows, magRof, resolveStats, shotSpreadDeg, slotUnlockedFor, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
+import { formatRpm, gunsmithStatRows, magRof, resolveStats, shotSpreadDeg, slotUnlockedFor, STAT_BY_ID, STATS, trainingStatRows } from '../src/entities/loadout.js';
 import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, isDead, lethalCircles, lethalHpRatio, limbCircleList, limbCircles, locationalOf, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile, buyPart, owns, hydrateProfile, equipPart, ensureKit, upgradeSlot, slotRank } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
@@ -539,7 +539,7 @@ describe('loadout aim stats', () => {
     expect(stats.aimReach).toBeGreaterThanOrEqual(AIM_REACH_MIN);
     expect(stats.aimReach).toBeCloseTo(AIM_REACH_BASE, 5);
     expect(stats.shotRange).toBeCloseTo(SHOT_REACH_BASE, 5);
-    expect(stats.baseSpread).toBeGreaterThan(3);
+    expect(stats.baseSpread).toBe(4);
   });
 
   it('places base shot range two-thirds across the screen', () => {
@@ -640,6 +640,52 @@ describe('loadout aim stats', () => {
     const stats = resolveStats(defaultProfile());
     const deg = shotSpreadDeg(stats, { bloom: 0, heat: 0 });
     expect(deg).toBe(stats.baseSpread);
+  });
+
+  it('keeps first-shot spread sloppy until a finished Elite kit plus max Marksman', () => {
+    expect(STAT_BY_ID.baseSpread.max).toBeUndefined();
+    expect(STAT_BY_ID.baseSpread.min).toBe(0);
+    expect(RECEIVERS.t1_stock.base.baseSpread).toBe(4);
+    expect(RECEIVERS.t2_tactical.base.baseSpread).toBeCloseTo(3.88, 5);
+    expect(RECEIVERS.t3_ordnance.base.baseSpread).toBeCloseTo(3.76, 5);
+    expect(RECEIVERS.t4_duty.base.baseSpread).toBeCloseTo(3.64, 5);
+    expect(RECEIVERS.t5_advanced.base.baseSpread).toBeCloseTo(3.52, 5);
+
+    const maxParts = {
+      magazine: SLOT_MAX,
+      bolt: SLOT_MAX,
+      ammo: SLOT_MAX,
+      barrel: SLOT_MAX,
+      springs: SLOT_MAX,
+      grip: SLOT_MAX,
+      optic: SLOT_MAX,
+      stock: SLOT_MAX,
+      trigger: SLOT_MAX,
+      muzzle: SLOT_MAX,
+      gasBlock: SLOT_MAX,
+      laser: SLOT_MAX,
+    };
+
+    const marksman = gunAt('t1_stock');
+    marksman.skillRanks.marksman = SKILLS.marksman.maxRank;
+    expect(resolveStats(marksman).baseSpread).toBeCloseTo(2.4, 5);
+
+    const basicDone = gunAt('t2_tactical', maxParts);
+    basicDone.skillRanks.marksman = SKILLS.marksman.maxRank;
+    expect(resolveStats(basicDone).baseSpread).toBeGreaterThan(1.5);
+
+    const advancedDone = gunAt('t3_ordnance', maxParts);
+    advancedDone.skillRanks.marksman = SKILLS.marksman.maxRank;
+    expect(resolveStats(advancedDone).baseSpread).toBeGreaterThan(0.5);
+
+    const expertDone = gunAt('t4_duty', maxParts);
+    expertDone.skillRanks.marksman = SKILLS.marksman.maxRank;
+    expect(resolveStats(expertDone).baseSpread).toBeGreaterThan(0);
+
+    const eliteParts = gunAt('t5_advanced', maxParts);
+    expect(resolveStats(eliteParts).baseSpread).toBeGreaterThan(0.8);
+    eliteParts.skillRanks.marksman = SKILLS.marksman.maxRank;
+    expect(resolveStats(eliteParts).baseSpread).toBe(0);
   });
 });
 
@@ -1025,11 +1071,30 @@ describe('kinds & stats schema', () => {
     }
   });
 
+  it('shows one Training chip per skill, not gunsmith sight or range', () => {
+    const fresh = trainingStatRows(resolveStats(defaultProfile()));
+    expect(fresh.map((r) => r[0])).toEqual(['Bloom', 'Reload', 'Spread', 'Cash', 'Crit', 'Crit×', 'Speed', 'ROF']);
+    expect(fresh).toHaveLength(Object.keys(SKILLS).length);
+    expect(fresh.every((r) => r[2])).toBe(true);
+    expect(fresh.some((r) => r[0] === 'Sight' || r[0] === 'Range')).toBe(false);
+    const trained = defaultProfile();
+    trained.skillRanks.marksman = 4;
+    trained.skillRanks.scavenger = 2;
+    trained.skillRanks.firing = 3;
+    const after = trainingStatRows(resolveStats(trained));
+    const before = Object.fromEntries(fresh.map((r) => [r[0], r[1]]));
+    const next = Object.fromEntries(after.map((r) => [r[0], r[1]]));
+    expect(next.Spread).not.toBe(before.Spread);
+    expect(next.Cash).not.toBe(before.Cash);
+    expect(Number(next.ROF)).toBeGreaterThan(Number(before.ROF));
+  });
+
   it('exposes gunsmith rails from STATS clamps', () => {
     const rows = gunsmithStatRows(resolveStats(defaultProfile()));
     expect(rows.map((r) => r[0])).toEqual(STATS.filter((s) => s.gunsmith).map((s) => s.gunsmithLabel));
     expect(rows.map((r) => r[0])).toEqual(['DMG', 'ROF', 'MAG', 'VEL', 'PEN', 'RLD', 'Range', 'Sight', 'SPRD']);
     expect(rows.find((r) => r[0] === 'ROF')[1]).toBe(String(Math.round(resolveStats(defaultProfile()).rof * 60)));
+    expect(rows.find((r) => r[0] === 'SPRD')[1]).toBe('4.00°');
     expect(rows.every((r) => r[2])).toBe(true);
     expect(rows.length).toBeGreaterThanOrEqual(8);
   });
@@ -1164,9 +1229,10 @@ describe('simulate loop', () => {
     simulate(run, dt, viewport, { ...idle, pointerX: 900, pointerY: 400, firing: true, pointerTap: true });
     expect(run.bullets.length).toBe(1);
     const ang = Math.atan2(run.bullets[0].vy, run.bullets[0].vx);
-    expect(ang).toBeGreaterThan(-0.55);
-    expect(ang).toBeLessThan(0.35);
-    expect(run.player.aimAngle).toBeCloseTo(ang, 1);
+    expect(run.player.aimAngle).toBeGreaterThan(-0.55);
+    expect(run.player.aimAngle).toBeLessThan(0.35);
+    const spread = (run.stats.baseSpread * Math.PI) / 180;
+    expect(Math.abs(run.player.aimAngle - ang)).toBeLessThanOrEqual(spread + 1e-6);
   });
 
   it('retreats the player and extracts campaign at TRACK_METERS', () => {

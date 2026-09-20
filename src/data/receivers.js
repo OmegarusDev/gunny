@@ -55,7 +55,8 @@ const SHODDY_BASE = {
   aimRate: 7.2,
   aimReach: AIM_REACH_BASE,
   shotRange: SHOT_REACH_BASE,
-  baseSpread: 3.2,
+  /** First-shot half-cone. Later ranks shave a little; 0° needs a finished Elite kit plus max Marksman. */
+  baseSpread: 4,
   heatBuild: 0.22,
   heatDump: 0.16,
   heatBloom: 4.5,
@@ -72,7 +73,7 @@ const RECEIVER_PER_RANK = {
   bloomRecover: 0.9,
   aimRate: 0.9,
   shotRange: 24,
-  baseSpread: -0.28,
+  baseSpread: -0.12,
   heatBuild: -0.04,
   heatDump: 0.06,
   heatBloom: -0.85,
