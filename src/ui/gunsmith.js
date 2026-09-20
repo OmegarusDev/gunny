@@ -2,7 +2,7 @@ import { RECEIVERS, SLOTS } from '../data/receivers.js';
 import { SLOT_MAX, SLOT_UPGRADES, upgradeCost } from '../data/upgrades.js';
 import { resolveStats, slotUnlockedFor, gunsmithStatRows } from '../entities/loadout.js';
 import { buyBlockedReason, buyPart, equipPart, owns, slotRank, upgradeSlot } from '../state/profile.js';
-import { fmtMoney, backButton, ledgerBlock, statsGrid } from './overlays.js';
+import { fmtMoney, pageHead, statsGrid } from './overlays.js';
 import { bindGameScroll } from './scroll.js';
 
 export function renderGunsmith(el, profile, handlers) {
@@ -24,16 +24,13 @@ export function renderGunsmith(el, profile, handlers) {
     return { slot, def: SLOT_UPGRADES[slot], rank, maxed, cost };
   });
 
+  const buyLabel =
+    !owned && gate && gate !== 'Owned' ? gate : !owned ? `Buy ${fmtMoney(rec.cost)}` : '';
+  const buyDisabled = !owned && ((gate && gate !== 'Owned') || profile.cash < rec.cost);
+
   el.innerHTML = `
     <div class="panel-stack gs-stack">
-      <div class="page-head">
-        ${backButton()}
-        ${ledgerBlock(profile)}
-      </div>
-      <header class="camp-brand workshop-brand">
-        <p class="kicker">Facility</p>
-        <h2>Gunsmith</h2>
-      </header>
+      ${pageHead(profile, 'Gunsmith')}
       ${statsGrid(gunsmithStatRows(loadoutStats), 'stats-wide')}
       <div class="gs-board">
         <div class="rec-tabs" role="tablist" aria-label="Receivers">
@@ -46,13 +43,22 @@ export function renderGunsmith(el, profile, handlers) {
             })
             .join('')}
         </div>
-        <div class="gs-scroll-wrap is-idle">
-          <div class="part-grid" style="--part-cols: 3">
-            ${parts.map((p) => partCard(p, owned, profile.cash)).join('')}
+        <div class="gs-pane ${owned ? '' : 'is-locked'}">
+          <div class="gs-scroll-wrap is-idle">
+            <div class="part-grid" style="--part-cols: 3">
+              ${parts.map((p) => partCard(p, owned, profile.cash)).join('')}
+            </div>
+            <div class="gs-scroll" role="scrollbar" aria-label="Gunsmith parts">
+              <div class="scroll-thumb"></div>
+            </div>
           </div>
-          <div class="gs-scroll" role="scrollbar" aria-label="Gunsmith parts">
-            <div class="scroll-thumb"></div>
-          </div>
+          ${
+            owned
+              ? ''
+              : `<div class="gs-buy-layer">
+                  <button class="primary" type="button" data-buy ${buyDisabled ? 'disabled' : ''}>${buyLabel}</button>
+                </div>`
+          }
         </div>
       </div>
       <div class="sheet-foot" id="gs-actions"></div>
@@ -77,24 +83,17 @@ export function renderGunsmith(el, profile, handlers) {
   setHint(owned ? rec.desc : `${rec.name} · ${rec.desc}`);
   actions.appendChild(hint);
 
-  if (!owned) {
-    const b = document.createElement('button');
-    b.className = 'primary';
-    if (gate && gate !== 'Owned') {
-      b.textContent = gate;
-      b.disabled = true;
-    } else {
-      b.textContent = `Buy ${fmtMoney(rec.cost)}`;
-      b.disabled = profile.cash < rec.cost;
-      b.onclick = () => {
-        if (buyPart(profile, rec.id, rec.cost)) {
-          el.dataset.rec = rec.id;
-          renderGunsmith(el, profile, handlers);
-        }
-      };
-    }
-    actions.appendChild(b);
-  } else if (!equipped) {
+  const buyBtn = el.querySelector('[data-buy]');
+  if (buyBtn && !buyBtn.disabled) {
+    buyBtn.onclick = () => {
+      if (buyPart(profile, rec.id, rec.cost)) {
+        el.dataset.rec = rec.id;
+        renderGunsmith(el, profile, handlers);
+      }
+    };
+  }
+
+  if (owned && !equipped) {
     const b = document.createElement('button');
     b.className = 'primary';
     b.textContent = 'Equip';
