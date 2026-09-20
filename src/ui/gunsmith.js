@@ -46,7 +46,7 @@ export function renderGunsmith(el, profile, handlers) {
             })
             .join('')}
         </div>
-        <div class="gs-scroll-wrap">
+        <div class="gs-scroll-wrap is-idle">
           <div class="part-grid" style="--part-cols: 3">
             ${parts.map((p) => partCard(p, owned, profile.cash)).join('')}
           </div>
@@ -63,6 +63,7 @@ export function renderGunsmith(el, profile, handlers) {
   el.querySelectorAll('[data-rec]').forEach((btn) => {
     btn.onclick = () => {
       el.dataset.rec = btn.dataset.rec;
+      el.dataset.gsScroll = '0';
       renderGunsmith(el, profile, handlers);
     };
   });
