@@ -160,12 +160,12 @@ export function mountOptions(root, handlers) {
       sheet.classList.add('opt-sheet-wide');
       sheet.innerHTML = `
         <p class="kicker">Install</p>
-        <h2 id="opt-title">Add Gunny to your home screen</h2>
+        <h2 id="opt-title">Install Gunny</h2>
         <p class="lede opt-copy">The app download is ${INSTALL_DOWNLOAD}. No extra packs after that.</p>
         <div class="opt-install">
-          <p><strong>Chrome on Android</strong> — open Gunny in Chrome, tap the three-dot menu, then <em>Install app</em> or <em>Add to Home screen</em>. Confirm. That installs the WebAPK so it opens fullscreen like a real app.</p>
-          <p><strong>Safari on iPhone / iPad</strong> — open Gunny in Safari, tap Share, then <em>Add to Home Screen</em>, then Add. iOS does not use a WebAPK; the home-screen icon is the install.</p>
-          <p><strong>Chrome on desktop</strong> — look for the install icon in the address bar, or the three-dot menu → <em>Install Gunny</em>.</p>
+          <p><strong>Chrome on Android</strong> — three-dot menu → <em>Install app</em> (sometimes <em>Install</em>). Confirm. That is the real install: fullscreen, no status bar. Do not use <em>Add to Home screen</em> — that is only a Chrome shortcut.</p>
+          <p><strong>Safari on iPhone / iPad</strong> — Share → <em>Add to Home Screen</em> → Add. On iOS that <em>is</em> the install.</p>
+          <p><strong>Chrome on desktop</strong> — install icon in the address bar, or three-dot menu → <em>Install Gunny</em>. Not a bookmark.</p>
         </div>
         <button class="ghost opt-done" type="button">Done</button>
       `;
