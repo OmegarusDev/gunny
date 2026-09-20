@@ -48,6 +48,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     seed: seeded.seed,
     rng: seeded.rng,
     biome,
+    receiver: profile.loadout?.receiver || 't1_stock',
     terrain,
     weather,
     stats,
@@ -204,7 +205,7 @@ function tryFire(run, firing, viewport, tap) {
     p.max = 0.16;
   }
   run.particles.push(...sparks);
-  playMuzzle(stats);
+  playMuzzle(stats, { receiver: run.receiver, biome: run.biome?.id });
   return true;
 }
 

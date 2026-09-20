@@ -2,6 +2,7 @@ import { hudScale, hudTypeScale, TRACK_METERS } from '../config.js';
 import { fillRoundRect, strokeRoundRect } from '../util/color.js';
 import { perfectBand, reloadGaugeBounds, reloadNorm } from '../view/reload.js';
 import { magRof } from '../entities/loadout.js';
+import { runMeters } from '../world/metrics.js';
 
 const BONE = '#f3e6d0';
 const GOLD = '#e0a33a';

@@ -3,7 +3,7 @@ import { createCanvas } from './engine/canvas.js';
 import { createInput } from './engine/input.js';
 import { enterImmersive } from './engine/immersive.js';
 import { createLoop } from './engine/loop.js';
-import { resumeAudio } from './audio/synth.js';
+import { resumeAudio, setSoundscape } from './audio/synth.js';
 import { drawBackdrop, drawWorld } from './render/draw.js';
 import { drawHud } from './render/hud.js';
 import { addRewards, loadProfile, resetProfile, saveProfile, unlockLevel } from './state/profile.js';
@@ -83,6 +83,7 @@ function startRun(type, levelIndex, seed) {
   lastType = type;
   lastLevel = levelIndex;
   run = createRun({ profile, viewport, type, levelIndex, seed });
+  setSoundscape(run.biome.id);
   lastSeed = run.seed;
   mode = 'run';
   overlays.hideAll();
@@ -103,6 +104,7 @@ function leaveRun() {
 function showHub() {
   mode = 'hub';
   run = null;
+  setSoundscape('forest');
   overlays.show('hub');
   renderHub(overlays.hub, profile, { ...handlers, endlessBiome });
   leaveRun();

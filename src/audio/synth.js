@@ -1,234 +1,271 @@
-import { clamp01 } from '../util/math.js';
+import {
+  applyMixer as applyEngineMixer,
+  audioContext,
+  bank,
+  currentSoundscape,
+  ensureBanks,
+  ensureFx,
+  ensureGraph,
+  hit,
+  irSpec,
+  noiseBurst,
+  panDest,
+  pickBlast,
+  playBuffer,
+  resumeEngine,
+  saturator,
+  setPortraitMute,
+  setSoundscape as setEngineSoundscape,
+  sink,
+  sweep,
+} from './engine.js';
 
-let ctx = null;
-let buses = null;
-let mixer = { muted: false, gunshot: 0.8, footsteps: 0.8, ambient: 0.55 };
-let ambNodes = null;
-let portraitMute = false;
+export { setPortraitMute };
 
-function ac() {
-  const Ctor = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
-  if (!Ctor) return null;
-  if (!ctx) ctx = new Ctor();
-  if (ctx.state === 'suspended') ctx.resume();
-  return ctx;
+let scene = currentSoundscape();
+
+export function applyMixer(settings) {
+  applyEngineMixer(settings);
 }
 
-function ambientGain() {
-  return portraitMute ? 0 : mixer.ambient;
+export function setSoundscape(id) {
+  scene = setEngineSoundscape(id);
+  if (ambNodes?.context) startAmbient(ambNodes.context);
+  return scene;
 }
-
-function syncBuses() {
-  if (!buses) return;
-  buses.master.gain.value = mixer.muted ? 0 : 1;
-  buses.gun.gain.value = mixer.gunshot;
-  buses.foot.gain.value = mixer.footsteps;
-  buses.amb.gain.value = ambientGain();
-}
-
-function ensureGraph(audio) {
-  if (buses && buses.master.context === audio) return buses;
-  const master = audio.createGain();
-  const gun = audio.createGain();
-  const foot = audio.createGain();
-  const amb = audio.createGain();
-  gun.connect(master);
-  foot.connect(master);
-  amb.connect(master);
-  master.connect(audio.destination);
-  buses = { master, gun, foot, amb };
-  syncBuses();
-  return buses;
-}
-
-function sink(audio, bus = 'gun') {
-  const g = ensureGraph(audio);
-  return g[bus] || g.gun;
-}
-
-export function applyMixer(settings = {}) {
-  mixer = {
-    muted: !!settings.muted,
-    gunshot: clamp01(settings.gunshot, mixer.gunshot),
-    footsteps: clamp01(settings.footsteps, mixer.footsteps),
-    ambient: clamp01(settings.ambient, mixer.ambient),
-  };
-  syncBuses();
-}
-
-export function setPortraitMute(on) {
-  portraitMute = !!on;
-  syncBuses();
-}
-
-function watchPortrait() {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-  const mq = window.matchMedia('(orientation: portrait)');
-  const sync = () => setPortraitMute(!!mq.matches);
-  sync();
-  if (mq.addEventListener) mq.addEventListener('change', sync);
-  else mq.addListener(sync);
-  window.addEventListener('orientationchange', sync);
-}
-
-watchPortrait();
 
 export function resumeAudio() {
-  const audio = ac();
+  const audio = resumeEngine();
   if (!audio) return;
-  if (!bangBuf || bangBuf.sampleRate !== audio.sampleRate) bangBuf = bakeBang(audio);
   startAmbient(audio);
-  syncBuses();
 }
 
-const noiseCache = new Map();
-let satCurve = null;
-let bangBuf = null;
+export const RECEIVER_TONES = {
+  t1_stock: {
+    crackF: 1880,
+    crackQ: 1.55,
+    bodyFrom: 1320,
+    bodyTo: 340,
+    bodyDecay: 0.09,
+    subF: 56,
+    click: 0.62,
+    wet: 0.34,
+    drive: 1,
+    tail: 0.38,
+    mechDelay: 0.02,
+    mechF: 1680,
+    mech: 0.11,
+  },
+  t2_tactical: {
+    crackF: 2280,
+    crackQ: 1.9,
+    bodyFrom: 1540,
+    bodyTo: 410,
+    bodyDecay: 0.078,
+    subF: 62,
+    click: 0.7,
+    wet: 0.3,
+    drive: 0.92,
+    tail: 0.32,
+    mechDelay: 0.016,
+    mechF: 1980,
+    mech: 0.1,
+  },
+  t3_ordnance: {
+    crackF: 2620,
+    crackQ: 2.25,
+    bodyFrom: 1760,
+    bodyTo: 470,
+    bodyDecay: 0.068,
+    subF: 68,
+    click: 0.78,
+    wet: 0.27,
+    drive: 0.84,
+    tail: 0.28,
+    mechDelay: 0.013,
+    mechF: 2280,
+    mech: 0.09,
+  },
+  t4_duty: {
+    crackF: 2960,
+    crackQ: 2.6,
+    bodyFrom: 1980,
+    bodyTo: 530,
+    bodyDecay: 0.058,
+    subF: 74,
+    click: 0.84,
+    wet: 0.24,
+    drive: 0.76,
+    tail: 0.25,
+    mechDelay: 0.011,
+    mechF: 2520,
+    mech: 0.085,
+  },
+  t5_advanced: {
+    crackF: 3340,
+    crackQ: 3.05,
+    bodyFrom: 2180,
+    bodyTo: 590,
+    bodyDecay: 0.05,
+    subF: 80,
+    click: 0.9,
+    wet: 0.21,
+    drive: 0.68,
+    tail: 0.22,
+    mechDelay: 0.009,
+    mechF: 2760,
+    mech: 0.08,
+  },
+};
 
-const BANG_REVERB_S = 1.32;
-const BANG_RATES = [8.4, 9.2, 10.1];
-
-function noiseBuffer(audio, duration) {
-  const n = Math.floor(audio.sampleRate * duration);
-  const key = `${audio.sampleRate}:${n}`;
-  let buf = noiseCache.get(key);
-  if (!buf) {
-    buf = audio.createBuffer(1, n, audio.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
-    noiseCache.set(key, buf);
-  }
-  return buf;
+function jitter(n, amt = 0.05) {
+  return n * (1 + (Math.random() * 2 - 1) * amt);
 }
 
-function saturator(audio) {
-  const sh = audio.createWaveShaper();
-  if (!satCurve) {
-    const n = 256;
-    satCurve = new Float32Array(n);
-    for (let i = 0; i < n; i++) {
-      const x = (i / (n - 1)) * 2 - 1;
-      satCurve[i] = Math.tanh(x * 4.2);
-    }
-  }
-  sh.curve = satCurve;
-  sh.oversample = '2x';
-  return sh;
+function toneFor(receiver, stats) {
+  const base = RECEIVER_TONES[receiver] || RECEIVER_TONES.t1_stock;
+  const speed = Math.max(280, Number(stats?.bulletSpeed) || 1600);
+  const heavy = Math.min(1, (speed - 280) / 1400);
+  const punch = Math.min(1, Math.max(0, ((Number(stats?.damage) || 15) - 12) / 40));
+  return {
+    ...base,
+    crackF: base.crackF * (0.94 + heavy * 0.12),
+    subF: base.subF + punch * 10,
+    wet: base.wet * (1.05 - heavy * 0.08),
+    click: base.click * (0.92 + heavy * 0.1),
+  };
 }
 
-function dryTak(sr) {
-  const n = Math.floor(sr * 0.012);
-  const tak = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    tak[i] = (Math.random() * 2 - 1) * Math.exp(-(i / sr) * 420);
-  }
-  return tak;
-}
-
-function reverbIR(sr) {
-  const n = Math.floor(sr * BANG_REVERB_S);
-  const ir = new Float32Array(n);
-  const taps = [0.013, 0.021, 0.029, 0.044, 0.061, 0.083, 0.112, 0.148, 0.19, 0.24];
-  for (let i = 0; i < n; i++) {
-    const t = i / sr;
-    const early = t < 0.12 ? Math.exp(-t * 11) * 0.7 : 0;
-    const late = Math.exp(-t * 1.65) * 0.85;
-    ir[i] = (Math.random() * 2 - 1) * (early + late);
-  }
-  for (const tap of taps) {
-    const k = Math.floor(tap * sr);
-    if (k < n) ir[k] += (Math.random() * 2 - 1) * 0.62 * Math.exp(-tap * 6);
-  }
-  return ir;
-}
-
-function convolve(tak, ir) {
-  const out = new Float32Array(tak.length + ir.length - 1);
-  for (let i = 0; i < tak.length; i += 2) {
-    const a = tak[i];
-    const last = Math.min(ir.length, out.length - i);
-    for (let j = 0; j < last; j++) out[i + j] += a * ir[j];
-  }
-  return out;
-}
-
-function saturateSamples(samples, drive) {
-  let peak = 1e-6;
-  for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i]));
-  const k = drive / peak;
-  for (let i = 0; i < samples.length; i++) samples[i] = Math.tanh(samples[i] * k);
-  return samples;
-}
-
-/** Dry tak → hard sat → thick reverb (original pitch) → sat again. Speed/pitch-up only on playback. */
-function bakeBang(audio) {
-  const sr = audio.sampleRate;
-  const tak = saturateSamples(dryTak(sr), 8.6);
-  const wet = saturateSamples(convolve(tak, reverbIR(sr)), 5.2);
-  const buf = audio.createBuffer(1, wet.length, sr);
-  buf.getChannelData(0).set(wet);
-  return buf;
-}
-
-function playBangLayer(audio, dest, t, { rate, delay, gain }) {
-  const src = audio.createBufferSource();
-  src.buffer = bangBuf;
-  src.playbackRate.value = rate;
+function sineHit(audio, dest, t, freq, peak, decay) {
+  const osc = audio.createOscillator();
   const g = audio.createGain();
-  g.gain.value = gain;
-  src.connect(g);
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(Math.max(20, freq), t);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq * 0.62), t + decay);
+  hit(g.gain, t, peak, decay, 0.0003);
+  osc.connect(g);
   g.connect(dest);
-  src.start(t + delay);
-  src.stop(t + delay + bangBuf.duration / rate + 0.02);
+  osc.start(t);
+  osc.stop(t + decay + 0.02);
 }
 
-export function playMuzzle(stats = {}) {
-  const audio = ac();
+export function playMuzzle(stats = {}, place = {}) {
+  const audio = audioContext();
   if (!audio) return;
+  ensureGraph(audio);
+  ensureBanks(audio);
+  if (place.biome) setSoundscape(place.biome);
+  const fx = ensureFx(audio);
   const t = audio.currentTime;
   const out = sink(audio);
-  const speed = Math.max(280, Number(stats.bulletSpeed) || 1600);
-  const heavy = Math.min(1, (speed - 280) / 760);
-  const punch = Math.min(1, Math.max(0, ((Number(stats.damage) || 13) - 8) / 22));
+  const p = toneFor(place.receiver, stats);
+  const j = jitter(1, 0.045);
+  const room = irSpec();
 
-  if (!bangBuf || bangBuf.sampleRate !== audio.sampleRate) bangBuf = bakeBang(audio);
-
-  const crack = audio.createGain();
-  crack.gain.value = 0.78 + heavy * 0.08;
+  const dry = audio.createGain();
+  const drive = audio.createGain();
   const grit = saturator(audio);
-  crack.connect(grit);
+  drive.gain.value = 0.72 + p.drive * 0.38;
+  dry.connect(drive);
+  drive.connect(grit);
   grit.connect(out);
 
-  playBangLayer(audio, crack, t, { rate: BANG_RATES[0], delay: 0, gain: 0.74 });
-  playBangLayer(audio, crack, t, { rate: BANG_RATES[1], delay: 0.005, gain: 0.5 });
-  playBangLayer(audio, crack, t, { rate: BANG_RATES[2], delay: 0.011, gain: 0.32 });
+  const wet = audio.createGain();
+  wet.gain.value = p.wet * room.wetMul * j;
+  wet.connect(fx.wet);
 
-  const thud = audio.createOscillator();
-  const thudG = audio.createGain();
-  thud.type = 'sine';
-  thud.frequency.setValueAtTime(68 + heavy * 14 + punch * 8, t);
-  thud.frequency.exponentialRampToValueAtTime(28, t + 0.12);
-  thudG.gain.setValueAtTime(0.36 + punch * 0.06, t);
-  thudG.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
-  thud.connect(thudG);
-  thudG.connect(out);
-  thud.start(t);
-  thud.stop(t + 0.14);
+  const blastLp = audio.createBiquadFilter();
+  blastLp.type = 'lowpass';
+  blastLp.frequency.value = 640 + p.bodyFrom * 0.18;
+  blastLp.Q.value = 0.8;
+  playBuffer(audio, pickBlast(), t, {
+    dest: dry,
+    peak: 0.42 * p.drive,
+    decay: 0.0075,
+    rate: jitter(1, 0.05),
+    filters: [blastLp],
+    attack: 0.0002,
+  });
 
-  const chest = audio.createBufferSource();
-  chest.buffer = noiseBuffer(audio, 0.1);
+  const hp = audio.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 2700 * j;
+  hp.Q.value = 0.7;
+  noiseBurst(audio, 'white', t, {
+    dur: 0.014,
+    peak: 0.48 * p.click,
+    decay: 0.009,
+    dest: dry,
+    filters: [hp],
+    attack: 0.0003,
+  });
+
+  sineHit(audio, dry, t, p.crackF * 1.42 * j, 0.2 * p.click, 0.0042);
+
+  const bp = audio.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = p.crackF * j;
+  bp.Q.value = p.crackQ * jitter(1, 0.06);
+  const air = audio.createBiquadFilter();
+  air.type = 'peaking';
+  air.frequency.value = p.crackF * 2.45;
+  air.gain.value = 6.2;
+  air.Q.value = 0.75;
+  noiseBurst(audio, 'white', t, {
+    dur: 0.05,
+    peak: 0.72 * p.drive,
+    decay: 0.03,
+    dest: dry,
+    filters: [bp, air],
+    attack: 0.0005,
+  });
+
+  const bodyLp = audio.createBiquadFilter();
+  bodyLp.type = 'lowpass';
+  bodyLp.Q.value = 1.7;
+  sweep(bodyLp.frequency, t, p.bodyFrom * j, p.bodyTo, p.bodyDecay);
+  noiseBurst(audio, 'pink', t, {
+    dur: p.bodyDecay + 0.04,
+    peak: 0.55 * p.drive,
+    decay: p.bodyDecay,
+    dest: [dry, wet],
+    filters: [bodyLp],
+    attack: 0.0012,
+  });
+
+  sineHit(audio, dry, t, p.subF * j, 0.28 + (p.subF - 56) * 0.002, 0.11);
   const chestLp = audio.createBiquadFilter();
   chestLp.type = 'lowpass';
-  chestLp.frequency.setValueAtTime(220 + heavy * 40, t);
-  chestLp.frequency.exponentialRampToValueAtTime(70, t + 0.08);
-  const chestG = audio.createGain();
-  chestG.gain.setValueAtTime(0.12, t);
-  chestG.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
-  chest.connect(chestLp);
-  chestLp.connect(chestG);
-  chestG.connect(out);
-  chest.start(t);
-  chest.stop(t + 0.1);
+  chestLp.frequency.value = 140;
+  chestLp.Q.value = 0.9;
+  noiseBurst(audio, 'brown', t, {
+    dur: 0.12,
+    peak: 0.16,
+    decay: 0.1,
+    dest: dry,
+    filters: [chestLp],
+    attack: 0.002,
+  });
+
+  const tailLp = audio.createBiquadFilter();
+  tailLp.type = 'lowpass';
+  tailLp.Q.value = 0.85;
+  sweep(tailLp.frequency, t, 1600, 380, p.tail);
+  noiseBurst(audio, 'pink', t, {
+    dur: p.tail + 0.08,
+    peak: 0.22,
+    decay: p.tail,
+    dest: wet,
+    filters: [tailLp],
+    attack: 0.004,
+  });
+
+  playMech(audio, t + p.mechDelay, {
+    spikes: 2,
+    span: 0.011,
+    gain: p.mech,
+    freq: p.mechF,
+  });
 }
 
 function metalClick(audio, dest, t, freq, gain, dur) {
@@ -243,6 +280,21 @@ function metalClick(audio, dest, t, freq, gain, dur) {
   g.connect(dest);
   osc.start(t);
   osc.stop(t + dur + 0.008);
+}
+
+function magBody(audio, dest, t, peak) {
+  const lp = audio.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 320;
+  lp.Q.value = 0.7;
+  noiseBurst(audio, 'brown', t, {
+    dur: 0.09,
+    peak,
+    decay: 0.075,
+    dest,
+    filters: [lp],
+    attack: 0.002,
+  });
 }
 
 function playMech(audio, t0, { spikes = 4, span = 0.07, gain = 0.16, freq = 1900 } = {}) {
@@ -266,35 +318,52 @@ function playMech(audio, t0, { spikes = 4, span = 0.07, gain = 0.16, freq = 1900
 }
 
 export function playDry() {
-  const audio = ac();
+  const audio = audioContext();
   if (!audio) return;
+  ensureBanks(audio);
   const t = audio.currentTime;
+  const dest = sink(audio);
   playMech(audio, t, { spikes: 3, span: 0.014, gain: 0.14, freq: 2400 });
-  metalClick(audio, sink(audio), t, 2600, 0.08, 0.012);
+  metalClick(audio, dest, t, 2600, 0.08, 0.012);
+  const hp = audio.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 3200;
+  noiseBurst(audio, 'white', t, {
+    dur: 0.02,
+    peak: 0.12,
+    decay: 0.012,
+    dest,
+    filters: [hp],
+    attack: 0.0003,
+  });
 }
 
 export function playMagOut() {
-  const audio = ac();
+  const audio = audioContext();
   if (!audio) return;
+  ensureBanks(audio);
   const t = audio.currentTime + 0.18;
   const dest = sink(audio);
+  magBody(audio, dest, t, 0.14);
   playMech(audio, t, { spikes: 5, span: 0.05, gain: 0.15, freq: 2100 });
   metalClick(audio, dest, t + 0.012, 1650, 0.1, 0.014);
   playMech(audio, t + 0.04, { spikes: 3, span: 0.02, gain: 0.12, freq: 1400 });
 }
 
 export function playMagIn() {
-  const audio = ac();
+  const audio = audioContext();
   if (!audio) return;
+  ensureBanks(audio);
   const t = audio.currentTime;
   const dest = sink(audio);
+  magBody(audio, dest, t, 0.16);
   playMech(audio, t, { spikes: 6, span: 0.04, gain: 0.16, freq: 2300 });
   metalClick(audio, dest, t + 0.018, 1900, 0.11, 0.012);
   playMech(audio, t + 0.03, { spikes: 3, span: 0.016, gain: 0.13, freq: 1600 });
 }
 
 export function playCock(tight = false) {
-  const audio = ac();
+  const audio = audioContext();
   if (!audio) return;
   const t = audio.currentTime;
   const dest = sink(audio);
@@ -310,56 +379,43 @@ export function playPerfect() {
 }
 
 export function playFlesh(headshot) {
-  const audio = ac();
+  const audio = audioContext();
   if (!audio) return;
+  ensureBanks(audio);
   const t = audio.currentTime;
   const out = sink(audio);
 
-  const slap = audio.createBufferSource();
-  slap.buffer = noiseBuffer(audio, 0.12);
   const lp = audio.createBiquadFilter();
   lp.type = 'lowpass';
-  lp.frequency.value = headshot ? 1100 : 420;
-  const g = audio.createGain();
-  g.gain.setValueAtTime(headshot ? 0.26 : 0.2, t);
-  g.gain.exponentialRampToValueAtTime(0.01, t + (headshot ? 0.1 : 0.14));
-  slap.connect(lp);
-  lp.connect(g);
-  g.connect(out);
-  slap.start(t);
-  slap.stop(t + 0.14);
+  lp.frequency.value = headshot ? 1100 : 380;
+  noiseBurst(audio, headshot ? 'pink' : 'brown', t, {
+    dur: 0.14,
+    peak: headshot ? 0.24 : 0.2,
+    decay: headshot ? 0.09 : 0.13,
+    dest: out,
+    filters: [lp],
+    attack: 0.001,
+  });
 
-  const thud = audio.createOscillator();
-  const tg = audio.createGain();
-  thud.type = 'sine';
-  thud.frequency.setValueAtTime(headshot ? 110 : 68, t);
-  thud.frequency.exponentialRampToValueAtTime(32, t + 0.12);
-  tg.gain.setValueAtTime(headshot ? 0.14 : 0.18, t);
-  tg.gain.exponentialRampToValueAtTime(0.01, t + 0.13);
-  thud.connect(tg);
-  tg.connect(out);
-  thud.start(t);
-  thud.stop(t + 0.14);
+  sineHit(audio, out, t, headshot ? 108 : 64, headshot ? 0.13 : 0.17, 0.12);
 
   if (headshot) {
-    const crack = audio.createBufferSource();
-    crack.buffer = noiseBuffer(audio, 0.06);
     const hp = audio.createBiquadFilter();
     hp.type = 'highpass';
     hp.frequency.value = 2400;
-    const cg = audio.createGain();
-    cg.gain.setValueAtTime(0.22, t);
-    cg.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
-    crack.connect(hp);
-    hp.connect(cg);
-    cg.connect(out);
-    crack.start(t);
-    crack.stop(t + 0.05);
+    noiseBurst(audio, 'white', t, {
+      dur: 0.05,
+      peak: 0.2,
+      decay: 0.035,
+      dest: out,
+      filters: [hp],
+      attack: 0.0003,
+    });
   }
 }
 
 export function playJam() {
-  const audio = ac();
+  const audio = audioContext();
   if (!audio) return;
   const t = audio.currentTime;
   playMech(audio, t, { spikes: 7, span: 0.08, gain: 0.14, freq: 1500 });
@@ -367,79 +423,95 @@ export function playJam() {
 }
 
 let footBusy = 0;
-let brownBuf = null;
 
 export function beginFootFrame() {
   footBusy = 0;
 }
 
-function panDest(audio, dest, pan) {
-  if (typeof audio.createStereoPanner !== 'function') return dest;
-  const node = audio.createStereoPanner();
-  node.pan.value = Math.max(-0.85, Math.min(0.85, pan));
-  node.connect(dest);
-  return node;
+export function playFoot({ voice = 'boot', crawl = false, dist = 0, pan = 0 } = {}) {
+  const audio = audioContext();
+  if (!audio) return false;
+  ensureBanks(audio);
+  const zombie = voice !== 'boot';
+  if (zombie) {
+    if (dist > 820) return false;
+    if (footBusy >= 4) return false;
+    footBusy += 1;
+  }
+  const t = audio.currentTime;
+  const dest = panDest(audio, sink(audio, 'foot'), zombie ? pan : -0.22);
+  const near = zombie ? Math.max(0.08, 1 / (1 + dist / 240)) : 1;
+  const dur = crawl || voice === 'drag' ? 0.07 : 0.045;
+  const src = audio.createBufferSource();
+  src.buffer = bank('brown');
+  src.playbackRate.value = (crawl || voice === 'drag' ? 0.72 : zombie ? 0.88 : 1) * (0.94 + Math.random() * 0.12);
+  const g = audio.createGain();
+  const peak = (crawl || voice === 'drag' ? 0.1 : zombie ? 0.16 : 0.2) * near;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(g);
+  g.connect(dest);
+  const off = Math.random() * Math.max(0, src.buffer.duration - dur - 0.02);
+  src.start(t, off, dur + 0.01);
+  src.stop(t + dur + 0.01);
+  if (!zombie) {
+    const tick = audio.createBiquadFilter();
+    tick.type = 'highpass';
+    tick.frequency.value = 1800;
+    noiseBurst(audio, 'white', t, {
+      dur: 0.018,
+      peak: 0.045,
+      decay: 0.012,
+      dest,
+      filters: [tick],
+      attack: 0.0004,
+    });
+  }
+  return true;
 }
 
-function brownBuffer(audio) {
-  if (brownBuf && brownBuf.sampleRate === audio.sampleRate) return brownBuf;
-  const n = Math.floor(audio.sampleRate * 0.08);
-  brownBuf = audio.createBuffer(1, n, audio.sampleRate);
-  const data = brownBuf.getChannelData(0);
-  let last = 0;
-  let peak = 1e-6;
-  for (let i = 0; i < n; i++) {
-    last += (Math.random() * 2 - 1) * 0.09;
-    last *= 0.97;
-    data[i] = last;
-    peak = Math.max(peak, Math.abs(last));
-  }
-  const k = 0.9 / peak;
-  for (let i = 0; i < n; i++) data[i] *= k;
-  return brownBuf;
-}
+const AMBIENT = {
+  forest: { freq: 780, gain: 0.048, lfo: 420 },
+  fen: { freq: 430, gain: 0.055, lfo: 260 },
+  transylvania: { freq: 240, gain: 0.042, lfo: 140 },
+  desert: { freq: 1180, gain: 0.034, lfo: 380 },
+  quarry: { freq: 640, gain: 0.05, lfo: 220 },
+};
 
-function bakeGreen(audio) {
-  const n = Math.floor(audio.sampleRate * 6);
-  const buf = audio.createBuffer(1, n, audio.sampleRate);
-  const data = buf.getChannelData(0);
-  let lp = 0;
-  let hp = 0;
-  for (let i = 0; i < n; i++) {
-    const w = Math.random() * 2 - 1;
-    lp += 0.09 * (w - lp);
-    hp = w - lp;
-    data[i] = lp * 0.82 + hp * 0.18;
-  }
-  const fade = Math.floor(audio.sampleRate * 0.08);
-  for (let i = 0; i < fade; i++) {
-    const e = i / fade;
-    data[i] *= e;
-    data[n - 1 - i] *= e;
-  }
-  return buf;
-}
+let ambNodes = null;
 
 function startAmbient(audio) {
-  if (ambNodes && ambNodes.context === audio) return;
   const graph = ensureGraph(audio);
+  const place = AMBIENT[scene] || AMBIENT.forest;
+  if (ambNodes && ambNodes.context === audio) {
+    ambNodes.bp.frequency.value = place.freq;
+    ambNodes.g.gain.value = place.gain;
+    ambNodes.lfoG.gain.value = place.lfo;
+    return;
+  }
+  ensureBanks(audio);
   const src = audio.createBufferSource();
-  src.buffer = bakeGreen(audio);
+  src.buffer = bank('pink');
   src.loop = true;
   const bp = audio.createBiquadFilter();
   bp.type = 'bandpass';
   bp.Q.value = 0.65;
-  bp.frequency.value = 780;
+  bp.frequency.value = place.freq;
   const g = audio.createGain();
-  g.gain.value = 0.048;
-  src.connect(bp);
+  g.gain.value = place.gain;
+  const hp = audio.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 70;
+  src.connect(hp);
+  hp.connect(bp);
   bp.connect(g);
   g.connect(graph.amb);
   const lfo = audio.createOscillator();
   lfo.type = 'sine';
   lfo.frequency.value = 0.08;
   const lfoG = audio.createGain();
-  lfoG.gain.value = 420;
+  lfoG.gain.value = place.lfo;
   lfo.connect(lfoG);
   lfoG.connect(bp.frequency);
   const trem = audio.createOscillator();
@@ -452,33 +524,5 @@ function startAmbient(audio) {
   src.start();
   lfo.start();
   trem.start();
-  ambNodes = { context: audio, src };
-}
-
-export function playFoot({ voice = 'boot', crawl = false, dist = 0, pan = 0 } = {}) {
-  const audio = ac();
-  if (!audio) return false;
-  const zombie = voice !== 'boot';
-  if (zombie) {
-    if (dist > 820) return false;
-    if (footBusy >= 4) return false;
-    footBusy += 1;
-  }
-  const t = audio.currentTime;
-  const dest = panDest(audio, sink(audio, 'foot'), zombie ? pan : -0.22);
-  const near = zombie ? Math.max(0.08, 1 / (1 + dist / 240)) : 1;
-  const dur = crawl || voice === 'drag' ? 0.07 : 0.045;
-  const src = audio.createBufferSource();
-  src.buffer = brownBuffer(audio);
-  src.playbackRate.value = (crawl || voice === 'drag' ? 0.72 : zombie ? 0.88 : 1) * (0.94 + Math.random() * 0.12);
-  const g = audio.createGain();
-  const peak = (crawl || voice === 'drag' ? 0.1 : zombie ? 0.16 : 0.2) * near;
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(peak, t + 0.004);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  src.connect(g);
-  g.connect(dest);
-  src.start(t);
-  src.stop(t + dur + 0.01);
-  return true;
+  ambNodes = { context: audio, src, bp, g, lfoG };
 }
