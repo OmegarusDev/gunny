@@ -89,7 +89,6 @@ export function drawHeatHaze(ctx, viewport, biome, t) {
 }
 
 export function drawKeyLight(ctx, viewport, biome) {
-  if (!sceneFx(viewport)) return;
   ctx.save();
   ctx.globalCompositeOperation = 'soft-light';
   const g = ctx.createLinearGradient(0, 0, viewport.w, 0);

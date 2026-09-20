@@ -31,15 +31,19 @@ export function createQuality() {
     smoothing: 'medium',
     _slow: 0,
     _hold: 0,
+    _trips: 0,
     noteFrame(frameDt) {
-      if (frameDt > 0.024) {
+      if (frameDt > 0.028) {
         q._slow = Math.min(30, q._slow + 2);
-        q._hold = 45;
-      } else {
+        q._hold = 180;
+      } else if (frameDt < 0.018) {
         q._slow = Math.max(0, q._slow - 1);
         if (q._hold > 0) q._hold -= 1;
       }
-      applyFx(q, q._slow > 10 || q._hold > 0);
+      let nextCheap = preferCheap() || q._slow > 10 || q._hold > 0;
+      if (!q.cheap && nextCheap) q._trips += 1;
+      if (q._trips >= 2) nextCheap = true;
+      applyFx(q, nextCheap);
     },
   };
   applyFx(q, preferCheap());

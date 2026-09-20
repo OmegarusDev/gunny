@@ -1400,10 +1400,21 @@ describe('render budget', () => {
     const hill = q.hillStep;
     for (let i = 0; i < 12; i++) q.noteFrame(0.04);
     expect(q.cheap).toBe(true);
-    for (let i = 0; i < 100; i++) q.noteFrame(0.016);
+    for (let i = 0; i < 200; i++) q.noteFrame(0.016);
     expect(q.cheap).toBe(false);
     expect(q.fx).toBe(true);
     expect(q.hillStep).toBe(hill);
+  });
+
+  it('stops restoring FX after it hitch-loops twice', () => {
+    const q = createQuality();
+    for (let i = 0; i < 12; i++) q.noteFrame(0.04);
+    for (let i = 0; i < 200; i++) q.noteFrame(0.016);
+    expect(q.fx).toBe(true);
+    for (let i = 0; i < 12; i++) q.noteFrame(0.04);
+    for (let i = 0; i < 250; i++) q.noteFrame(0.016);
+    expect(q.cheap).toBe(true);
+    expect(q.fx).toBe(false);
   });
 
   it('sizes canvas HUD in screen pixels so short phones stay readable', () => {
