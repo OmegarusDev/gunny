@@ -130,17 +130,23 @@ export const THREAT = {
   packGrow: 0.05,
   restChance: 0.2,
   followChance: 0.12,
-  clusterGapMin: 36,
-  clusterGapMax: 78,
+  /** Packs stay off at the open so the first wave is not a stacked pair. */
+  packStart: 0.12,
+  clusterGapMin: 64,
+  clusterGapMax: 110,
 };
 
 export const LOCATIONAL = {
   head: 2.0,
   upper: 1.0,
-  lower: 0.9,
-  lLeg: 0.5,
-  rLeg: 0.5,
+  lower: 1.0,
+  lLeg: 1.0,
+  rLeg: 1.0,
 };
+
+/** Starter grunt body HP. Legs are a crawl pool at 80% of this, not a second life bar. */
+export const GRUNT_HP = 50;
+export const LEG_HP_FRAC = 0.8;
 
 export const BASE_CRIT_CHANCE = 0.05;
 export const BASE_CRIT_MULT = 1.1;
@@ -259,7 +265,10 @@ export function threatForDistance(meters, levelIndex, endless) {
     }
   }
 
-  const packChance = Math.max(0, Math.min(THREAT.packCap, THREAT.chill.packChance + (dens - 1) * THREAT.packGrow));
+  const packRaw = THREAT.chill.packChance + (dens - 1) * THREAT.packGrow;
+  const packWarm = Math.max(0, Math.min(0.95, THREAT.packStart));
+  const packT = packWarm >= 1 ? 0 : Math.max(0, Math.min(1, (trackT - packWarm) / (1 - packWarm)));
+  const packChance = Math.max(0, Math.min(THREAT.packCap, packRaw * packT));
   return {
     spawnInterval: spawn,
     maxAlive,
@@ -271,10 +280,9 @@ export function threatForDistance(meters, levelIndex, endless) {
 
 export function enemyHp(hpMul) {
   const m = Math.max(0.2, hpMul);
+  const body = Math.max(1, GRUNT_HP * m);
   return {
-    head: Math.max(1, 36 * m),
-    torso: Math.max(1, 50 * m),
-    lLeg: Math.max(1, 20 * m),
-    rLeg: Math.max(1, 20 * m),
+    body,
+    legs: Math.max(1, body * LEG_HP_FRAC),
   };
 }

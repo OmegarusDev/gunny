@@ -45,8 +45,7 @@ export function formatReload(sec) {
 export function formatMetres(m) {
   const n = Number(m);
   if (!Number.isFinite(n)) return '0m';
-  const rounded = Math.round(n * 10) / 10;
-  return Number.isInteger(rounded) ? `${rounded}m` : `${rounded.toFixed(1)}m`;
+  return `${Math.max(0, Math.floor(n))}m`;
 }
 
 export function ledgerBlock(profile) {

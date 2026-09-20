@@ -26,7 +26,7 @@ Mouse and pen get a software cursor in camp. Touch hides it. Combat uses the on-
 
 `Camp → Start Run → shoot over your shoulder → extract or die → Gunsmith / Training`
 
-You start with a **Shoddy** receiver, **$0**, and Road 1 (**Forest Road**). Clear **250m** (about two minutes at 2 m/s) to unlock the next road and take the extract payday. Contact with a living enemy’s **head or torso** ends the run — legs do not. A crawler with no legs can still kill if the body touches you. Extracting on the line still counts even if someone is touching.
+You start with a **Shoddy** receiver, **$0**, and Road 1 (**Forest Road**). Clear **250m** (about two minutes at 2 m/s) to unlock the next road and take the extract payday. Contact with a living enemy’s **head or torso** ends the run — legs do not. A crawler whose legs have given out can still kill if the body touches you. Extracting on the line still counts even if someone is touching.
 
 Death flavour is an escape (`You barely escape alive...`). Extract is `You made it`. Retry from death is the same road; Return goes to camp.
 
@@ -69,7 +69,7 @@ Tap a stat chip or a part card for a footer hint. Gunsmith’s part grid is the 
 
 ## Training
 
-XP buys skills (max 20 each). First rank is the listed cost, then **+20 XP** per rank. Gunner level is 1 + total XP earned (spent + banked) / 100.
+XP buys skills (max 20 each). Every skill starts at **40 XP**, then **+20 XP** per rank. Gunner level is 1 + total XP earned (spent + banked) / 100.
 
 - **Recoil** — less bloom per shot
 - **Reload** — faster seats, wider perfect band
@@ -86,7 +86,7 @@ Hover or tap a row or a stat chip for the hint. Nothing stays “selected.”
 
 Campaign cycles **Forest Road → Fen Causeway → Transylvanian Lane → Desert Wadi → Bone Quarry**, then wraps. Each road is a **reskin** (zombie, drowned, vampire, mummy, ghoul) — same walk, different paint.
 
-Forest walkers start at **50 torso** and climb **20%** through the 250m. Each later road **opens 10% harder** than the last open, and still **easier than the last extract**. Density uses the same pair. Packs and short rests keep it from being a metronome.
+Forest walkers start at **50 HP** and climb **20%** through the 250m. That is one body pool: headshots are **2×** on the same bar, not a second life. Legs take normal damage into that pool and also have an **80%** sub-pool; emptying it knocks them into a crawl. Each later road **opens 10% harder** than the last open, and still **easier than the last extract**. Density uses the same pair. Packs and short rests keep it from being a metronome.
 
 Four roles, same body, bigger as they get meaner:
 
@@ -115,6 +115,7 @@ One **4:3** wood card, floating on the canvas. Ledger is Gunner level, cash, and
 - Mag and receiver prices are a grind. Buying the next Upgrade to clear a road is the loop.
 - Forest’s first clear and Basic are both about a half-hour for a decent shot. Later roads take longer until you buy the next gun.
 - Tanks and the Behemoth look like larger biome walkers (bigger zombie, bigger vampire, …).
+- Headshots are 2× on the same body HP. Legs share that pool and also have an 80% crawl bar (40 damage to the legs of a 50 HP walker puts it on the ground with 10 left).
 - Crits are a Training RNG roll. They are not headshots. Both add 0.12 pen and stack.
 - Shoddy only punches through with ammo around rank 60 plus a headshot **and** a crit together. Basic starts at 0.9 and overpens with a headshot, a crit, or enough barrel.
 - If a round does exit a body, leftover travel can still wound the next one.

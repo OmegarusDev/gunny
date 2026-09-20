@@ -85,17 +85,15 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
   const clearPay = extract ? run.score.extractCash || extractCash(run.levelIndex) : 0;
   const killCash = extract ? Math.max(0, run.score.cash - clearPay) : run.score.cash;
   el.innerHTML = `
-    <div class="panel-stack end-stack">
-      <div class="page-head">
-        ${ledgerBlock(profile)}
-      </div>
+    <div class="panel-stack camp-stack end-stack">
+      ${ledgerBlock(profile)}
       <header class="camp-brand workshop-brand">
         <p class="kicker">${run.endless ? 'Endless' : `Road ${run.levelIndex + 1}`}</p>
         <h2>${biome ? biome.place : 'The road'}</h2>
         <p class="end-verdict">${title}</p>
       </header>
       ${statsGrid([
-        ['Distance', formatMetres(run.score.lastMetersPaid)],
+        ['Dist', formatMetres(run.score.lastMetersPaid)],
         ['Kills', run.score.kills],
         ['Heads', run.score.headshots],
         extract
@@ -103,7 +101,7 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
           : ['Perfects', run.score.perfects],
         ['Cash', `+${fmtMoney(killCash)}`],
         ['XP', `+${Math.floor(run.score.xp)}`],
-      ])}
+      ], 'stats-row')}
       <div class="facilities">
         ${facilityButton({
           act: 'gunsmith',

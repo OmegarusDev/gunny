@@ -14,7 +14,7 @@ import { createTerrain } from '../world/terrain.js';
 import { createWeather } from '../world/weather.js';
 import { runMeters } from '../world/metrics.js';
 import { createPlayer, screenToWorld, cameraX } from '../entities/player.js';
-import { applyFlinch, cacheEnemyPose, isDead, lethalCircles, stepFlinch, updateLocomotion } from '../entities/enemy.js';
+import { applyFlinch, cacheEnemyPose, isDead, isLegZone, lethalCircles, stepFlinch, updateLocomotion } from '../entities/enemy.js';
 import { gaitPlanted, gunWorld, playerCoreFromPose, posePlayerLocal } from '../figure.js';
 import { magRof, resolveStats, shotSpreadDeg } from '../entities/loadout.js';
 import { rangeSpreadDeg, spawnBullet, stepBullets } from './ballistics.js';
@@ -108,10 +108,9 @@ function applyHits(run) {
     const rangeMul = hit.rangeMul ?? 1;
     const dmg = stats.damage * loc * critMul * rangeMul;
     const zone = hit.zone;
-    const pool = zone === 'head' ? 'head' : zone === 'lLeg' || zone === 'rLeg' ? zone : 'torso';
-    const remaining = Math.max(0, enemy.hp[pool]);
-    enemy.hp[pool] -= dmg;
-    if (zone === 'head') enemy.hp.head = Math.max(0, enemy.hp.head);
+    const remaining = Math.max(0, enemy.hp.body);
+    enemy.hp.body -= dmg;
+    if (isLegZone(zone)) enemy.hp.legs -= dmg;
     onHit(run.score, zone, crit);
     playFlesh(zone === 'head');
 
@@ -141,7 +140,7 @@ function applyHits(run) {
 
     if (isDead(enemy)) {
       enemy.alive = false;
-      if (zone === 'head' || enemy.hp.head <= 0) enemy.severedHead = true;
+      if (zone === 'head') enemy.severedHead = true;
       const overkill = dmg > remaining * 2 && remaining > 0;
       const role = roleOf(enemy.role);
       const hpMul = run.threat?.hpMul || 1;

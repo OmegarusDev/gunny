@@ -25,8 +25,11 @@ import {
   effectiveAimReach,
   effectiveShotRange,
   enemyHp,
+  GRUNT_HP,
   hudScale,
   hudTypeScale,
+  LEG_HP_FRAC,
+  LOCATIONAL,
   threatForDistance,
   usesFullScreenAim,
 } from '../src/config.js';
@@ -37,7 +40,7 @@ import { SLOT_COST_RATE, SLOT_MAX, SLOT_UPGRADES, sanitizeSlotRanks, slotMods, u
 import { CHASE_FLOOR, ROLE_UNLOCK, ROLES, pickRole, roleUnlocked } from '../src/data/roles.js';
 import { SKILLS, sanitizeRanks, skillCost } from '../src/data/skills.js';
 import { formatRpm, gunsmithStatRows, magRof, resolveStats, shotSpreadDeg, slotUnlockedFor, STAT_BY_ID, STATS } from '../src/entities/loadout.js';
-import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, lethalCircles, lethalHpRatio, limbCircleList, limbCircles, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
+import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, isDead, lethalCircles, lethalHpRatio, limbCircleList, limbCircles, locationalOf, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile, buyPart, owns, hydrateProfile, equipPart, ensureKit, upgradeSlot, slotRank } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
 import { wantsImmersive, usesHtmlFullscreen, isPortrait } from '../src/engine/immersive.js';
@@ -94,9 +97,10 @@ describe('threat pacing', () => {
     expect(mid.spawnInterval).toBeGreaterThan(late.spawnInterval);
     expect(late.maxAlive).toBeGreaterThanOrEqual(early.maxAlive);
     expect(late.hpMul).toBeGreaterThan(early.hpMul);
-    expect(enemyHp(1).torso).toBe(50);
-    expect(enemyHp(threatForDistance(0, 0, false).hpMul).torso).toBe(50);
-    expect(enemyHp(threatForDistance(TRACK_METERS, 0, false).hpMul).torso).toBe(60);
+    expect(enemyHp(1).body).toBe(GRUNT_HP);
+    expect(enemyHp(1).legs).toBe(GRUNT_HP * LEG_HP_FRAC);
+    expect(enemyHp(threatForDistance(0, 0, false).hpMul).body).toBe(GRUNT_HP);
+    expect(enemyHp(threatForDistance(TRACK_METERS, 0, false).hpMul).body).toBe(60);
     expect(THREAT.roadHpStep).toBe(0.1);
     expect(THREAT.roadHpRamp).toBe(0.2);
   });
@@ -114,6 +118,8 @@ describe('threat pacing', () => {
       expect(nextOpen.spawnInterval).toBeGreaterThan(extract.spawnInterval);
     }
     expect(threatForDistance(0, 0, false).maxAlive).toBeGreaterThanOrEqual(2);
+    expect(threatForDistance(0, 0, false).packChance).toBe(0);
+    expect(threatForDistance(TRACK_METERS, 0, false).packChance).toBeGreaterThan(0);
   });
 
   it('steps campaign grunt HP per road, with a larger climb inside the 250m', () => {
@@ -166,8 +172,8 @@ describe('threat pacing', () => {
     expect(l10s.hpMul).toBeGreaterThan(l0e.hpMul);
     expect(l10e.hpMul).toBeGreaterThan(l10s.hpMul);
     expect(l10s.spawnInterval).toBeLessThanOrEqual(l0e.spawnInterval);
-    expect(enemyHp(l10e.hpMul).torso).toBeGreaterThanOrEqual(1);
-    expect(enemyHp(-2).head).toBeGreaterThanOrEqual(1);
+    expect(enemyHp(l10e.hpMul).body).toBeGreaterThanOrEqual(1);
+    expect(enemyHp(-2).body).toBeGreaterThanOrEqual(1);
   });
 
   it('chases a bit quicker and only sprints very late', () => {
@@ -533,7 +539,7 @@ describe('loadout aim stats', () => {
     expect(stats.aimReach).toBeGreaterThanOrEqual(AIM_REACH_MIN);
     expect(stats.aimReach).toBeCloseTo(AIM_REACH_BASE, 5);
     expect(stats.shotRange).toBeCloseTo(SHOT_REACH_BASE, 5);
-    expect(stats.baseSpread).toBeGreaterThan(1.5);
+    expect(stats.baseSpread).toBeGreaterThan(3);
   });
 
   it('places base shot range two-thirds across the screen', () => {
@@ -717,9 +723,12 @@ describe('skills & profile', () => {
   });
 
   it('prices skill ranks with a mild curve', () => {
-    expect(skillCost(SKILLS.marksman, 0)).toBe(40);
-    expect(skillCost(SKILLS.marksman, 1)).toBe(60);
-    expect(skillCost(SKILLS.marksman, 3)).toBe(100);
+    for (const def of Object.values(SKILLS)) {
+      expect(def.baseCost).toBe(40);
+      expect(skillCost(def, 0)).toBe(40);
+      expect(skillCost(def, 1)).toBe(60);
+      expect(skillCost(def, 3)).toBe(100);
+    }
   });
 
   it('only auto-fullscreens the Android WebAPK unless the setting is on', () => {
@@ -792,8 +801,8 @@ describe('world helpers', () => {
   it('scales enemy pools by hpMul', () => {
     const soft = enemyHp(0.82);
     const hard = enemyHp(1.15);
-    expect(hard.torso).toBeGreaterThan(soft.torso);
-    expect(hard.head).toBeGreaterThan(soft.head);
+    expect(hard.body).toBeGreaterThan(soft.body);
+    expect(hard.legs).toBeGreaterThan(soft.legs);
   });
 });
 
@@ -914,18 +923,20 @@ describe('hit impulse', () => {
     const foe = createEnemy(0, terrain, 1, 80, 'zombie');
     expect(lethalHpRatio(foe)).toBe(1);
     expect(enemyIsHurt(foe)).toBe(false);
-    foe.hp.torso -= 20;
+    foe.hp.body -= 20;
     expect(lethalHpRatio(foe)).toBeLessThan(1);
     expect(enemyIsHurt(foe)).toBe(true);
-    const afterLeg = lethalHpRatio(foe);
-    foe.hp.lLeg = 0;
-    expect(lethalHpRatio(foe)).toBeCloseTo(afterLeg, 5);
+    const afterBody = lethalHpRatio(foe);
+    foe.hp.legs = 0;
+    expect(lethalHpRatio(foe)).toBeCloseTo(afterBody, 5);
     const legs = createEnemy(0, terrain, 1, 80, 'zombie');
-    legs.hp.lLeg = 0;
+    legs.hp.legs = 0;
     expect(enemyIsHurt(legs)).toBe(false);
     expect(lethalHpRatio(legs)).toBe(1);
-    foe.hp.head = 0;
-    expect(lethalHpRatio(foe)).toBeLessThan(afterLeg);
+    expect(isDead(legs)).toBe(false);
+    foe.hp.body = 0;
+    expect(lethalHpRatio(foe)).toBe(0);
+    expect(isDead(foe)).toBe(true);
 
     const run = {
       callouts: [{ x: 10, y: 80, vx: 20, vy: -240, life: 0.92, maxLife: 0.92, text: '13' }],
@@ -936,6 +947,70 @@ describe('hit impulse', () => {
     stepGibs(run, 0.05);
     expect(run.callouts[0].y).toBeLessThan(80);
     expect(run.callouts[0].life).toBeLessThan(0.92);
+  });
+
+  it('uses one body pool, 2× heads, and an 80% crawl bar on the legs', () => {
+    expect(LOCATIONAL.head).toBe(2);
+    expect(locationalOf('head')).toBe(2);
+    expect(locationalOf('upper')).toBe(1);
+    expect(locationalOf('lLeg')).toBe(1);
+    expect(locationalOf('rLeg')).toBe(1);
+    const hp = enemyHp(1);
+    expect(hp.body).toBe(50);
+    expect(hp.legs).toBe(40);
+    expect(hp.head).toBeUndefined();
+    expect(hp.torso).toBeUndefined();
+
+    const viewport = { w: 1280, h: 720 };
+    const idle = { pointerX: 800, pointerY: 360, firing: false, reloadPressed: false, pointerTap: false };
+    const run = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: 0, seed: 1 });
+    run.paused = false;
+    run.spawnTimer = 1e9;
+    const foe = createEnemy(run.player.worldX + 280, run.terrain, 1, 80, 'zombie');
+    cacheEnemyPose(foe);
+    run.enemies = [foe];
+    run.stats.damage = 40;
+    run.pendingHits = [{
+      enemy: foe,
+      zone: 'lLeg',
+      locational: 1,
+      crit: false,
+      rangeMul: 1,
+      x: foe.worldX,
+      y: foe.y,
+      nx: 1,
+      ny: 0,
+    }];
+    simulate(run, 1 / 60, viewport, idle);
+    expect(foe.hp.body).toBeCloseTo(10);
+    expect(foe.hp.legs).toBeLessThanOrEqual(0);
+    expect(foe.crawling).toBe(true);
+    expect(foe.alive).toBe(true);
+    expect(isDead(foe)).toBe(false);
+
+    const heads = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: 0, seed: 1 });
+    heads.paused = false;
+    heads.spawnTimer = 1e9;
+    const skull = createEnemy(heads.player.worldX + 280, heads.terrain, 1, 80, 'zombie');
+    cacheEnemyPose(skull);
+    heads.enemies = [skull];
+    heads.stats.damage = 15;
+    heads.pendingHits = [{
+      enemy: skull,
+      zone: 'head',
+      locational: locationalOf('head'),
+      crit: false,
+      rangeMul: 1,
+      x: skull.worldX,
+      y: skull.y,
+      nx: 1,
+      ny: 0,
+    }];
+    simulate(heads, 1 / 60, viewport, idle);
+    expect(skull.hp.body).toBeCloseTo(20);
+    expect(skull.hp.legs).toBe(40);
+    expect(skull.crawling).toBe(false);
+    expect(skull.alive).toBe(true);
   });
 });
 
@@ -1005,9 +1080,9 @@ describe('walker roles', () => {
     const tank = createEnemy(0, terrain, 1, chase, 'zombie', 'tank');
     const heavy = createEnemy(0, terrain, 1, chase, 'zombie', 'heavy');
     const boss = createEnemy(0, terrain, 1, chase, 'zombie', 'behemoth');
-    expect(tank.hp.torso).toBeGreaterThan(grunt.hp.torso);
-    expect(heavy.hp.torso).toBeGreaterThan(tank.hp.torso);
-    expect(boss.hp.torso).toBeGreaterThan(heavy.hp.torso);
+    expect(tank.hp.body).toBeGreaterThan(grunt.hp.body);
+    expect(heavy.hp.body).toBeGreaterThan(tank.hp.body);
+    expect(boss.hp.body).toBeGreaterThan(heavy.hp.body);
     expect(tank.speed).toBeLessThan(grunt.speed);
     expect(heavy.speed).toBeLessThan(tank.speed);
     expect(boss.speed).toBeLessThan(heavy.speed);
@@ -1033,9 +1108,19 @@ describe('walker roles', () => {
     expect(endless.enemies.some((e) => e.role === 'behemoth')).toBe(true);
   });
 
+  it('does not pack the opening wave even when the pack roll is forced', () => {
+    const viewport = { w: 1280, h: 720 };
+    const run = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: 0, seed: 1 });
+    run.spawnTimer = 0;
+    run.rng = () => 0;
+    stepSpawner(run, 0.016, viewport);
+    expect(run.enemies.filter((e) => e.alive)).toHaveLength(1);
+  });
+
   it('can cluster two walkers inside a single gap instead of spacing a line', () => {
     const viewport = { w: 1280, h: 720 };
     const run = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: 0, seed: 1 });
+    run.player.worldX = -200 * PX_PER_M;
     run.spawnTimer = 0;
     run.rng = () => 0;
     stepSpawner(run, 0.016, viewport);
@@ -1156,7 +1241,7 @@ describe('simulate loop', () => {
   it('lets a crawler finish a contact kill', () => {
     const run = liveRun();
     const crawler = createEnemy(run.player.worldX, run.terrain, 1, 80, 'zombie');
-    crawler.hp.lLeg = 0;
+    crawler.hp.legs = 0;
     updateLocomotion(crawler);
     cacheEnemyPose(crawler);
     run.enemies = [crawler];

@@ -297,7 +297,7 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .camp-stack .facility {
   height: 100%;
-  min-height: 72px;
+  min-height: 64px;
 }
 
 #overlay-root .camp-stack .stats {
@@ -308,8 +308,8 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .camp-stack .stats div {
-  padding: 5px 6px 4px;
-  gap: 0;
+  padding: 8px 6px 7px;
+  gap: 1px;
 }
 
 #overlay-root .page-head {
@@ -459,8 +459,8 @@ html:-webkit-full-screen::backdrop,
 }
 
 #panel-end .stats {
-  margin-bottom: 12px;
-  padding-bottom: 4px;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 #panel-end .facilities {
@@ -627,8 +627,8 @@ html:-webkit-full-screen::backdrop,
   gap: 12px 14px;
   width: 100%;
   text-align: left;
-  padding: 16px 18px;
-  min-height: 72px;
+  padding: 14px 16px;
+  min-height: 64px;
   height: auto;
   background: #2e1c14;
 }
@@ -691,13 +691,13 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .facility-title {
   font-family: Georgia, "Iowan Old Style", serif;
-  font-size: clamp(20px, 4vmin, 28px);
+  font-size: clamp(18px, 3.6vmin, 26px);
   font-weight: 700;
   line-height: 1.1;
 }
 
 #overlay-root button.facility.side .facility-title {
-  font-size: clamp(20px, 4vmin, 28px);
+  font-size: clamp(18px, 3.6vmin, 26px);
 }
 
 #overlay-root .facility-sub {
@@ -725,7 +725,7 @@ html:-webkit-full-screen::backdrop,
 #overlay-root .stats.stats-row {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 5px;
-  font-size: clamp(13px, 2.4vmin, 16px);
+  font-size: clamp(15px, 2.8vmin, 18px);
 }
 
 #overlay-root .stats.stats-wide div {
@@ -734,8 +734,8 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .stats.stats-row div {
-  padding: 5px 6px 4px;
-  gap: 0;
+  padding: 8px 6px 7px;
+  gap: 1px;
 }
 
 #overlay-root .stats.stats-wide div span {
@@ -744,7 +744,7 @@ html:-webkit-full-screen::backdrop,
 }
 
 #overlay-root .stats.stats-row div span {
-  font-size: clamp(9px, 1.6vmin, 11px);
+  font-size: clamp(10px, 1.85vmin, 12px);
   letter-spacing: 0.06em;
 }
 
@@ -1757,15 +1757,15 @@ html:-webkit-full-screen::backdrop,
 
   #overlay-root .stats.stats-row {
     gap: 3px;
-    font-size: 12px;
+    font-size: 14px;
   }
 
   #overlay-root .stats.stats-row div {
-    padding: 4px 4px 3px;
+    padding: 6px 4px 5px;
   }
 
   #overlay-root .stats.stats-row div span {
-    font-size: 8px;
+    font-size: 9px;
   }
 
   #overlay-root button.facility {

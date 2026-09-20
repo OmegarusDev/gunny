@@ -32,7 +32,7 @@ export const SKILLS = {
     short: 'Scavenger',
     desc: 'More cash from kills. Softens long grinds.',
     maxRank: 20,
-    baseCost: 30,
+    baseCost: 40,
     perRank: { cashMul: 0.07 },
   },
   critChance: {
@@ -41,7 +41,7 @@ export const SKILLS = {
     short: 'Crit %',
     desc: 'Independent RNG crit chance. Not a headshot. Adds pen on a crit.',
     maxRank: 20,
-    baseCost: 50,
+    baseCost: 40,
     perRank: { critChance: 0.03 },
   },
   critMult: {
@@ -50,7 +50,7 @@ export const SKILLS = {
     short: 'Crit ×',
     desc: 'Increases crit damage multiplier. Crits also add a flat pen bonus.',
     maxRank: 20,
-    baseCost: 50,
+    baseCost: 40,
     perRank: { critMult: 0.07 },
   },
   speed: {
@@ -75,7 +75,7 @@ export const SKILLS = {
 
 export const GUNNER_XP = 100;
 
-/** First rank is baseCost, then +20 XP each. Always a round number. */
+/** First rank is 40 XP for every skill, then +20 XP each. Always a round number. */
 export function skillCost(def, nextRank) {
   return def.baseCost + 20 * Math.max(0, nextRank);
 }

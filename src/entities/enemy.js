@@ -105,15 +105,9 @@ export function lethalCircles(enemy) {
 }
 
 export function updateLocomotion(enemy) {
-  const maxLegs = enemy.max.lLeg + enemy.max.rLeg;
-  const legs = Math.max(0, enemy.hp.lLeg) + Math.max(0, enemy.hp.rLeg);
-  const deadLeg = enemy.hp.lLeg <= 0 || enemy.hp.rLeg <= 0;
-  if (deadLeg) {
+  if ((enemy.hp.legs ?? 0) <= 0) {
     enemy.crawling = true;
     enemy.speed = enemy.baseSpeed * 0.2;
-  } else if (legs < maxLegs * 0.5) {
-    enemy.crawling = false;
-    enemy.speed = enemy.baseSpeed * 0.6;
   } else {
     enemy.crawling = false;
     enemy.speed = enemy.baseSpeed;
@@ -124,22 +118,21 @@ export function locationalOf(zone) {
   return LOCATIONAL[zone] ?? 1;
 }
 
-/** Head + torso remaining. Legs are mobility, not the kill bar. */
-export function lethalHpRatio(enemy) {
-  const max = (enemy.max?.head || 0) + (enemy.max?.torso || 0);
-  if (max <= 0) return 0;
-  const cur = Math.max(0, enemy.hp.head) + Math.max(0, enemy.hp.torso);
-  return Math.max(0, Math.min(1, cur / max));
+export function isLegZone(zone) {
+  return zone === 'lLeg' || zone === 'rLeg';
 }
 
-/** Head or torso missing — legs are mobility, not the kill bar. */
+/** Body remaining. Legs only gate crawling. */
+export function lethalHpRatio(enemy) {
+  const max = enemy.max?.body || 0;
+  if (max <= 0) return 0;
+  return Math.max(0, Math.min(1, Math.max(0, enemy.hp.body) / max));
+}
+
 export function enemyIsHurt(enemy) {
-  for (const k of ['head', 'torso']) {
-    if ((enemy.hp[k] ?? 0) < (enemy.max[k] ?? 0) - 1e-4) return true;
-  }
-  return false;
+  return (enemy.hp.body ?? 0) < (enemy.max.body ?? 0) - 1e-4;
 }
 
 export function isDead(enemy) {
-  return enemy.hp.head <= 0 || enemy.hp.torso <= 0;
+  return (enemy.hp.body ?? 0) <= 0;
 }

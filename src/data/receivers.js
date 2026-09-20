@@ -55,7 +55,7 @@ const SHODDY_BASE = {
   aimRate: 7.2,
   aimReach: AIM_REACH_BASE,
   shotRange: SHOT_REACH_BASE,
-  baseSpread: 2.35,
+  baseSpread: 3.2,
   heatBuild: 0.22,
   heatDump: 0.16,
   heatBloom: 4.5,
