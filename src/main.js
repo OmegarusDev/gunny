@@ -21,7 +21,9 @@ import { mountSoftCursor } from './ui/cursor.js';
 const canvas = document.getElementById('gameCanvas');
 const overlayRoot = document.getElementById('overlay-root');
 const { ctx, viewport } = createCanvas(canvas);
-const input = createInput(canvas);
+const input = createInput(canvas, {
+  combat: () => mode === 'run' && run && !run.ended && !run.dying,
+});
 const softCursor = mountSoftCursor();
 const loop = createLoop(FIXED_DT, MAX_FRAME_DT);
 const profile = loadProfile();
@@ -74,7 +76,7 @@ const handlers = {
 };
 
 function syncCursor() {
-  if (mode === 'run' && run && !run.ended && !run.dying) softCursor.setMode('hidden');
+  if (mode === 'run' && run && !run.ended && !run.dying && !run.paused) softCursor.setMode('hidden');
   else softCursor.setMode('menu');
 }
 
@@ -205,6 +207,7 @@ function frame(now) {
 
     if (!run.ended && !run.dying) {
       const portrait = input.state.portrait;
+      if (portrait) run.portraitHold = true;
       if (run.paused) {
         if (portrait) {
           if (queuedPointerTap || pauseTap) {
@@ -213,6 +216,13 @@ function frame(now) {
             input.clearFireIntent();
             skipSim = true;
           }
+        } else if (run.portraitHold) {
+          run.portraitHold = false;
+          run.paused = false;
+          queuedPointerTap = false;
+          queuedReloadTap = false;
+          input.clearFireIntent();
+          skipSim = true;
         } else if (queuedPointerTap || pauseTap) {
           run.paused = false;
           queuedPointerTap = false;
@@ -222,6 +232,7 @@ function frame(now) {
         }
       } else if (forcePause || pauseTap || portrait) {
         run.paused = true;
+        if (portrait) run.portraitHold = true;
         queuedPointerTap = false;
         queuedReloadTap = false;
         input.clearFireIntent();

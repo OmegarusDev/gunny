@@ -57,6 +57,7 @@ export function spawnRagdoll(enemy, hit, rng = Math.random) {
     friction: 0.9,
     kind: enemy.kind || 'zombie',
     severedHead: !!enemy.severedHead,
+    gunLook: pose.gunLook || null,
     hero: false,
   };
 }
@@ -118,6 +119,7 @@ function freezeRagdoll(run, rag) {
   run.frozenCorpses.push({
     kind: rag.kind,
     severedHead: rag.severedHead,
+    gunLook: rag.gunLook || null,
     nodes: rag.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
   });
 }

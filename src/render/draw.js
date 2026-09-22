@@ -13,6 +13,7 @@ import {
   drawKeyLight,
   drawMotes,
   drawVignette,
+  sceneFx,
 } from './fx.js';
 import {
   drawFarScenery,
@@ -100,7 +101,7 @@ function drawPlayer(ctx, run, viewport) {
     ctx.stroke();
   }
   const shot = Math.max(0, Math.min(1, (w.shotFlash || 0) / 0.09));
-  if (shot > 0.04) {
+  if (shot > 0.04 && sceneFx(viewport)) {
     ctx.globalCompositeOperation = 'lighter';
     const reach = 36 + shot * 28;
     const flash = ctx.createRadialGradient(mx, my, 1, mx, my, reach);
@@ -132,7 +133,7 @@ function drawPlayer(ctx, run, viewport) {
 }
 
 function drawSmoke(ctx, run, viewport) {
-  if (!run.smoke?.length) return;
+  if (!sceneFx(viewport) || !run.smoke?.length) return;
   for (const s of run.smoke) {
     const p = w2s(s.x, s.y, run, viewport);
     const u = Math.max(0, Math.min(1, s.life / (s.max || 1.2)));
@@ -329,6 +330,7 @@ function drawGibs(ctx, run, viewport) {
 }
 
 function drawParticles(ctx, run, viewport) {
+  if (!sceneFx(viewport)) return;
   for (const p of run.particles) {
     const s = w2s(p.x, p.y, run, viewport);
     const a = Math.max(0, p.life / (p.max || 0.4));

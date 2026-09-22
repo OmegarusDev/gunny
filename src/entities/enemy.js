@@ -59,9 +59,7 @@ function cacheHitVolumes(enemy) {
       circles.rLeg,
     );
   }
-  for (const c of list) {
-    if (c.zone === 'head' || c.zone === 'upper' || c.zone === 'lower') lethal.push(c);
-  }
+  lethal.push(circles.head, circles.upper, circles.lower, circles.pelvis);
 }
 
 /** One IK pose per sim step — hits, vitals, and draw all read this. */

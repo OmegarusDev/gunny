@@ -555,6 +555,22 @@ describe('gunsmith catalog', () => {
     expect(slotCapFor('t5_advanced')).toBe(100);
   });
 
+  it('clamps unequipped kits to that receiver’s cap on hydrate', () => {
+    const profile = hydrateProfile({
+      owned: ['t1_stock', 't2_tactical'],
+      loadout: { receiver: 't2_tactical' },
+      kits: { t1_stock: { ranks: { magazine: 80 } } },
+    });
+    expect(profile.kits.t1_stock.ranks.magazine).toBe(20);
+  });
+
+  it('resolves Gunsmith stats for the browsed receiver', () => {
+    const profile = gunAt('t2_tactical', { magazine: 8 });
+    expect(equipPart(profile, 'receiver', 't1_stock')).toBe(true);
+    expect(resolveStats(profile).magSize).toBe(1);
+    expect(resolveStats(profile, 't2_tactical').magSize).toBe(9);
+  });
+
   it('prints each Gunsmith part as rank over that gun’s cap', () => {
     const stub = {
       onclick: null,
@@ -1186,6 +1202,33 @@ describe('hit impulse', () => {
     expect(skull.crawling).toBe(false);
     expect(skull.alive).toBe(true);
   });
+
+  it('kills on torso contact, not a reaching arm', () => {
+    const foe = createEnemy(0, { height: () => 400 }, 1, 80, 'zombie');
+    cacheEnemyPose(foe);
+    const lethal = lethalCircles(foe);
+    expect(lethal).toHaveLength(4);
+    expect(lethal.every((c) => c.zone === 'head' || c.zone === 'upper' || c.zone === 'lower')).toBe(true);
+    expect(lethal.includes(foe.hitCircles.lFore)).toBe(false);
+    expect(lethal.includes(foe.hitCircles.rFore)).toBe(false);
+  });
+
+  it('counts a hip-height shot as body, not a crawl graze', () => {
+    const viewport = { w: 1280, h: 720 };
+    const run = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: 0, seed: 1 });
+    run.paused = false;
+    run.spawnTimer = 1e9;
+    const foe = createEnemy(run.player.worldX + 280, run.terrain, 1, 80, 'zombie');
+    cacheEnemyPose(foe);
+    run.enemies = [foe];
+    const y = foe.y + foe.pose.pelvis.y;
+    const b = spawnBullet(run.player.worldX + 40, y, 0, { ...run.stats, bulletSpeed: 1600, pen: 2 }, false, 800);
+    run.bullets = [b];
+    run.pendingHits = [];
+    for (let i = 0; i < 40; i++) stepBullets(run, 1 / 60, viewport);
+    expect(run.pendingHits.length).toBeGreaterThan(0);
+    expect(['upper', 'lower', 'head']).toContain(run.pendingHits[0].zone);
+  });
 });
 
 describe('kinds & stats schema', () => {
@@ -1345,6 +1388,27 @@ describe('simulate loop', () => {
   it('starts a run unpaused', () => {
     const run = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: 0, seed: 1 });
     expect(run.paused).toBe(false);
+    expect(typeof run.fxRng).toBe('function');
+  });
+
+  it('does not let barrel smoke steal the next shot’s spread', () => {
+    const cool = liveRun();
+    const hot = liveRun();
+    cool.spawnTimer = 1e9;
+    hot.spawnTimer = 1e9;
+    cool.enemies.length = 0;
+    hot.enemies.length = 0;
+    hot.weapon.heat = 1;
+    simulate(cool, dt, viewport, idle);
+    simulate(hot, dt, viewport, idle);
+    hot.weapon.heat = 0;
+    hot.weapon.bloom = cool.weapon.bloom;
+    simulate(cool, dt, viewport, { ...idle, firing: true, pointerTap: true });
+    simulate(hot, dt, viewport, { ...idle, firing: true, pointerTap: true });
+    expect(cool.bullets).toHaveLength(1);
+    expect(hot.bullets).toHaveLength(1);
+    expect(cool.bullets[0].vx).toBeCloseTo(hot.bullets[0].vx, 8);
+    expect(cool.bullets[0].vy).toBeCloseTo(hot.bullets[0].vy, 8);
   });
 
   it('snaps aim to the tap before the shot leaves', () => {
@@ -1517,6 +1581,22 @@ describe('simulate loop', () => {
     const gripD = Math.hypot(p.armR.hand.x - p.gun.x, p.armR.hand.y - p.gun.y);
     const forendD = Math.hypot(p.armL.hand.x - p.gun.x, p.armL.hand.y - p.gun.y);
     expect(forendD).toBeGreaterThan(gripD);
+    expect(p.armR.hand.y).toBeGreaterThan(p.gun.y);
+    expect(p.armL.hand.y).toBeGreaterThan(p.gun.y);
+    expect(p.aimAngle).toBe(0);
+  });
+
+  it('keeps the rifle in the gunner’s hands when they flop', () => {
+    const player = {
+      pose: posePlayerLocal({ worldX: 0, y: 400, aimAngle: -0.2, gunLook: gunLookFrom(defaultProfile()) }),
+      worldX: 0,
+      y: 400,
+      kind: 'gunner',
+    };
+    const rag = spawnRagdoll(player, { nx: 1, ny: 0, energy: 1.2, zone: 'upper' }, () => 0.5);
+    expect(rag.nodes.some((n) => n.id === 'gun')).toBe(true);
+    expect(rag.nodes.some((n) => n.id === 'muzzle')).toBe(true);
+    expect(rag.gunLook).toBeTruthy();
   });
 
   it('leaves a world-space smoke trail from the barrel', () => {

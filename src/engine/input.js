@@ -3,7 +3,8 @@ import { isPortrait } from './immersive.js';
 
 const HUD = '#overlay-root .panel, #overlay-root .opt-fabs, #overlay-root .opt-fab, #overlay-root .opt-layer';
 
-export function createInput(canvas) {
+export function createInput(canvas, opts = {}) {
+  const combat = typeof opts.combat === 'function' ? opts.combat : () => true;
   const state = {
     pointerX: 0,
     pointerY: 0,
@@ -149,8 +150,11 @@ export function createInput(canvas) {
     if (e.repeat) return;
     const k = e.key.toLowerCase();
     if (k === 'r') state.reloadTap = true;
-    if (k === 'p' || k === 'escape') state.pauseTap = true;
+    if (k === 'p' || k === 'escape') {
+      if (combat()) state.pauseTap = true;
+    }
     if (k === ' ' || k === 'enter') {
+      if (!combat()) return;
       state.pauseTap = true;
       e.preventDefault();
     }

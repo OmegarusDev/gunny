@@ -14,7 +14,7 @@ export function renderGunsmith(el, profile, handlers) {
   const rec = RECEIVERS[recId];
   const owned = owns(profile, recId);
   const equipped = profile.loadout.receiver === recId;
-  const loadoutStats = resolveStats(profile);
+  const loadoutStats = resolveStats(profile, recId);
   const gate = buyBlockedReason(profile, recId);
 
   const cap = slotCapFor(recId);

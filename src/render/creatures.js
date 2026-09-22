@@ -304,7 +304,6 @@ export function drawCutPaper(ctx, p, pal, opts = {}) {
 
 export function drawSurvivor(ctx, player, sx, heat = 0) {
   const local = posePlayerLocal(player);
-  local.aimAngle = player.aimAngle || 0;
   local.heat = heat;
   local.gunLook = player.gunLook || local.gunLook;
   const pal = paperPalette('gunner');
@@ -367,6 +366,7 @@ export function drawRagdollBody(ctx, rag, w2s) {
     return { ...n, x: p.x, y: p.y };
   });
   const pose = poseFromNodes(mapped, rag.kind || 'zombie');
+  if (rag.gunLook) pose.gunLook = rag.gunLook;
   const pal = paperPalette(rag.kind || 'zombie');
   drawCutPaper(ctx, pose, pal, { skipHead: !!rag.severedHead });
 }

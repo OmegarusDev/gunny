@@ -345,10 +345,10 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
     const sa = Math.sin(aimAngle);
     const gripAlong = 3.2 * S;
     const forendAlong = look.forend;
-    const grip = { x: gun.x + ca * gripAlong + sa * 2.2 * S, y: gun.y + sa * gripAlong - ca * 2.2 * S };
+    const grip = { x: gun.x + ca * gripAlong - sa * 2.2 * S, y: gun.y + sa * gripAlong + ca * 2.2 * S };
     const forend = {
-      x: gun.x + ca * forendAlong + sa * 1.15 * S,
-      y: gun.y + sa * forendAlong - ca * 1.15 * S,
+      x: gun.x + ca * forendAlong - sa * 1.15 * S,
+      y: gun.y + sa * forendAlong + ca * 1.15 * S,
     };
     armR = { shoulder: shR, elbow: ikElbow(shR, grip, shR.x - 12 * S), hand: grip };
     armL = { shoulder: shL, elbow: ikElbow(shL, forend, shL.x + 6 * S), hand: forend };
@@ -407,6 +407,7 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
     locDir,
     kind,
     crawl,
+    aimAngle,
     gunLook: look,
   };
 }
@@ -486,6 +487,10 @@ function coverBone(out, a, b, r, zone) {
   }
 }
 
+function alongBone(a, b, t) {
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
 /** Circles that cover the cut-paper silhouette, including along each bone. */
 export function limbCirclesFromPose(p) {
   const crawl = p.crawl;
@@ -503,8 +508,8 @@ export function limbCirclesFromPose(p) {
     lFore: vol(mid(p.armL.elbow, p.armL.hand), 7 * u, 'upper'),
     rUpp: vol(mid(p.armR.shoulder, p.armR.elbow), 8 * u, 'upper'),
     rFore: vol(mid(p.armR.elbow, p.armR.hand), 7 * u, 'upper'),
-    lThigh: vol(mid(l.hip, l.knee), 13 * u, 'lLeg'),
-    rThigh: vol(mid(rleg.hip, rleg.knee), 13 * u, 'rLeg'),
+    lThigh: vol(mid(l.hip, l.knee), 10 * u, 'lLeg'),
+    rThigh: vol(mid(rleg.hip, rleg.knee), 10 * u, 'rLeg'),
     lLeg: vol(mid(l.knee, l.ankle), 12 * u, 'lLeg'),
     rLeg: vol(mid(rleg.knee, rleg.ankle), 12 * u, 'rLeg'),
   };
@@ -533,9 +538,9 @@ export function limbCirclesFromPose(p) {
   coverBone(cover, p.armL.elbow, p.armL.hand, 6 * u, 'upper');
   coverBone(cover, p.armR.shoulder, p.armR.elbow, 7 * u, 'upper');
   coverBone(cover, p.armR.elbow, p.armR.hand, 6 * u, 'upper');
-  coverBone(cover, l.hip, l.knee, 10 * u, 'lLeg');
+  coverBone(cover, alongBone(l.hip, l.knee, 0.4), l.knee, 8 * u, 'lLeg');
   coverBone(cover, l.knee, l.ankle, 9 * u, 'lLeg');
-  coverBone(cover, rleg.hip, rleg.knee, 10 * u, 'rLeg');
+  coverBone(cover, alongBone(rleg.hip, rleg.knee, 0.4), rleg.knee, 8 * u, 'rLeg');
   coverBone(cover, rleg.knee, rleg.ankle, 9 * u, 'rLeg');
   cover.push(vol(p.armL.hand, 6 * u, 'upper'), vol(p.armR.hand, 6 * u, 'upper'));
   cover.push(vol(l.heel, 6 * u, 'lLeg'), vol(l.toe, 6 * u, 'lLeg'));
@@ -546,7 +551,7 @@ export function limbCirclesFromPose(p) {
 
 export function gunWorld(player) {
   const p = posePlayerLocal(player);
-  const ang = player.aimAngle || 0;
+  const ang = p.aimAngle ?? player.aimAngle ?? 0;
   const len = p.gunLook?.muzzleLen || MUZZLE_LEN;
   return {
     x: player.worldX + p.gun.x,
@@ -589,6 +594,8 @@ export const NODE_MASS = {
   rHeel: 0.45,
   lToe: 0.35,
   rToe: 0.35,
+  gun: 0.85,
+  muzzle: 0.28,
   jL: 0.7,
   jR: 0.7,
   pL: 0.85,
@@ -598,7 +605,7 @@ export const NODE_MASS = {
 };
 
 export function ragdollNodesFromPose(p) {
-  return [
+  const nodes = [
     { id: 'head', x: p.head.x, y: p.head.y },
     { id: 'rib', x: p.rib.x, y: p.rib.y },
     { id: 'junction', x: p.junction.x, y: p.junction.y },
@@ -624,7 +631,18 @@ export function ragdollNodesFromPose(p) {
     { id: 'pR', x: p.pR.x, y: p.pR.y },
     { id: 'hipBL', x: p.hipBL.x, y: p.hipBL.y },
     { id: 'hipBR', x: p.hipBR.x, y: p.hipBR.y },
-  ].map((n) => ({ ...n, ox: n.x, oy: n.y, mass: NODE_MASS[n.id] ?? 1 }));
+  ];
+  if (p.kind === 'gunner' && p.gun) {
+    const ang = p.aimAngle || 0;
+    const len = p.gunLook?.muzzleLen || MUZZLE_LEN;
+    nodes.push({ id: 'gun', x: p.gun.x, y: p.gun.y });
+    nodes.push({
+      id: 'muzzle',
+      x: p.gun.x + Math.cos(ang) * len,
+      y: p.gun.y + Math.sin(ang) * len,
+    });
+  }
+  return nodes.map((n) => ({ ...n, ox: n.x, oy: n.y, mass: NODE_MASS[n.id] ?? 1 }));
 }
 
 const RAG_LINKS = [
@@ -657,11 +675,13 @@ const RAG_LINKS = [
   ['rib', 'gut'],
   ['shL', 'shR'],
   ['pL', 'pR'],
+  ['gun', 'muzzle'],
+  ['gun', 'rHand'],
 ];
 
 export function ragdollLinks(nodes) {
   const idx = Object.fromEntries(nodes.map((n, i) => [n.id, i]));
-  return RAG_LINKS.map(([a, b]) => {
+  return RAG_LINKS.filter(([a, b]) => idx[a] != null && idx[b] != null).map(([a, b]) => {
     const ia = idx[a];
     const ib = idx[b];
     const na = nodes[ia];
@@ -681,13 +701,16 @@ export function poseFromNodes(nodes, kind) {
   const hipBR = pt('hipBR', pelvis);
   const lAnkle = pt('lAnkle', hipBL);
   const rAnkle = pt('rAnkle', hipBR);
+  const gun = pt('gun', rib);
+  const muzzle = n.muzzle;
   return {
     pelvis,
     gut: pt('gut', pelvis),
     rib,
     junction: pt('junction', rib),
     head: pt('head', rib),
-    gun: rib,
+    gun,
+    aimAngle: muzzle ? Math.atan2(muzzle.y - gun.y, muzzle.x - gun.x) : 0,
     jL: pt('jL', shL),
     jR: pt('jR', shR),
     pL: pt('pL', hipBL),

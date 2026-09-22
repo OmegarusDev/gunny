@@ -70,7 +70,7 @@ export function hydrateProfile(parsed = {}, { scaleSkills = false } = {}) {
   const kits = {};
   for (const id of ownedReceivers) {
     const raw = savedKits[id] || (id === 't5_advanced' ? savedKits.t4_advanced : null) || {};
-    kits[id] = { ranks: ranksFromLegacyKit(raw) };
+    kits[id] = { ranks: sanitizeSlotRanks(ranksFromLegacyKit(raw), slotCapFor(id)) };
   }
   const rawSkills = parsed.skillRanks;
   const oldSanitized = sanitizeRanks(rawSkills);

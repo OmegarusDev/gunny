@@ -39,6 +39,42 @@ export function spawnBullet(x, y, angle, stats, perfectMag, maxDist) {
   };
 }
 
+function zoneRank(zone) {
+  if (zone === 'head') return 3;
+  if (zone === 'upper' || zone === 'lower') return 2;
+  return 0;
+}
+
+/** Prefer torso/head when a limb circle overlaps the same surface. */
+const ZONE_SLACK_PX = 16;
+
+function pickLimbHit(b, nx, ny, enemies, maxT) {
+  const step = Math.hypot(nx - b.x, ny - b.y) || 1;
+  const slackT = ZONE_SLACK_PX / step;
+  let first = null;
+  for (const enemy of enemies) {
+    if (!enemy.alive) continue;
+    for (const c of limbCircleList(enemy)) {
+      if (b.hitIds.has(`${enemy.id}:${c.zone}`)) continue;
+      const hit = segmentHitsCircle(b.x, b.y, nx, ny, c.x, c.y, c.r);
+      if (!hit || hit.t > maxT) continue;
+      if (!first || hit.t < first.hit.t) first = { enemy, zone: c.zone, hit, rank: zoneRank(c.zone) };
+    }
+  }
+  if (!first) return null;
+  let best = first;
+  for (const c of limbCircleList(first.enemy)) {
+    if (b.hitIds.has(`${first.enemy.id}:${c.zone}`)) continue;
+    const hit = segmentHitsCircle(b.x, b.y, nx, ny, c.x, c.y, c.r);
+    if (!hit || hit.t > maxT || hit.t > first.hit.t + slackT) continue;
+    const rank = zoneRank(c.zone);
+    if (rank > best.rank || (rank === best.rank && hit.t < best.hit.t)) {
+      best = { enemy: first.enemy, zone: c.zone, hit, rank };
+    }
+  }
+  return best;
+}
+
 export function stepBullets(run, dt, viewport) {
   const { bullets, enemies, terrain, weather, stats } = run;
   const decay = stats.penDecay;
@@ -64,23 +100,14 @@ export function stepBullets(run, dt, viewport) {
     let maxT = 1;
     if (dirt) maxT = dirt.t;
 
-    let best = null;
-    for (const enemy of enemies) {
-      if (!enemy.alive) continue;
-      if (b.hitIds.has(enemy.id)) continue;
-      for (const c of limbCircleList(enemy)) {
-        const hit = segmentHitsCircle(b.x, b.y, nx, ny, c.x, c.y, c.r);
-        if (!hit || hit.t > maxT) continue;
-        if (!best || hit.t < best.t) best = { enemy, zone: c.zone, hit };
-      }
-    }
+    const best = pickLimbHit(b, nx, ny, enemies, maxT);
 
     if (best) {
       const nxDir = Math.cos(Math.atan2(b.vy, b.vx));
       const nyDir = Math.sin(Math.atan2(b.vy, b.vx));
       const travelled = Math.hypot(best.hit.x - b.ox, best.hit.y - b.oy);
       const rangeMul = rangeDamageMul(travelled, b.maxDist);
-      b.hitIds.add(best.enemy.id);
+      b.hitIds.add(`${best.enemy.id}:${best.zone}`);
       const crit = run.rng() < (stats.critChance ?? 0);
       b.pen += hitPenBonus(best.zone, crit);
       const penBefore = b.pen;

@@ -50,6 +50,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     levelIndex,
     seed: seeded.seed,
     rng: seeded.rng,
+    fxRng: seedFromUint32((seeded.seed ^ 0xc0ffee01) >>> 0),
     biome,
     receiver: profile.loadout?.receiver || 't1_stock',
     terrain,
@@ -101,6 +102,10 @@ function degToRad(d) {
   return (d * Math.PI) / 180;
 }
 
+function fxOf(run) {
+  return typeof run.fxRng === 'function' ? run.fxRng : run.rng;
+}
+
 function applyHits(run) {
   const { stats } = run;
   for (const hit of run.pendingHits) {
@@ -120,10 +125,11 @@ function applyHits(run) {
 
     const applied = Math.max(0, dmg);
     const n = applied >= 9.5 ? String(Math.round(applied)) : applied.toFixed(1);
+    const fx = fxOf(run);
     run.callouts.push({
-      x: hit.x + (run.rng() - 0.5) * 16,
+      x: hit.x + (fx() - 0.5) * 16,
       y: hit.y - 12,
-      vx: (run.rng() - 0.5) * 70,
+      vx: (fx() - 0.5) * 70,
       vy: -260,
       text: n,
       life: 0.92,
@@ -133,14 +139,15 @@ function applyHits(run) {
     });
 
     if (zone === 'head') {
-      run.particles.push(...spawnBurst(hit.x, hit.y, 14, run.rng, hit.nx, hit.ny));
+      run.particles.push(...spawnBurst(hit.x, hit.y, 14, fx, hit.nx, hit.ny));
     } else {
-      run.particles.push(...spawnBurst(hit.x, hit.y, 6, run.rng, hit.nx, hit.ny));
+      run.particles.push(...spawnBurst(hit.x, hit.y, 6, fx, hit.nx, hit.ny));
     }
     run.impacts.push({ x: hit.x, y: hit.y, life: 0.1, dirt: false, head: zone === 'head' });
 
     applyFlinch(enemy, hit, { crit });
     updateLocomotion(enemy);
+    if (enemy.alive) cacheEnemyPose(enemy);
 
     if (isDead(enemy)) {
       enemy.alive = false;
@@ -150,9 +157,9 @@ function applyHits(run) {
       const hpMul = run.threat?.hpMul || 1;
       onKill(run.score, stats.cashMul * role.cash, role.xp * hpMul);
       if (overkill) {
-        run.gibs.push(...spawnGibs(hit.x, hit.y, hit.nx, hit.ny, 10, run.rng));
+        run.gibs.push(...spawnGibs(hit.x, hit.y, hit.nx, hit.ny, 10, fx));
       } else {
-        run.ragdolls.push(spawnRagdoll(enemy, hit, run.rng));
+        run.ragdolls.push(spawnRagdoll(enemy, hit, fx));
       }
     }
   }
@@ -201,14 +208,15 @@ function tryFire(run, firing, viewport, tap) {
   player.shotKick = Math.min(0.12, (player.shotKick || 0) + 0.07);
   run.shakeX = (run.shakeX || 0) - Math.cos(angle) * 2.4;
   run.shakeY = (run.shakeY || 0) - Math.sin(angle) * 1.5 - 0.9;
-  const sparks = spawnBurst(muzzle.x, muzzle.y, 5, run.rng, Math.cos(angle), Math.sin(angle));
+  const fx = fxOf(run);
+  const sparks = spawnBurst(muzzle.x, muzzle.y, 5, fx, Math.cos(angle), Math.sin(angle));
   for (const p of sparks) {
     p.tone = 'spark';
-    p.life = 0.09 + run.rng() * 0.05;
+    p.life = 0.09 + fx() * 0.05;
     p.max = 0.16;
   }
   run.particles.push(...sparks);
-  emitBarrelSmoke(run, muzzle.x, muzzle.y, angle, run.rng, 'shot');
+  emitBarrelSmoke(run, muzzle.x, muzzle.y, angle, fx, 'shot');
   playMuzzle(stats, { receiver: run.receiver, biome: run.biome?.id });
   return true;
 }
@@ -234,7 +242,7 @@ function beginDeath(run, enemy) {
       kind: 'gunner',
     },
     { nx, ny: -0.3, energy: 1.6, zone: 'upper' },
-    run.rng,
+    fxOf(run),
   );
   rag.hero = true;
   run.ragdolls.push(rag);
@@ -369,7 +377,8 @@ export function simulate(run, dt, viewport, input) {
     const g = gunWorld(player);
     const mx = g.x + Math.cos(g.ang) * g.len;
     const my = g.y + Math.sin(g.ang) * g.len;
-    if (run.rng() < weapon.heat * dt * 12) emitBarrelSmoke(run, mx, my, g.ang, run.rng, 'idle');
+    const fx = fxOf(run);
+    if (fx() < weapon.heat * dt * 12) emitBarrelSmoke(run, mx, my, g.ang, fx, 'idle');
   }
 
   const tapReloadIntent =

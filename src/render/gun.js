@@ -56,6 +56,7 @@ function receiverPoly(tier, recLen) {
 }
 
 function drawStock(ctx, len, wood, ink) {
+  if (!(len > 0)) return;
   if (len < 2 * S) {
     poly(
       ctx,

@@ -3,7 +3,7 @@ import { uhash } from '../util/hash.js';
 let grainCanvas = null;
 let grainPat = null;
 
-function sceneFx(viewport) {
+export function sceneFx(viewport) {
   return viewport?.quality?.fx !== false;
 }
 

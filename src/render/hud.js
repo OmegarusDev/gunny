@@ -285,7 +285,8 @@ function drawPause(ctx, run, viewport, m) {
   ctx.fillStyle = MUTED;
   ctx.font = `${Math.round(16 * m.t)}px ${SANS}`;
   ctx.letterSpacing = '0.04em';
-  ctx.fillText('Tap anywhere to resume', viewport.w / 2, py + 92 * m.u);
+  const portrait = (viewport.cssH || viewport.h) > (viewport.cssW || viewport.w) * 1.05;
+  ctx.fillText(portrait ? 'Rotate to landscape' : 'Tap anywhere to resume', viewport.w / 2, py + 92 * m.u);
   ctx.font = `${Math.round(13 * m.t)}px ${SANS}`;
   ctx.fillStyle = 'rgba(243, 230, 208, 0.5)';
   ctx.letterSpacing = '0.08em';

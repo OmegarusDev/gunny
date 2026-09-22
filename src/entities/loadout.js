@@ -108,8 +108,8 @@ export function slotUnlockedFor(receiverId, slot) {
   return rec.tier >= (SLOT_MIN_TIER[slot] || 1);
 }
 
-export function resolveStats(profile) {
-  const rec = RECEIVERS[profile.loadout.receiver] || RECEIVERS.t1_stock;
+export function resolveStats(profile, recId = profile.loadout?.receiver) {
+  const rec = RECEIVERS[recId] || RECEIVERS[profile.loadout?.receiver] || RECEIVERS.t1_stock;
   const stats = { ...rec.base };
   stats.critChance = BASE_CRIT_CHANCE;
   stats.critMult = BASE_CRIT_MULT;
