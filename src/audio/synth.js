@@ -17,8 +17,10 @@ import {
   setPortraitMute,
   setSoundscape as setEngineSoundscape,
   sink,
+  suspendEngine,
   sweep,
 } from './engine.js';
+import { pageHidden } from '../engine/page.js';
 
 export { setPortraitMute };
 
@@ -30,7 +32,7 @@ export function applyMixer(settings) {
 
 export function setSoundscape(id) {
   scene = setEngineSoundscape(id);
-  if (ambNodes?.context) startAmbient(ambNodes.context);
+  if (ambNodes?.context && !pageHidden()) startAmbient(ambNodes.context);
   return scene;
 }
 
@@ -38,6 +40,11 @@ export function resumeAudio() {
   const audio = resumeEngine();
   if (!audio) return;
   startAmbient(audio);
+}
+
+export function suspendAudio() {
+  stopAmbient();
+  suspendEngine();
 }
 
 export const RECEIVER_TONES = {
@@ -482,6 +489,7 @@ const AMBIENT = {
 let ambNodes = null;
 
 function startAmbient(audio) {
+  if (pageHidden() || !audio) return;
   const graph = ensureGraph(audio);
   const place = AMBIENT[scene] || AMBIENT.forest;
   if (ambNodes && ambNodes.context === audio) {
@@ -524,5 +532,22 @@ function startAmbient(audio) {
   src.start();
   lfo.start();
   trem.start();
-  ambNodes = { context: audio, src, bp, g, lfoG };
+  ambNodes = { context: audio, src, bp, g, lfo, trem, lfoG };
+}
+
+function stopAmbient() {
+  if (!ambNodes) return;
+  for (const node of [ambNodes.src, ambNodes.lfo, ambNodes.trem]) {
+    try {
+      node?.stop();
+    } catch {
+      /* already stopped */
+    }
+    try {
+      node?.disconnect();
+    } catch {
+      /* already disconnected */
+    }
+  }
+  ambNodes = null;
 }

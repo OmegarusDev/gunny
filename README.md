@@ -7,7 +7,7 @@
 
 # Gunny
 
-Shoulder-fire auto-runner. You’re locked on the left, walking backward. They’re faster. Don’t let them touch you.
+**0.8.** Shoulder-fire auto-runner. You’re locked on the left, walking backward. They’re faster. Don’t let them touch you.
 
 A 2D HTML5 Canvas chase. Scenery, characters, and UI are drawn; sound is synthesized. No runtime deps beyond Vite. Landscape only.
 
@@ -16,7 +16,7 @@ A 2D HTML5 Canvas chase. Scenery, characters, and UI are drawn; sound is synthes
 - **Aim** — mouse / touch. A tap or click snaps the muzzle *before* the round leaves, so you do not waste the first shot on the old angle.
 - **Fire** — hold. Cyclic rate is the limiter; a dry click means the gun is not ready. Holding also builds **Heat**, which opens the cone until you let off.
 - **Reload** — only when the mag is empty. Tap anywhere (`R` also taps). The prompt sits near the top: **Reload** / **Tap Anywhere**.
-- **Pause** — `P` / Esc / Space, or leave the tab. **Tap the pause screen to resume.** Portrait mode pauses and hushes the background.
+- **Pause** — `P` / Esc / Space, or leave the tab. **Tap the pause screen to resume.** Leaving the tab **suspends** the app and the audio (it does not keep playing muted). Portrait mode pauses until you rotate.
 
 A **perfect** reload is a timing tap on the gold band. On a 3s seat, that mark is at **2s** (just before two-thirds of the bar). A perfect adds **10% cyclic rate** for the mag you just seated, and a little XP. Miss after the forgive window and you **jam**.
 
@@ -28,7 +28,7 @@ Mouse and pen get a software cursor in camp. Touch hides it. Combat uses the on-
 
 You start with a **Shoddy** receiver, **$0**, and Road 1 (**Forest Road**). Clear **250m** (about two minutes at 2 m/s) to unlock the next road and take the extract payday. Contact with a living enemy’s **head or torso** ends the run — legs do not. A crawler whose legs have given out can still kill if the body touches you. Extracting on the line still counts even if someone is touching.
 
-Death flavour is an escape (`You barely escape alive...`). Extract is `You made it`. Retry from death is the same road; Return goes to camp.
+Death flavour is an escape (`You barely escape alive...`). Extract is `You made it`. Death uses the same camp card as the hub. Retry names the road (`Forest Road · 250m`, or **Endless**). Return goes to camp.
 
 **Endless** is a separate start once you have extracted. Pick any beaten road’s skin. It is about **twice as hard** as the same campaign metres, and it does not unlock the next campaign road.
 
@@ -42,7 +42,7 @@ Past effective range, tracers **keep flying**. Damage and accuracy fall with **d
 
 **Penetration** is a budget of 1 to exit a body. Leftover pen can wound the next one. Headshots and crits each add **0.12** pen and **stack**. Crits are a Training RNG roll, not headshots.
 
-- **Shoddy** starts at **0.5**. Ammo around rank **60** plus a **headshot and a crit together** can punch through. Anything short of that stays in the first body.
+- **Shoddy** starts at **0.5**. Even maxed ammo (rank 20) plus a **headshot and a crit together** stays in the first body.
 - **Basic** starts at **0.9**. A headshot or a crit is enough; a long barrel also gets you there. Unupgraded Basic without those does not overpen.
 
 **SPRD** is first-shot half-cone. Later receivers start a little tighter. Bloom and heat stack on top — they are not this stat. A finished Elite kit plus max Marksman can settle first-shot to **0°**; earlier guns cannot.
@@ -51,7 +51,7 @@ Past effective range, tracers **keep flying**. Damage and accuracy fall with **d
 
 Receiver **tabs**: Shoddy → Basic → Advanced → Expert → Elite. Each gun is its **own kit**. Buying the next receiver starts that gun stub; switching back keeps the old ranks. You cannot spend upgrades on a gun you have not bought — the parts fade and **Buy** sits on the pane.
 
-Slot upgrades are **0–100**, bought one level at a time. The cap is silent: the button reads **Upgrade** until **MAX**. First mag is **$100** (about ten grunt kills). Costs then climb about **6%** per level, always at least $10 more than the last. Big mags (past 8) take a little longer to seat.
+Slot upgrades are **0–100**, bought one level at a time, **capped by the gun**: Shoddy 20, Basic 40, Advanced 60, Expert 80, Elite 100. The cap is silent: the button reads **Upgrade** until **MAX**. First mag is **$100** (about ten grunt kills). Costs then climb about **6%** per level, always at least $10 more than the last. Big mags (past 8) take a little longer to seat.
 
 Shoddy opens **mag, bolt, and ammo**. Each later gun opens two more slots; Elite opens the last three:
 
@@ -69,7 +69,7 @@ Tap a stat chip or a part card for a footer hint. Gunsmith’s part grid is the 
 
 ## Training
 
-XP buys skills (max 20 each). Every skill starts at **40 XP**, then **+20 XP** per rank. Gunner level is 1 + total XP earned (spent + banked) / 100.
+XP buys skills (max **100** each). Every skill starts at **40 XP**, then **+20 XP** per rank. Rank 100 is the old rank 20 in effect. Gunner level is 1 + total XP earned (spent + banked) / 100.
 
 - **Recoil** — less bloom per shot
 - **Reload** — faster seats, wider perfect band
@@ -117,7 +117,7 @@ One **4:3** wood card, floating on the canvas. Ledger is Gunner level, cash, and
 - Tanks and the Behemoth look like larger biome walkers (bigger zombie, bigger vampire, …).
 - Headshots are 2× on the same body HP. Legs share that pool and also have an 80% crawl bar (40 damage to the legs of a 50 HP walker puts it on the ground with 10 left).
 - Crits are a Training RNG roll. They are not headshots. Both add 0.12 pen and stack.
-- Shoddy only punches through with ammo around rank 60 plus a headshot **and** a crit together. Basic starts at 0.9 and overpens with a headshot, a crit, or enough barrel.
+- Shoddy never overpens: ammo is capped at 20. Basic starts at 0.9 and overpens with a headshot, a crit, or enough barrel.
 - If a round does exit a body, leftover travel can still wound the next one.
 - A new app update waits until you are back at **camp**. It will not reload mid-run, on Gunsmith/Training, or on the extract/death screen.
 - Portrait mode pauses the sim and asks you to rotate. Background sound hushes until you are landscape again.

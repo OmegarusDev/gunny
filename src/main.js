@@ -3,7 +3,8 @@ import { createCanvas } from './engine/canvas.js';
 import { createInput } from './engine/input.js';
 import { enterImmersive } from './engine/immersive.js';
 import { createLoop } from './engine/loop.js';
-import { resumeAudio, setSoundscape } from './audio/synth.js';
+import { resumeAudio, setSoundscape, suspendAudio } from './audio/synth.js';
+import { pageHidden } from './engine/page.js';
 import { drawBackdrop, drawWorld } from './render/draw.js';
 import { drawHud } from './render/hud.js';
 import { addRewards, loadProfile, resetProfile, saveProfile, unlockLevel } from './state/profile.js';
@@ -169,7 +170,28 @@ const simInput = {
   pointerTap: false,
 };
 
+function parkPage() {
+  suspendAudio();
+  if (run && !run.ended && !run.dying) run.paused = true;
+  input.clearFireIntent();
+}
+
+window.addEventListener('pagehide', parkPage);
+document.addEventListener('visibilitychange', () => {
+  if (pageHidden()) {
+    parkPage();
+    return;
+  }
+  loop.reset();
+  // Keep a paused run silent; hub / gunsmith / training get ambient back.
+  if (!(mode === 'run' && run?.paused)) resumeAudio();
+});
+
 function frame(now) {
+  if (pageHidden()) {
+    requestAnimationFrame(frame);
+    return;
+  }
   const { steps, frame: frameDt } = loop.tick(now);
   const q = viewport.quality;
   q?.noteFrame(frameDt);

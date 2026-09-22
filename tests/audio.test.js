@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BIOMES } from '../src/data/biomes.js';
 import { RECEIVERS } from '../src/data/receivers.js';
 import { IR_SPEC, setSoundscape } from '../src/audio/engine.js';
+import { pageHidden } from '../src/engine/page.js';
 import {
   playCock,
   playDry,
@@ -14,6 +15,7 @@ import {
   playPerfect,
   RECEIVER_TONES,
   setSoundscape as setSynthSoundscape,
+  suspendAudio,
 } from '../src/audio/synth.js';
 import { createRun } from '../src/systems/run.js';
 import { defaultProfile } from '../src/state/profile.js';
@@ -64,5 +66,10 @@ describe('sound engine', () => {
       playFoot({ voice: 'boot' });
       playFoot({ voice: 'zombie', dist: 120, pan: 0.2 });
     }).not.toThrow();
+  });
+
+  it('treats node as visible and parks audio without throwing', () => {
+    expect(pageHidden()).toBe(false);
+    expect(() => suspendAudio()).not.toThrow();
   });
 });

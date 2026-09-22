@@ -1,9 +1,9 @@
 import { RECEIVERS, SLOT_MIN_TIER, receiverRequirement } from '../data/receivers.js';
-import { SLOT_MAX, STARTER_LOADOUT, emptySlotRanks, ranksFromLegacyKit, sanitizeSlotRanks, upgradeCost } from '../data/upgrades.js';
-import { emptyRanks, sanitizeRanks } from '../data/skills.js';
+import { STARTER_LOADOUT, emptySlotRanks, ranksFromLegacyKit, sanitizeSlotRanks, slotCapFor, upgradeCost } from '../data/upgrades.js';
+import { emptyRanks, sanitizeRanks, SKILLS, xpInvested } from '../data/skills.js';
 
-const KEY = 'gunny.profile.v4';
-const LEGACY_KEYS = ['gunny.profile.v3', 'gunny.profile.v2'];
+const KEY = 'gunny.profile.v5';
+const LEGACY_KEYS = ['gunny.profile.v4', 'gunny.profile.v3', 'gunny.profile.v2'];
 
 function starterKit() {
   return { ranks: emptySlotRanks() };
@@ -13,7 +13,7 @@ export function ensureKit(profile, recId = profile.loadout?.receiver) {
   if (!profile.kits) profile.kits = {};
   if (!RECEIVERS[recId]) recId = STARTER_LOADOUT.receiver;
   if (!profile.kits[recId]) profile.kits[recId] = starterKit();
-  profile.kits[recId].ranks = sanitizeSlotRanks(profile.kits[recId].ranks);
+  profile.kits[recId].ranks = sanitizeSlotRanks(profile.kits[recId].ranks, slotCapFor(recId));
   return profile.kits[recId];
 }
 
@@ -38,6 +38,7 @@ export function defaultProfile() {
     loadout: { ...STARTER_LOADOUT },
     kits: { [STARTER_LOADOUT.receiver]: starterKit() },
     skillRanks: emptyRanks(),
+    xpSpent: 0,
   };
 }
 
@@ -56,7 +57,7 @@ function fillReceiverLadder(ids) {
   return list.filter((r) => r.rank <= max).map((r) => r.id);
 }
 
-export function hydrateProfile(parsed = {}) {
+export function hydrateProfile(parsed = {}, { scaleSkills = false } = {}) {
   const base = defaultProfile();
   const ownedReceivers = fillReceiverLadder(
     Array.from(new Set([...(parsed.owned || []).map(remapReceiverId), STARTER_LOADOUT.receiver])).filter(
@@ -71,6 +72,14 @@ export function hydrateProfile(parsed = {}) {
     const raw = savedKits[id] || (id === 't5_advanced' ? savedKits.t4_advanced : null) || {};
     kits[id] = { ranks: ranksFromLegacyKit(raw) };
   }
+  const rawSkills = parsed.skillRanks;
+  const oldSanitized = sanitizeRanks(rawSkills);
+  const skillRanks = scaleSkills ? scaleLegacySkillRanks(rawSkills) : oldSanitized;
+  const xpSpent = scaleSkills
+    ? xpInvested(oldSanitized)
+    : Number.isFinite(Number(parsed.xpSpent))
+      ? Math.max(0, Math.floor(parsed.xpSpent))
+      : xpInvested(skillRanks);
   const next = {
     ...base,
     cash: Math.max(0, Number(parsed.cash) || 0),
@@ -79,18 +88,30 @@ export function hydrateProfile(parsed = {}) {
     owned: ownedReceivers,
     loadout: { receiver: recId },
     kits,
-    skillRanks: sanitizeRanks(parsed.skillRanks),
+    skillRanks,
+    xpSpent,
   };
   applyKit(next);
   return next;
 }
 
+function scaleLegacySkillRanks(ranks) {
+  const next = emptyRanks();
+  for (const id of Object.keys(next)) {
+    const n = Math.floor(Number(ranks?.[id]) || 0);
+    next[id] = Math.max(0, Math.min(SKILLS[id].maxRank, n * 5));
+  }
+  return next;
+}
+
 export function loadProfile() {
   try {
-    for (const key of [KEY, ...LEGACY_KEYS]) {
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-      return hydrateProfile(JSON.parse(raw));
+    const raw = localStorage.getItem(KEY);
+    if (raw) return hydrateProfile(JSON.parse(raw));
+    for (const key of LEGACY_KEYS) {
+      const saved = localStorage.getItem(key);
+      if (!saved) continue;
+      return hydrateProfile(JSON.parse(saved), { scaleSkills: true });
     }
     return defaultProfile();
   } catch {
@@ -122,7 +143,7 @@ export function slotRank(profile, slot, recId = profile.loadout?.receiver) {
 export function buyBlockedReason(profile, id) {
   if (owns(profile, id)) return 'Owned';
   const req = receiverRequirement(id);
-  if (req && !owns(profile, req)) return `Need ${RECEIVERS[req]?.short || req}`;
+  if (req && !owns(profile, req)) return 'Need previous';
   return null;
 }
 
@@ -142,7 +163,7 @@ export function upgradeSlot(profile, slot, recId = profile.loadout?.receiver) {
   if ((RECEIVERS[recId].tier || 1) < (SLOT_MIN_TIER[slot] || 1)) return false;
   const kit = ensureKit(profile, recId);
   const rank = kit.ranks[slot] || 0;
-  if (rank >= SLOT_MAX) return false;
+  if (rank >= slotCapFor(recId)) return false;
   const cost = upgradeCost(slot, rank);
   if (profile.cash < cost) return false;
   profile.cash -= cost;

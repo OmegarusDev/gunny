@@ -1,3 +1,4 @@
+import { pageHidden } from '../engine/page.js';
 import { clamp01 } from '../util/math.js';
 
 let ctx = null;
@@ -20,10 +21,10 @@ export const IR_SPEC = {
 };
 
 export function audioContext() {
+  if (pageHidden()) return null;
   const Ctor = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
   if (!Ctor) return null;
   if (!ctx) ctx = new Ctor();
-  if (ctx.state === 'suspended') ctx.resume();
   return ctx;
 }
 
@@ -95,13 +96,20 @@ export function setPortraitMute(on) {
 }
 
 export function resumeEngine() {
-  const audio = audioContext();
-  if (!audio) return null;
-  ensureGraph(audio);
-  ensureBanks(audio);
-  ensureFx(audio);
+  if (pageHidden()) return null;
+  const Ctor = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
+  if (!Ctor) return null;
+  if (!ctx) ctx = new Ctor();
+  if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume();
+  ensureGraph(ctx);
+  ensureBanks(ctx);
+  ensureFx(ctx);
   syncBuses();
-  return audio;
+  return ctx;
+}
+
+export function suspendEngine() {
+  if (ctx && ctx.state === 'running') ctx.suspend();
 }
 
 function watchPortrait() {

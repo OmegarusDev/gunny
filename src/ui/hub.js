@@ -84,13 +84,13 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
   const biome = run.biome;
   const clearPay = extract ? run.score.extractCash || extractCash(run.levelIndex) : 0;
   const killCash = extract ? Math.max(0, run.score.cash - clearPay) : run.score.cash;
+  const retrySub = run.endless ? 'Endless' : `${biome?.place || 'The road'} · ${TRACK_METERS}m`;
   el.innerHTML = `
-    <div class="panel-stack camp-stack end-stack">
+    <div class="panel-stack camp-stack">
       ${ledgerBlock(profile)}
-      <header class="camp-brand workshop-brand">
-        <p class="kicker">${run.endless ? 'Endless' : `Road ${run.levelIndex + 1}`}</p>
-        <h2>${biome ? biome.place : 'The road'}</h2>
-        <p class="end-verdict">${title}</p>
+      <header class="camp-brand">
+        <h1>GUNNY</h1>
+        <p class="lede">${title}</p>
       </header>
       ${statsGrid([
         ['Dist', formatMetres(run.score.lastMetersPaid)],
@@ -131,7 +131,7 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
                 act: 'retry',
                 icon: 'retry',
                 title: 'Retry',
-                sub: 'Same road',
+                sub: retrySub,
                 variant: 'start',
               })
         }

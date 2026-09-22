@@ -36,12 +36,12 @@ import {
 import { BIOMES, beatenRoadIndexes, biomeFor } from '../src/data/biomes.js';
 import { KINDS } from '../src/data/kinds.js';
 import { RECEIVERS, RECEIVER_COST_BASE, RECEIVER_COSTS, RECEIVER_STAT_RATE, SLOTS, SLOT_MIN_TIER } from '../src/data/receivers.js';
-import { SLOT_COST_RATE, SLOT_MAX, SLOT_UPGRADES, sanitizeSlotRanks, slotMods, upgradeCost } from '../src/data/upgrades.js';
+import { SLOT_COST_RATE, SLOT_MAX, SLOT_UPGRADES, sanitizeSlotRanks, slotCapFor, slotMods, upgradeCost } from '../src/data/upgrades.js';
 import { CHASE_FLOOR, ROLE_UNLOCK, ROLES, pickRole, roleUnlocked } from '../src/data/roles.js';
-import { SKILLS, sanitizeRanks, skillCost } from '../src/data/skills.js';
+import { SKILLS, sanitizeRanks, skillCost, xpInvested } from '../src/data/skills.js';
 import { formatRpm, gunsmithStatRows, magRof, resolveStats, shotSpreadDeg, slotUnlockedFor, STAT_BY_ID, STATS, trainingStatRows } from '../src/entities/loadout.js';
 import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, isDead, lethalCircles, lethalHpRatio, limbCircleList, limbCircles, locationalOf, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
-import { defaultProfile, resetProfile, buyPart, owns, hydrateProfile, equipPart, ensureKit, upgradeSlot, slotRank } from '../src/state/profile.js';
+import { defaultProfile, resetProfile, buyPart, buyBlockedReason, owns, hydrateProfile, equipPart, ensureKit, upgradeSlot, slotRank } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
 import { wantsImmersive, usesHtmlFullscreen, isPortrait } from '../src/engine/immersive.js';
 import { clampAimPoint, clampToViewport, resolveAimPoint } from '../src/view/aim.js';
@@ -61,13 +61,14 @@ import { rectCircleOverlap, segmentHitsCircle } from '../src/systems/hits.js';
 import { spawnBullet, stepBullets, rangeDamageMul, hitPenBonus } from '../src/systems/ballistics.js';
 import { capDpr, createQuality } from '../src/engine/quality.js';
 import { pwaUpdateBlocked } from '../src/engine/pwaBusy.js';
+import { renderEnd } from '../src/ui/hub.js';
 import { deciduousH, pineH } from '../src/render/scenery/util.js';
 
 const LADDER = ['t1_stock', 't2_tactical', 't3_ordnance', 't4_duty', 't5_advanced'];
 
 function setRanks(profile, ranks, recId = profile.loadout.receiver) {
   const kit = ensureKit(profile, recId);
-  kit.ranks = sanitizeSlotRanks({ ...kit.ranks, ...ranks });
+  kit.ranks = sanitizeSlotRanks({ ...kit.ranks, ...ranks }, slotCapFor(recId));
   return profile;
 }
 
@@ -267,17 +268,20 @@ describe('economy & ladders', () => {
     expect(RECEIVERS.t2_tactical.base.pen).toBeLessThan(FLESH_PEN_COST);
     expect(RECEIVERS.t3_ordnance.base.pen).toBeCloseTo(0.9 * RECEIVER_STAT_RATE, 2);
     const magnum = setRanks(defaultProfile(), { ammo: 60 });
+    expect(slotRank(magnum, 'ammo')).toBe(slotCapFor('t1_stock'));
     const kitPen = resolveStats(magnum).pen;
-    expect(kitPen).toBeCloseTo(0.5 + slotMods('ammo', 60).pen);
-    expect(kitPen + hitPenBonus('head', false)).toBeLessThanOrEqual(FLESH_PEN_COST);
-    expect(kitPen + hitPenBonus('torso', true)).toBeLessThanOrEqual(FLESH_PEN_COST);
-    expect(kitPen + hitPenBonus('head', true)).toBeGreaterThan(FLESH_PEN_COST);
-    const plusp = setRanks(defaultProfile(), { ammo: 40 });
-    expect(resolveStats(plusp).pen + hitPenBonus('head', true)).toBeLessThanOrEqual(FLESH_PEN_COST);
+    expect(kitPen).toBeCloseTo(0.5 + slotMods('ammo', slotCapFor('t1_stock')).pen);
+    expect(kitPen + hitPenBonus('head', true)).toBeLessThanOrEqual(FLESH_PEN_COST);
+    const ammo60Pen = 0.5 + slotMods('ammo', 60).pen;
+    expect(ammo60Pen + hitPenBonus('head', false)).toBeLessThanOrEqual(FLESH_PEN_COST);
+    expect(ammo60Pen + hitPenBonus('torso', true)).toBeLessThanOrEqual(FLESH_PEN_COST);
+    expect(ammo60Pen + hitPenBonus('head', true)).toBeGreaterThan(FLESH_PEN_COST);
+    const pluspPen = 0.5 + slotMods('ammo', 40).pen;
+    expect(pluspPen + hitPenBonus('head', true)).toBeLessThanOrEqual(FLESH_PEN_COST);
     const militia = gunAt('t2_tactical');
     expect(resolveStats(militia).pen).toBeCloseTo(0.9);
-    const longMilitia = gunAt('t2_tactical', { barrel: 60 });
-    expect(resolveStats(longMilitia).pen).toBeCloseTo(0.9 + slotMods('barrel', 60).pen);
+    const longMilitia = gunAt('t2_tactical', { barrel: 40 });
+    expect(resolveStats(longMilitia).pen).toBeCloseTo(0.9 + slotMods('barrel', 40).pen);
     expect(RECEIVERS.t2_tactical.base.pen + hitPenBonus('head', false)).toBeGreaterThan(FLESH_PEN_COST);
     expect(RECEIVERS.t2_tactical.base.pen + hitPenBonus('torso', true)).toBeGreaterThan(FLESH_PEN_COST);
     expect(spawnBullet(0, 0, 0, starter, true).pen).toBe(starter.pen);
@@ -487,10 +491,10 @@ describe('gunsmith catalog', () => {
   });
 
   it('makes bigger mags take longer to seat without a cliff at 80', () => {
-    const small = resolveStats(setRanks(defaultProfile(), { magazine: 4 }));
-    const mid = resolveStats(setRanks(defaultProfile(), { magazine: 32 }));
-    const huge = resolveStats(setRanks(defaultProfile(), { magazine: 80 }));
-    expect(small.reload).toBe(3);
+    const small = resolveStats(gunAt('t5_advanced', { magazine: 4 }));
+    const mid = resolveStats(gunAt('t5_advanced', { magazine: 32 }));
+    const huge = resolveStats(gunAt('t5_advanced', { magazine: 80 }));
+    expect(small.reload).toBeCloseTo(RECEIVERS.t5_advanced.base.reload);
     expect(mid.reload).toBeGreaterThan(small.reload);
     expect(huge.reload).toBeGreaterThan(mid.reload);
     expect(huge.reload - mid.reload).toBeLessThan(1);
@@ -522,13 +526,30 @@ describe('gunsmith catalog', () => {
     expect(piston.heatBuild).toBeLessThan(over.heatBuild);
   });
 
-  it('stops a slot at MAX and refuses locked parts on Shoddy', () => {
+  it('caps Shoddy slots at 20 and refuses locked parts', () => {
     const profile = defaultProfile();
     profile.cash = 1e9;
     setRanks(profile, { magazine: SLOT_MAX });
     expect(upgradeSlot(profile, 'magazine')).toBe(false);
-    expect(slotRank(profile, 'magazine')).toBe(SLOT_MAX);
+    expect(slotRank(profile, 'magazine')).toBe(20);
+    expect(slotRank(profile, 'magazine')).not.toBe(SLOT_MAX);
     expect(upgradeSlot(profile, 'barrel')).toBe(false);
+  });
+
+  it('lets Elite slots reach 100', () => {
+    const profile = gunAt('t5_advanced');
+    profile.cash = 1e9;
+    setRanks(profile, { magazine: SLOT_MAX }, 't5_advanced');
+    expect(slotRank(profile, 'magazine', 't5_advanced')).toBe(SLOT_MAX);
+    expect(upgradeSlot(profile, 'magazine', 't5_advanced')).toBe(false);
+  });
+
+  it('caps slot ranks by receiver tier', () => {
+    expect(slotCapFor('t1_stock')).toBe(20);
+    expect(slotCapFor('t2_tactical')).toBe(40);
+    expect(slotCapFor('t3_ordnance')).toBe(60);
+    expect(slotCapFor('t4_duty')).toBe(80);
+    expect(slotCapFor('t5_advanced')).toBe(100);
   });
 });
 
@@ -745,9 +766,9 @@ describe('reload helpers', () => {
 
 describe('skills & profile', () => {
   it('includes marksman in empty ranks', () => {
-    expect(SKILLS.recoil.maxRank).toBe(20);
-    expect(SKILLS.critChance.maxRank).toBe(20);
-    expect(SKILLS.marksman.maxRank).toBe(20);
+    expect(SKILLS.recoil.maxRank).toBe(100);
+    expect(SKILLS.critChance.maxRank).toBe(100);
+    expect(SKILLS.marksman.maxRank).toBe(100);
     expect(SKILLS.speed).toBeTruthy();
     expect(SKILLS.firing).toBeTruthy();
     expect(Object.keys(SKILLS).length % 2).toBe(0);
@@ -764,8 +785,10 @@ describe('skills & profile', () => {
     const ranks = sanitizeRanks({ nope: 2, marksman: 1, recoil: 99 });
     expect(ranks.nope).toBeUndefined();
     expect(ranks.marksman).toBe(1);
-    expect(ranks.recoil).toBe(SKILLS.recoil.maxRank);
+    expect(ranks.recoil).toBe(99);
     expect(ranks.firing).toBe(0);
+    expect(sanitizeRanks({ recoil: 199 }).recoil).toBe(SKILLS.recoil.maxRank);
+    expect(SKILLS.recoil.maxRank).toBe(100);
   });
 
   it('prices skill ranks with a mild curve', () => {
@@ -774,7 +797,49 @@ describe('skills & profile', () => {
       expect(skillCost(def, 0)).toBe(40);
       expect(skillCost(def, 1)).toBe(60);
       expect(skillCost(def, 3)).toBe(100);
+      expect(skillCost(def, 19)).toBe(420);
+      expect(skillCost(def, 20)).toBe(440);
     }
+  });
+
+  it('blocks later receivers until the previous gun is owned', () => {
+    const profile = defaultProfile();
+    expect(buyBlockedReason(profile, 't3_ordnance')).toBe('Need previous');
+    expect(buyBlockedReason(profile, 't2_tactical')).toBeNull();
+  });
+
+  it('scales legacy skill ranks 5× and keeps xpSpent on the old curve', () => {
+    const oldRanks = sanitizeRanks({ recoil: 4 });
+    const profile = hydrateProfile({ skillRanks: { recoil: 4 } }, { scaleSkills: true });
+    expect(profile.skillRanks.recoil).toBe(20);
+    expect(profile.xpSpent).toBe(xpInvested(oldRanks));
+  });
+
+  it('renders death on the camp stack with a named Retry road', () => {
+    const stub = { onclick: null };
+    const el = {
+      innerHTML: '',
+      querySelector: () => stub,
+      querySelectorAll: () => [],
+    };
+    renderEnd(el, {
+      title: 'You barely escape alive...',
+      run: {
+        biome: { place: 'Forest Road' },
+        endless: false,
+        levelIndex: 0,
+        ended: 'death',
+        score: { lastMetersPaid: 87, kills: 3, headshots: 1, perfects: 0, cash: 30, xp: 12 },
+      },
+      profile: defaultProfile(),
+      handlers: { retry() {}, hub() {}, gunsmith() {}, training() {} },
+      extract: false,
+    });
+    expect(el.innerHTML).toContain('camp-stack');
+    expect(el.innerHTML).toContain('GUNNY');
+    expect(el.innerHTML).toContain('You barely escape alive...');
+    expect(el.innerHTML).toContain(`Forest Road · ${TRACK_METERS}m`);
+    expect(el.innerHTML).not.toContain('Same road');
   });
 
   it('only auto-fullscreens the Android WebAPK unless the setting is on', () => {
@@ -1080,7 +1145,7 @@ describe('kinds & stats schema', () => {
     const trained = defaultProfile();
     trained.skillRanks.marksman = 4;
     trained.skillRanks.scavenger = 2;
-    trained.skillRanks.firing = 3;
+    trained.skillRanks.firing = 20;
     const after = trainingStatRows(resolveStats(trained));
     const before = Object.fromEntries(fresh.map((r) => [r[0], r[1]]));
     const next = Object.fromEntries(after.map((r) => [r[0], r[1]]));
@@ -1106,7 +1171,7 @@ describe('kinds & stats schema', () => {
     const profile = defaultProfile();
     profile.skillRanks.scavenger = 2;
     const stats = resolveStats(profile);
-    expect(stats.cashMul).toBeCloseTo(1.14);
+    expect(stats.cashMul).toBeCloseTo(1.028);
     const ghost = defaultProfile();
     ghost.kits.t1_stock.ranks.ammo = 1;
     const after = resolveStats(ghost);

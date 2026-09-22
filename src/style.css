@@ -280,14 +280,6 @@ html:-webkit-full-screen::backdrop,
   padding: 8px 12px 10px;
 }
 
-#overlay-root .end-stack > .workshop-brand {
-  flex: 0 1 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 0;
-}
-
 #overlay-root .camp-stack .facilities,
 #overlay-root .camp-stack .camp-foot {
   flex: 1 1 auto;
@@ -448,14 +440,6 @@ html:-webkit-full-screen::backdrop,
 
 #overlay-root .workshop-brand h2 {
   font-size: clamp(20px, 5.2vmin, 30px);
-}
-
-#panel-end .workshop-brand h2 {
-  font-size: clamp(28px, 7.2vmin, 44px);
-}
-
-#panel-end .end-stack {
-  padding-bottom: 8px;
 }
 
 #panel-end .stats {
@@ -1649,10 +1633,6 @@ html:-webkit-full-screen::backdrop,
     display: none;
   }
 
-  #panel-end .workshop-brand .kicker {
-    display: block;
-  }
-
   #overlay-root .workshop-brand {
     border-bottom: 0;
     padding-bottom: 0;
@@ -1669,10 +1649,6 @@ html:-webkit-full-screen::backdrop,
   #overlay-root .camp-stack > .camp-brand {
     flex: 0 0 auto;
     padding: 4px 8px;
-  }
-
-  #overlay-root .end-stack > .workshop-brand {
-    flex: 0 0 auto;
   }
 
   #overlay-root .train-grid {

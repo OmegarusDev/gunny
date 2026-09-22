@@ -78,6 +78,7 @@ export function renderTraining(el, profile, handlers) {
       const cost = skillCost(def, rank);
       if (profile.xp < cost) return;
       profile.xp -= cost;
+      profile.xpSpent = Math.max(0, Math.floor(Number(profile.xpSpent) || 0)) + cost;
       profile.skillRanks[def.id] = rank + 1;
       saveProfile(profile);
       el.dataset.hint = def.id;

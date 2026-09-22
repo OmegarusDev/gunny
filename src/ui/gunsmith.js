@@ -1,5 +1,5 @@
 import { RECEIVERS, SLOTS } from '../data/receivers.js';
-import { SLOT_MAX, SLOT_UPGRADES, upgradeCost } from '../data/upgrades.js';
+import { SLOT_UPGRADES, slotCapFor, upgradeCost } from '../data/upgrades.js';
 import { resolveStats, slotUnlockedFor, gunsmithStatRows } from '../entities/loadout.js';
 import { buyBlockedReason, buyPart, equipPart, owns, slotRank, upgradeSlot } from '../state/profile.js';
 import { fmtMoney, pageHead, statsGrid } from './overlays.js';
@@ -17,11 +17,12 @@ export function renderGunsmith(el, profile, handlers) {
   const loadoutStats = resolveStats(profile);
   const gate = buyBlockedReason(profile, recId);
 
+  const cap = slotCapFor(recId);
   const parts = SLOTS.filter((slot) => slot !== 'receiver' && slotUnlockedFor(recId, slot)).map((slot) => {
     const rank = owned ? slotRank(profile, slot, recId) : 0;
-    const maxed = rank >= SLOT_MAX;
+    const maxed = rank >= cap;
     const cost = upgradeCost(slot, rank);
-    return { slot, def: SLOT_UPGRADES[slot], rank, maxed, cost };
+    return { slot, def: SLOT_UPGRADES[slot], rank, maxed, cost, cap };
   });
 
   const buyLabel =
@@ -140,9 +141,9 @@ export function renderGunsmith(el, profile, handlers) {
   }
 }
 
-function partCard({ slot, def, rank, maxed, cost }, owned, cash) {
+function partCard({ slot, def, rank, maxed, cost, cap }, owned, cash) {
   if (!def) return '';
-  const fill = Math.max(0, Math.min(1, rank / SLOT_MAX));
+  const fill = Math.max(0, Math.min(1, rank / Math.max(1, cap || 1)));
   const can = owned && !maxed && cash >= cost;
   return `<div class="part-card" data-slot="${slot}">
     <strong>${def.short}</strong>

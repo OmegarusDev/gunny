@@ -1,7 +1,12 @@
-import { SLOTS } from './receivers.js';
+import { RECEIVERS, SLOTS } from './receivers.js';
 
 /** Silent cap. The button reads Upgrade or MAX — never n/100. */
 export const SLOT_MAX = 100;
+/** Shoddy 20, Basic 40, Advanced 60, Expert 80, Elite 100. */
+export function slotCapFor(recId) {
+  const rec = RECEIVERS[recId];
+  return Math.min(SLOT_MAX, Math.max(20, (rec?.tier || 1) * 20));
+}
 /** ~6% more cash per level. Early buys stay a session; 100 is a long sink. */
 export const SLOT_COST_RATE = 1.06;
 
@@ -115,11 +120,12 @@ export function emptySlotRanks() {
   return ranks;
 }
 
-export function sanitizeSlotRanks(raw = {}) {
+export function sanitizeSlotRanks(raw = {}, cap = SLOT_MAX) {
   const next = emptySlotRanks();
+  const top = Math.max(0, Math.min(SLOT_MAX, Math.floor(Number(cap) || SLOT_MAX)));
   for (const slot of Object.keys(next)) {
     const n = Math.floor(Number(raw[slot]) || 0);
-    next[slot] = Math.max(0, Math.min(SLOT_MAX, n));
+    next[slot] = Math.max(0, Math.min(top, n));
   }
   return next;
 }
