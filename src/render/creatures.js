@@ -173,10 +173,17 @@ export function drawCutPaper(ctx, p, pal, opts = {}) {
     );
   }
 
-  limbPoly(ctx, p.armR.shoulder, p.armR.elbow, 4.1 * S, skin);
-  limbPoly(ctx, p.armR.elbow, p.armR.hand, 3.4 * S, skin);
-  poly(ctx, handPoly(p.armR.hand, -front), skin);
-  joint(ctx, p.armR.hand, 3.6 * S, skin);
+  if (kind === 'gunner') {
+    limbPoly(ctx, p.armL.shoulder, p.armL.elbow, 4.4 * S, skin);
+    limbPoly(ctx, p.armL.elbow, p.armL.hand, 3.7 * S, skin);
+    poly(ctx, handPoly(p.armL.hand, front), skin);
+    joint(ctx, p.armL.hand, 3.8 * S, skin);
+  } else {
+    limbPoly(ctx, p.armR.shoulder, p.armR.elbow, 4.1 * S, skin);
+    limbPoly(ctx, p.armR.elbow, p.armR.hand, 3.4 * S, skin);
+    poly(ctx, handPoly(p.armR.hand, -front), skin);
+    joint(ctx, p.armR.hand, 3.6 * S, skin);
+  }
   limbPoly(ctx, p.r.hip, p.r.knee, 5 * S, mixTone(cloth, ink, 0.22));
   limbPoly(ctx, p.r.knee, p.r.ankle, 4.2 * S, mixTone(cloth, ink, 0.22));
   poly(ctx, bootPoly(p.r), ink);
@@ -248,10 +255,17 @@ export function drawCutPaper(ctx, p, pal, opts = {}) {
   joint(ctx, p.l.ankle, 4.8 * S, hips);
   joint(ctx, p.r.ankle, 4.4 * S, mixTone(cloth, ink, 0.22));
 
-  limbPoly(ctx, p.armL.shoulder, p.armL.elbow, 4.4 * S, skin);
-  limbPoly(ctx, p.armL.elbow, p.armL.hand, 3.7 * S, skin);
-  poly(ctx, handPoly(p.armL.hand, front), skin);
-  joint(ctx, p.armL.hand, 3.8 * S, skin);
+  if (kind === 'gunner') {
+    limbPoly(ctx, p.armR.shoulder, p.armR.elbow, 4.1 * S, skin);
+    limbPoly(ctx, p.armR.elbow, p.armR.hand, 3.4 * S, skin);
+    poly(ctx, handPoly(p.armR.hand, -front), skin);
+    joint(ctx, p.armR.hand, 3.6 * S, skin);
+  } else {
+    limbPoly(ctx, p.armL.shoulder, p.armL.elbow, 4.4 * S, skin);
+    limbPoly(ctx, p.armL.elbow, p.armL.hand, 3.7 * S, skin);
+    poly(ctx, handPoly(p.armL.hand, front), skin);
+    joint(ctx, p.armL.hand, 3.8 * S, skin);
+  }
   joint(ctx, p.l.hip, 6.6 * S, hips);
   joint(ctx, p.r.hip, 6.2 * S, mixTone(cloth, ink, 0.22));
   joint(ctx, p.armL.shoulder, 5.6 * S, mixTone(cloth, skin, 0.28));
@@ -279,8 +293,8 @@ export function drawCutPaper(ctx, p, pal, opts = {}) {
       );
     }
   }
-  if (kind === 'gunner') drawHeldGun(ctx, p, pal);
   if (kind === 'gunner') {
+    drawHeldGun(ctx, p, pal);
     poly(ctx, handPoly(p.armL.hand, front), skin);
     joint(ctx, p.armL.hand, 3.8 * S, skin);
     poly(ctx, handPoly(p.armR.hand, -front), skin);
