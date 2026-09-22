@@ -266,6 +266,8 @@ function stepDeath(run, dt, viewport) {
     if (enemy.alive) cacheEnemyPose(enemy);
   }
   stepFootfalls(run, viewport);
+  stepBullets(run, dt, viewport);
+  applyHits(run);
   stepRagdolls(run, dt, viewport);
   stepGibs(run, dt);
   stepSmoke(run, dt);

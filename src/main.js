@@ -67,7 +67,7 @@ const handlers = {
     showHub();
   },
   hub: showHub,
-  back: goBack,
+  back: showHub,
   gunsmith: showGunsmith,
   training: showTraining,
   retry() {
@@ -142,11 +142,6 @@ function showEnd() {
     extract: run.ended === 'extract',
   });
   leaveRun();
-}
-
-function goBack() {
-  if (run && run.ended) showEnd();
-  else showHub();
 }
 
 function settleRun() {

@@ -1,7 +1,7 @@
 import { hudScale, hudTypeScale, TRACK_METERS } from '../config.js';
 import { fillRoundRect, strokeRoundRect } from '../util/color.js';
 import { perfectBand, reloadGaugeBounds, reloadNorm } from '../view/reload.js';
-import { magRof } from '../entities/loadout.js';
+import { shotCycle } from '../entities/loadout.js';
 import { runMeters } from '../world/metrics.js';
 
 const BONE = '#f3e6d0';
@@ -123,15 +123,15 @@ function value(ctx, text, x, y, size, color = BONE) {
   ctx.letterSpacing = '0px';
 }
 
-function fitValue(ctx, text, x, y, size, maxW, color = BONE) {
+function fitValue(ctx, text, x, y, size, maxW, color = BONE, face = SERIF) {
   let s = size;
   const str = String(text);
   ctx.fillStyle = color;
   ctx.letterSpacing = '0.02em';
-  ctx.font = `700 ${s}px ${SERIF}`;
+  ctx.font = `700 ${s}px ${face}`;
   while (s > 14 && ctx.measureText(str).width > maxW) {
     s -= 1;
-    ctx.font = `700 ${s}px ${SERIF}`;
+    ctx.font = `700 ${s}px ${face}`;
   }
   ctx.fillText(str, x, y, maxW);
   ctx.letterSpacing = '0px';
@@ -183,15 +183,15 @@ function drawBrand(ctx, run, x, y, m) {
   const title = endless ? run.biome?.place || 'The road' : run.biome?.foe || 'Run';
   fitValue(ctx, title, ix, y + 40 * m.u, m.value, innerW);
   const metres = runMeters(run);
-  const dist = `${metres.toFixed(0)}m`;
+  const dist = `${Math.max(0, Math.floor(metres))} m`;
   if (endless) {
-    fitValue(ctx, dist, ix, y + 82 * m.u, Math.round(26 * m.t), innerW);
+    fitValue(ctx, dist, ix, y + 82 * m.u, Math.round(26 * m.t), innerW, BONE, SANS);
     return;
   }
   const distSize = Math.round(22 * m.t);
   const accent = run.biome?.accent || BLOOD;
   ctx.textAlign = 'left';
-  fitValue(ctx, dist, ix, y + 82 * m.u, distSize, innerW, BONE);
+  fitValue(ctx, dist, ix, y + 82 * m.u, distSize, innerW, BONE, SANS);
   meter(
     ctx,
     ix,
@@ -236,20 +236,18 @@ function drawGun(ctx, run, viewport, m) {
     innerW,
     run.weapon.perfectMag ? GOLD : BONE,
   );
-  const cycle = run.weapon.reloading
-    ? 0
-    : Math.max(0, Math.min(1, 1 - (run.weapon.cooldown || 0) * magRof(run.stats, run.weapon)));
+  const cycle = shotCycle(run.stats, run.weapon);
   const dry = Math.max(0, Math.min(1, (run.weapon.dryFlash || 0) / 0.14));
   const cycleY = y + 82 * m.u;
   const cycleH = 5 * m.u;
   ctx.fillStyle = 'rgba(8, 4, 2, 0.55)';
   fillRoundRect(ctx, ix, cycleY, innerW, cycleH, 2);
   if (cycle > 0.02) {
-    ctx.fillStyle = dry > 0.04 ? `rgba(196, 69, 54, ${0.55 + 0.4 * dry})` : GOLD;
+    ctx.fillStyle = dry > 0.04 ? `rgba(232, 64, 48, ${0.7 + 0.3 * dry})` : '#ffb02a';
     fillRoundRect(ctx, ix, cycleY, innerW * cycle, cycleH, 2);
   }
   ctx.strokeStyle =
-    dry > 0.04 ? `rgba(196, 69, 54, ${0.5 + 0.4 * dry})` : 'rgba(224, 163, 58, 0.45)';
+    dry > 0.04 ? `rgba(232, 64, 48, ${0.55 + 0.4 * dry})` : 'rgba(255, 176, 42, 0.7)';
   ctx.lineWidth = 1;
   strokeRoundRect(ctx, ix, cycleY, innerW, cycleH, 2);
 

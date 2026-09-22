@@ -39,7 +39,7 @@ import { RECEIVERS, RECEIVER_COST_BASE, RECEIVER_COSTS, RECEIVER_STAT_RATE, SLOT
 import { SLOT_COST_RATE, SLOT_MAX, SLOT_UPGRADES, sanitizeSlotRanks, slotCapFor, slotMods, upgradeCost } from '../src/data/upgrades.js';
 import { CHASE_FLOOR, ROLE_UNLOCK, ROLES, pickRole, roleUnlocked } from '../src/data/roles.js';
 import { SKILLS, sanitizeRanks, skillCost, xpInvested } from '../src/data/skills.js';
-import { formatRpm, gunsmithStatRows, magRof, resolveStats, shotSpreadDeg, slotUnlockedFor, STAT_BY_ID, STATS, trainingStatRows } from '../src/entities/loadout.js';
+import { formatRpm, gunsmithStatRows, magRof, resolveStats, shotCycle, shotSpreadDeg, slotUnlockedFor, STAT_BY_ID, STATS, trainingStatRows } from '../src/entities/loadout.js';
 import { applyFlinch, cacheEnemyPose, createEnemy, enemyIsHurt, isDead, lethalCircles, lethalHpRatio, limbCircleList, limbCircles, locationalOf, stepFlinch, updateLocomotion } from '../src/entities/enemy.js';
 import { defaultProfile, resetProfile, buyPart, buyBlockedReason, owns, hydrateProfile, equipPart, ensureKit, upgradeSlot, slotRank } from '../src/state/profile.js';
 import { defaultSettings } from '../src/state/settings.js';
@@ -50,9 +50,9 @@ import { uhash } from '../src/util/hash.js';
 import { mixHex, mixTone } from '../src/util/color.js';
 import { createTerrain } from '../src/world/terrain.js';
 import { createPlayer } from '../src/entities/player.js';
-import { gaitPlanted, playerCoreFromPose, playerHeadClearance, poseEnemyLocal, posePlayerLocal } from '../src/figure.js';
+import { gaitPlanted, playerCoreFromPose, playerHeadClearance, poseEnemyLocal, posePlayerLocal, S } from '../src/figure.js';
 import { gunLookFrom, magStyleFor, MAG_BOX_MAX, MAG_DRUM_MAX, MAG_STICK_MAX } from '../src/data/gunLook.js';
-import { emitBarrelSmoke, stepSmoke } from '../src/systems/smoke.js';
+import { emitBarrelSmoke, MAX_SMOKE, stepSmoke } from '../src/systems/smoke.js';
 import { shotEnergy } from '../src/systems/impulse.js';
 import { cullFrozenCorpses, spawnRagdoll } from '../src/systems/ragdoll.js';
 import { stepGibs } from '../src/systems/gibs.js';
@@ -63,6 +63,7 @@ import { rectCircleOverlap, segmentHitsCircle } from '../src/systems/hits.js';
 import { spawnBullet, stepBullets, rangeDamageMul, hitPenBonus } from '../src/systems/ballistics.js';
 import { capDpr, createQuality } from '../src/engine/quality.js';
 import { pwaUpdateBlocked } from '../src/engine/pwaBusy.js';
+import { formatMetres } from '../src/ui/overlays.js';
 import { renderEnd } from '../src/ui/hub.js';
 import { renderGunsmith } from '../src/ui/gunsmith.js';
 import { deciduousH, pineH } from '../src/render/scenery/util.js';
@@ -824,6 +825,20 @@ describe('reload helpers', () => {
     expect(magRof(starter, { perfectMag: false })).toBeCloseTo(starter.rof);
     expect(magRof(starter, { perfectMag: true })).toBeCloseTo(starter.rof * PERFECT_MAG_ROF);
   });
+
+  it('fills the shot cycle from magRof so a perfect mag matches the HUD', () => {
+    const starter = resolveStats(defaultProfile());
+    expect(shotCycle(starter, { cooldown: 0, perfectMag: false })).toBe(1);
+    expect(shotCycle(starter, { cooldown: 1 / starter.rof, perfectMag: false })).toBeCloseTo(0);
+    expect(shotCycle(starter, { cooldown: 0.5 / (starter.rof * PERFECT_MAG_ROF), perfectMag: true })).toBeCloseTo(0.5);
+    expect(shotCycle(starter, { cooldown: 0, reloading: true })).toBe(0);
+  });
+
+  it('keeps metre labels from reading as om', () => {
+    expect(formatMetres(0)).toBe('0 m');
+    expect(formatMetres(12.9)).toBe('12 m');
+    expect(formatMetres(Number.NaN)).toBe('0 m');
+  });
 });
 
 describe('skills & profile', () => {
@@ -1496,6 +1511,25 @@ describe('simulate loop', () => {
     expect(run2.ended).toBe('death');
   });
 
+  it('lets in-flight shots finish during the death hold', () => {
+    const run = liveRun();
+    const grabber = createEnemy(run.player.worldX, run.terrain, 1, 80, 'zombie');
+    cacheEnemyPose(grabber);
+    run.enemies = [grabber];
+    simulate(run, dt, viewport, idle);
+    expect(run.dying).toBe(true);
+    const other = createEnemy(run.player.worldX + 240, run.terrain, 1, 80, 'zombie');
+    cacheEnemyPose(other);
+    run.enemies.push(other);
+    run.stats.damage = 80;
+    const y = other.y + other.pose.pelvis.y;
+    run.bullets = [spawnBullet(run.player.worldX + 40, y, 0, { ...run.stats, bulletSpeed: 1600, pen: 2 }, false, 800)];
+    const kills = run.score.kills;
+    for (let i = 0; i < 24; i++) simulate(run, dt, viewport, idle);
+    expect(other.alive).toBe(false);
+    expect(run.score.kills).toBeGreaterThan(kills);
+  });
+
   it('lets a crawler finish a contact kill', () => {
     const run = liveRun();
     const crawler = createEnemy(run.player.worldX, run.terrain, 1, 80, 'zombie');
@@ -1584,6 +1618,10 @@ describe('simulate loop', () => {
     expect(p.armR.hand.y).toBeGreaterThan(p.gun.y);
     expect(p.armL.hand.y).toBeGreaterThan(p.gun.y);
     expect(p.aimAngle).toBe(0);
+
+    const longStock = gunLookFrom(gunAt('t5_advanced', { stock: 100 }));
+    const held = posePlayerLocal({ worldX: 0, aimAngle: 0, gunLook: longStock });
+    expect(held.gun.x - longStock.stockLen).toBeGreaterThan(held.rib.x - 8 * S);
   });
 
   it('keeps the rifle in the gunner’s hands when they flop', () => {
@@ -1609,6 +1647,12 @@ describe('simulate loop', () => {
     stepSmoke(run, 0.2);
     expect(run.smoke[0].x).not.toBeCloseTo(x0, 5);
     expect(run.smoke[0].r).toBeGreaterThan(r0);
+  });
+
+  it('caps barrel smoke so a mag dump cannot flood the scene', () => {
+    const run = { smoke: [] };
+    for (let i = 0; i < 40; i++) emitBarrelSmoke(run, 0, 0, 0, () => 0.5, 'shot');
+    expect(run.smoke.length).toBe(MAX_SMOKE);
   });
 
   it('forgives fire-spam taps at the start of reload so they do not jam', () => {

@@ -44,8 +44,8 @@ export function formatReload(sec) {
 
 export function formatMetres(m) {
   const n = Number(m);
-  if (!Number.isFinite(n)) return '0m';
-  return `${Math.max(0, Math.floor(n))}m`;
+  if (!Number.isFinite(n)) return '0 m';
+  return `${Math.max(0, Math.floor(n))} m`;
 }
 
 export function ledgerBlock(profile) {

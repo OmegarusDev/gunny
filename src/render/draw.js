@@ -1,6 +1,6 @@
 import { PLAYER_SCREEN_X_RATIO } from '../config.js';
 import { worldToScreen } from '../entities/player.js';
-import { shotSpreadDeg } from '../entities/loadout.js';
+import { shotCycle, shotSpreadDeg } from '../entities/loadout.js';
 import { drawCreature, drawEnemyVitals, drawFrozenCorpse, drawRagdollBody, drawSurvivor } from './creatures.js';
 import { gunWorld } from '../figure.js';
 import { rangeDamageMul } from '../systems/ballistics.js';
@@ -90,14 +90,29 @@ function drawPlayer(ctx, run, viewport) {
   ctx.beginPath();
   ctx.arc(mx, my, 7 + bloom, 0, Math.PI * 2);
   ctx.stroke();
-  const cycle = Math.max(0, Math.min(1, 1 - (w.cooldown || 0) * run.stats.rof));
+  const cycle = shotCycle(run.stats, w);
   const dry = Math.max(0, Math.min(1, (w.dryFlash || 0) / 0.14));
-  if (cycle < 0.995 || dry > 0.04) {
-    ctx.strokeStyle =
-      dry > 0.04 ? `rgba(196, 69, 54, ${0.35 + 0.55 * dry})` : 'rgba(243, 230, 208, 0.55)';
-    ctx.lineWidth = 2;
+  const ringR = 12 + bloom;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(10, 6, 3, 0.82)';
+  ctx.lineWidth = 5.2;
+  ctx.beginPath();
+  ctx.arc(mx, my, ringR, 0, Math.PI * 2);
+  ctx.stroke();
+  if (cycle > 0.02 || dry > 0.04) {
+    const sweep = Math.max(cycle, dry > 0.04 ? 1 : 0);
+    const a0 = -Math.PI / 2;
+    const a1 = a0 + sweep * Math.PI * 2;
+    ctx.strokeStyle = dry > 0.04 ? `rgba(255, 92, 58, ${0.38 + 0.4 * dry})` : 'rgba(255, 196, 64, 0.42)';
+    ctx.lineWidth = 8;
     ctx.beginPath();
-    ctx.arc(mx, my, 11 + bloom, -Math.PI / 2, -Math.PI / 2 + cycle * Math.PI * 2);
+    ctx.arc(mx, my, ringR, a0, a1);
+    ctx.stroke();
+    ctx.strokeStyle =
+      dry > 0.04 ? `rgba(232, 64, 48, ${0.85 + 0.15 * dry})` : `rgba(255, 176, 42, ${0.72 + 0.28 * cycle})`;
+    ctx.lineWidth = 4.4;
+    ctx.beginPath();
+    ctx.arc(mx, my, ringR, a0, a1);
     ctx.stroke();
   }
   const shot = Math.max(0, Math.min(1, (w.shotFlash || 0) / 0.09));

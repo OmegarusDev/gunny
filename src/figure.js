@@ -324,7 +324,7 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
   let armR;
   const look = kind === 'gunner' ? gunLook || stubGunLook() : null;
   const gun = {
-    x: rib.x + 10 * S + (look?.stockLen || 0) * 0.42,
+    x: rib.x + 10 * S + (look?.stockLen || 0) * 0.72,
     y: rib.y + 8 * S,
   };
   if (crawl) {

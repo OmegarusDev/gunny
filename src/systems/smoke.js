@@ -1,4 +1,4 @@
-const MAX_SMOKE = 72;
+export const MAX_SMOKE = 72;
 
 export function emitBarrelSmoke(run, x, y, ang, rng, kind = 'idle') {
   if (!run.smoke) run.smoke = [];

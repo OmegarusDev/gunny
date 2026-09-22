@@ -20,6 +20,12 @@ export function magRof(stats, weapon) {
   return weapon?.perfectMag ? rof * PERFECT_MAG_ROF : rof;
 }
 
+/** 1 = ready to fire, 0 = just shot or reloading. Uses magRof so a perfect mag matches the HUD. */
+export function shotCycle(stats, weapon) {
+  if (weapon?.reloading) return 0;
+  return Math.max(0, Math.min(1, 1 - (weapon?.cooldown || 0) * magRof(stats, weapon)));
+}
+
 /**
  * Gun stats. `stack: 'add'` sums onto the receiver base (Mul keys still start at 1 and add).
  * `stack: 'mul'` multiplies the running value. Unknown part keys are ignored.

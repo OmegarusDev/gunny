@@ -546,7 +546,7 @@ html:-webkit-full-screen::backdrop,
   font-size: clamp(15px, 2.8vmin, 18px);
   color: var(--gunny-bone);
   line-height: 1.15;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 #overlay-root .facilities {
@@ -697,7 +697,7 @@ html:-webkit-full-screen::backdrop,
   margin: 0;
   font-size: clamp(15px, 2.8vmin, 18px);
   flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 #overlay-root .stats.stats-wide {
