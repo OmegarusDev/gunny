@@ -146,7 +146,10 @@ function partCard({ slot, def, rank, maxed, cost, cap }, owned, cash) {
   const fill = Math.max(0, Math.min(1, rank / Math.max(1, cap || 1)));
   const can = owned && !maxed && cash >= cost;
   return `<div class="part-card" data-slot="${slot}">
-    <strong>${def.short}</strong>
+    <div class="card-top">
+      <strong>${def.short}</strong>
+      <span class="tag">${rank}/${cap}</span>
+    </div>
     <span class="part-bar" aria-hidden="true"><i style="transform: scaleX(${fill})"></i></span>
     ${
       maxed

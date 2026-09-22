@@ -1,11 +1,11 @@
 import {
-  MUZZLE_LEN,
   S,
   paperPalette,
   poseEnemyLocal,
   poseFromNodes,
   posePlayerLocal,
 } from '../figure.js';
+import { drawHeldGun } from './gun.js';
 import { enemyIsHurt, lethalHpRatio } from '../entities/enemy.js';
 import { mixTone } from '../util/color.js';
 
@@ -62,11 +62,11 @@ function limbPoly(ctx, a, b, half, fill) {
 function headPoly(p) {
   const f = p.face;
   return [
-    { x: p.head.x - 13 * S, y: p.head.y + 7 * S },
+    { x: p.head.x - 12 * S, y: p.head.y + 7 * S },
     { x: p.head.x - 7 * S + f, y: p.head.y - 15 * S },
     { x: p.head.x + 12 * S + f, y: p.head.y - 14 * S },
-    { x: p.head.x + 14 * S, y: p.head.y + 8 * S },
-    { x: p.head.x - 1 * S, y: p.head.y + 15 * S },
+    { x: p.head.x + 14 * S, y: p.head.y + 6 * S },
+    { x: p.head.x + f * 6 * S, y: p.head.y + 16 * S },
   ];
 }
 
@@ -116,11 +116,12 @@ function handPoly(hand, dir) {
 }
 
 function bootPoly(leg) {
+  const sole = Math.min(leg.heel.y, leg.toe.y);
   return [
     leg.heel,
-    { x: leg.heel.x, y: leg.heel.y - 8 * S },
-    { x: (leg.heel.x + leg.toe.x) * 0.5, y: Math.min(leg.heel.y, leg.toe.y) - 9 * S },
-    { x: leg.toe.x + 2 * S, y: leg.toe.y - 3.5 * S },
+    { x: leg.heel.x, y: leg.heel.y - 7 * S },
+    { x: (leg.heel.x + leg.toe.x) * 0.5, y: sole - 8 * S },
+    { x: leg.toe.x + (leg.toe.x >= leg.heel.x ? 2 : -2) * S, y: leg.toe.y - 3 * S },
     leg.toe,
   ];
 }
@@ -137,44 +138,15 @@ function footShadow(ctx, leg, groundY) {
   );
 }
 
-function drawRifle(ctx, p, pal) {
-  const ang = p.aimAngle || 0;
-  const grip = p.armR.hand;
-  ctx.save();
-  ctx.translate(p.gun.x, p.gun.y);
-  ctx.rotate(ang);
-  poly(
-    ctx,
-    [
-      { x: -4 * S, y: -3 * S },
-      { x: 14 * S, y: -3.2 * S },
-      { x: 14 * S, y: 3.4 * S },
-      { x: -6 * S, y: 4.2 * S },
-    ],
-    pal.accent,
-  );
-  poly(
-    ctx,
-    [
-      { x: 12 * S, y: -2.2 * S },
-      { x: MUZZLE_LEN, y: -1.6 * S },
-      { x: MUZZLE_LEN, y: 1.8 * S },
-      { x: 12 * S, y: 2.6 * S },
-    ],
-    mixTone(pal.ink, pal.accent, 0.25),
-  );
-  poly(
-    ctx,
-    [
-      { x: 8 * S, y: 2.4 * S },
-      { x: 12 * S, y: 2.4 * S },
-      { x: 11 * S, y: 8 * S },
-      { x: 7 * S, y: 8 * S },
-    ],
-    pal.ink,
-  );
-  ctx.restore();
-  joint(ctx, grip, 3.6 * S, pal.skin);
+function capPoly(p) {
+  const f = p.face;
+  return [
+    { x: p.head.x - 11 * S, y: p.head.y - 6 * S },
+    { x: p.head.x - 6 * S + f * 2, y: p.head.y - 16 * S },
+    { x: p.head.x + 11 * S + f * 2, y: p.head.y - 15 * S },
+    { x: p.head.x + 16 * S * f, y: p.head.y - 5 * S },
+    { x: p.head.x + 8 * S * f, y: p.head.y - 7 * S },
+  ];
 }
 
 export function drawCutPaper(ctx, p, pal, opts = {}) {
@@ -185,7 +157,7 @@ export function drawCutPaper(ctx, p, pal, opts = {}) {
   const accent = pal.accent;
   const ink = pal.ink;
   const kind = p.kind;
-  const front = p.locDir;
+  const front = p.face;
   const skipHead = opts.skipHead;
 
   if (kind === 'vampire') {
@@ -241,6 +213,16 @@ export function drawCutPaper(ctx, p, pal, opts = {}) {
     poly(
       ctx,
       [
+        { x: p.shL.x + 2 * S, y: p.shL.y - 2 * S },
+        { x: p.shR.x + 4 * S, y: p.shR.y - 1 * S },
+        { x: p.rib.x + 8 * S, y: p.rib.y + 10 * S },
+        { x: p.jL.x - 2 * S, y: p.jL.y + 4 * S },
+      ],
+      mixTone(cloth, pal.ink, 0.12),
+    );
+    poly(
+      ctx,
+      [
         { x: p.shL.x + 4 * S, y: p.shL.y + 2 * S },
         { x: p.shR.x - 2 * S, y: p.shR.y },
         { x: p.rib.x + 2 * S, y: p.rib.y + 6 * S },
@@ -282,6 +264,9 @@ export function drawCutPaper(ctx, p, pal, opts = {}) {
     poly(ctx, neckPoly(p), skin);
     poly(ctx, headPoly(p), skin);
     joint(ctx, { x: p.head.x, y: p.head.y + 10 * S }, 5.6 * S, skin);
+    if (kind === 'gunner') {
+      poly(ctx, capPoly(p), mixTone(cloth, pal.ink, 0.35));
+    }
     if (kind === 'zombie') {
       poly(
         ctx,
@@ -294,7 +279,7 @@ export function drawCutPaper(ctx, p, pal, opts = {}) {
       );
     }
   }
-  if (kind === 'gunner') drawRifle(ctx, p, pal);
+  if (kind === 'gunner') drawHeldGun(ctx, p, pal);
   if (kind === 'gunner') {
     poly(ctx, handPoly(p.armL.hand, front), skin);
     joint(ctx, p.armL.hand, 3.8 * S, skin);
@@ -303,9 +288,11 @@ export function drawCutPaper(ctx, p, pal, opts = {}) {
   }
 }
 
-export function drawSurvivor(ctx, player, sx) {
+export function drawSurvivor(ctx, player, sx, heat = 0) {
   const local = posePlayerLocal(player);
   local.aimAngle = player.aimAngle || 0;
+  local.heat = heat;
+  local.gunLook = player.gunLook || local.gunLook;
   const pal = paperPalette('gunner');
   ctx.save();
   ctx.translate(sx, player.y);

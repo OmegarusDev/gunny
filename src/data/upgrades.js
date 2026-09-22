@@ -1,6 +1,6 @@
 import { RECEIVERS, SLOTS } from './receivers.js';
 
-/** Silent cap. The button reads Upgrade or MAX — never n/100. */
+/** Absolute ceiling. Each receiver also caps lower via `slotCapFor` (shown as n/20 etc). */
 export const SLOT_MAX = 100;
 /** Shoddy 20, Basic 40, Advanced 60, Expert 80, Elite 100. */
 export function slotCapFor(recId) {

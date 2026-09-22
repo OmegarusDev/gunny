@@ -61,6 +61,7 @@ export function drawWorld(ctx, run, viewport) {
   ctx.globalAlpha = 0.92;
   drawForeground(ctx, viewport, run);
   ctx.restore();
+  drawSmoke(ctx, run, viewport);
   drawMotes(ctx, viewport, biome, t);
   if (kick) ctx.restore();
   drawKeyLight(ctx, viewport, biome);
@@ -74,7 +75,7 @@ export function drawWorld(ctx, run, viewport) {
 function drawPlayer(ctx, run, viewport) {
   if (run.dying || run.player.dead) return;
   const sx = viewport.w * PLAYER_SCREEN_X_RATIO;
-  drawSurvivor(ctx, run.player, sx);
+  drawSurvivor(ctx, run.player, sx, run.weapon.heat);
   const p = run.player;
   const w = run.weapon;
   const gun = gunWorld(p);
@@ -128,6 +129,28 @@ function drawPlayer(ctx, run, viewport) {
     ctx.restore();
   }
   ctx.restore();
+}
+
+function drawSmoke(ctx, run, viewport) {
+  if (!run.smoke?.length) return;
+  for (const s of run.smoke) {
+    const p = w2s(s.x, s.y, run, viewport);
+    const u = Math.max(0, Math.min(1, s.life / (s.max || 1.2)));
+    const fade = u * Math.sqrt(u);
+    const warm = s.warm || 0.25;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(s.rot || 0);
+    ctx.fillStyle = `rgba(${118 + warm * 50}, ${108 + warm * 28}, ${92 + warm * 8}, ${0.42 + 0.38 * fade})`;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s.r * 1.35, s.r * 0.82, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = `rgba(${228 + warm * 20}, ${214 + warm * 12}, ${188}, ${0.28 + 0.35 * fade})`;
+    ctx.beginPath();
+    ctx.ellipse(-s.r * 0.16, -s.r * 0.22, s.r * 0.62, s.r * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawLaserSight(ctx, run, viewport) {

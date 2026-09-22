@@ -56,7 +56,7 @@ export const RECEIVER_TONES = {
     bodyDecay: 0.09,
     subF: 56,
     click: 0.62,
-    wet: 0.34,
+    wet: 0.2,
     drive: 1,
     tail: 0.38,
     mechDelay: 0.02,
@@ -71,7 +71,7 @@ export const RECEIVER_TONES = {
     bodyDecay: 0.078,
     subF: 62,
     click: 0.7,
-    wet: 0.3,
+    wet: 0.18,
     drive: 0.92,
     tail: 0.32,
     mechDelay: 0.016,
@@ -86,7 +86,7 @@ export const RECEIVER_TONES = {
     bodyDecay: 0.068,
     subF: 68,
     click: 0.78,
-    wet: 0.27,
+    wet: 0.16,
     drive: 0.84,
     tail: 0.28,
     mechDelay: 0.013,
@@ -101,7 +101,7 @@ export const RECEIVER_TONES = {
     bodyDecay: 0.058,
     subF: 74,
     click: 0.84,
-    wet: 0.24,
+    wet: 0.14,
     drive: 0.76,
     tail: 0.25,
     mechDelay: 0.011,
@@ -116,7 +116,7 @@ export const RECEIVER_TONES = {
     bodyDecay: 0.05,
     subF: 80,
     click: 0.9,
-    wet: 0.21,
+    wet: 0.12,
     drive: 0.68,
     tail: 0.22,
     mechDelay: 0.009,
@@ -156,6 +156,19 @@ function sineHit(audio, dest, t, freq, peak, decay) {
   osc.stop(t + decay + 0.02);
 }
 
+function punchHit(audio, dest, t, freq, peak, decay) {
+  const osc = audio.createOscillator();
+  const g = audio.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(Math.max(28, freq), t);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(24, freq * 0.42), t + decay);
+  hit(g.gain, t, peak, decay, 0.0002);
+  osc.connect(g);
+  g.connect(dest);
+  osc.start(t);
+  osc.stop(t + decay + 0.02);
+}
+
 export function playMuzzle(stats = {}, place = {}) {
   const audio = audioContext();
   if (!audio) return;
@@ -172,96 +185,91 @@ export function playMuzzle(stats = {}, place = {}) {
   const dry = audio.createGain();
   const drive = audio.createGain();
   const grit = saturator(audio);
-  drive.gain.value = 0.72 + p.drive * 0.38;
+  drive.gain.value = 0.82 + p.drive * 0.28;
   dry.connect(drive);
   drive.connect(grit);
   grit.connect(out);
 
   const wet = audio.createGain();
-  wet.gain.value = p.wet * room.wetMul * j;
+  wet.gain.value = p.wet * room.wetMul * j * 0.72;
   wet.connect(fx.wet);
 
-  const blastLp = audio.createBiquadFilter();
-  blastLp.type = 'lowpass';
-  blastLp.frequency.value = 640 + p.bodyFrom * 0.18;
-  blastLp.Q.value = 0.8;
+  const slapLp = audio.createBiquadFilter();
+  slapLp.type = 'lowpass';
+  slapLp.frequency.value = 420;
+  slapLp.Q.value = 0.7;
   playBuffer(audio, pickBlast(), t, {
     dest: dry,
-    peak: 0.42 * p.drive,
-    decay: 0.0075,
-    rate: jitter(1, 0.05),
-    filters: [blastLp],
-    attack: 0.0002,
+    peak: 0.62 * p.drive,
+    decay: 0.011,
+    rate: jitter(0.92, 0.04),
+    filters: [slapLp],
+    attack: 0.00015,
   });
 
   const hp = audio.createBiquadFilter();
   hp.type = 'highpass';
-  hp.frequency.value = 2700 * j;
-  hp.Q.value = 0.7;
+  hp.frequency.value = 1800 * j;
+  hp.Q.value = 0.55;
   noiseBurst(audio, 'white', t, {
-    dur: 0.014,
-    peak: 0.48 * p.click,
-    decay: 0.009,
+    dur: 0.008,
+    peak: 0.28 * p.click,
+    decay: 0.006,
     dest: dry,
     filters: [hp],
-    attack: 0.0003,
+    attack: 0.0002,
   });
 
-  sineHit(audio, dry, t, p.crackF * 1.42 * j, 0.2 * p.click, 0.0042);
+  punchHit(audio, dry, t, 78 * j, 0.34 + p.drive * 0.08, 0.055);
+  sineHit(audio, dry, t, p.subF * j, 0.22 + (p.subF - 56) * 0.0015, 0.09);
 
   const bp = audio.createBiquadFilter();
   bp.type = 'bandpass';
-  bp.frequency.value = p.crackF * j;
-  bp.Q.value = p.crackQ * jitter(1, 0.06);
-  const air = audio.createBiquadFilter();
-  air.type = 'peaking';
-  air.frequency.value = p.crackF * 2.45;
-  air.gain.value = 6.2;
-  air.Q.value = 0.75;
+  bp.frequency.value = p.crackF * 0.72 * j;
+  bp.Q.value = Math.max(0.7, p.crackQ * 0.45);
   noiseBurst(audio, 'white', t, {
-    dur: 0.05,
-    peak: 0.72 * p.drive,
-    decay: 0.03,
+    dur: 0.022,
+    peak: 0.38 * p.drive,
+    decay: 0.016,
     dest: dry,
-    filters: [bp, air],
-    attack: 0.0005,
+    filters: [bp],
+    attack: 0.0003,
   });
 
   const bodyLp = audio.createBiquadFilter();
   bodyLp.type = 'lowpass';
-  bodyLp.Q.value = 1.7;
-  sweep(bodyLp.frequency, t, p.bodyFrom * j, p.bodyTo, p.bodyDecay);
+  bodyLp.Q.value = 1.15;
+  sweep(bodyLp.frequency, t, Math.min(980, p.bodyFrom * 0.62) * j, 190, p.bodyDecay + 0.02);
   noiseBurst(audio, 'pink', t, {
-    dur: p.bodyDecay + 0.04,
-    peak: 0.55 * p.drive,
-    decay: p.bodyDecay,
-    dest: [dry, wet],
+    dur: p.bodyDecay + 0.05,
+    peak: 0.72 * p.drive,
+    decay: p.bodyDecay + 0.02,
+    dest: dry,
     filters: [bodyLp],
-    attack: 0.0012,
+    attack: 0.0008,
   });
 
-  sineHit(audio, dry, t, p.subF * j, 0.28 + (p.subF - 56) * 0.002, 0.11);
   const chestLp = audio.createBiquadFilter();
   chestLp.type = 'lowpass';
-  chestLp.frequency.value = 140;
-  chestLp.Q.value = 0.9;
+  chestLp.frequency.value = 160;
+  chestLp.Q.value = 0.85;
   noiseBurst(audio, 'brown', t, {
-    dur: 0.12,
-    peak: 0.16,
-    decay: 0.1,
+    dur: 0.1,
+    peak: 0.28,
+    decay: 0.085,
     dest: dry,
     filters: [chestLp],
-    attack: 0.002,
+    attack: 0.0015,
   });
 
   const tailLp = audio.createBiquadFilter();
   tailLp.type = 'lowpass';
-  tailLp.Q.value = 0.85;
-  sweep(tailLp.frequency, t, 1600, 380, p.tail);
+  tailLp.Q.value = 0.8;
+  sweep(tailLp.frequency, t, 980, 280, p.tail * 0.7);
   noiseBurst(audio, 'pink', t, {
-    dur: p.tail + 0.08,
-    peak: 0.22,
-    decay: p.tail,
+    dur: p.tail * 0.7 + 0.05,
+    peak: 0.14,
+    decay: p.tail * 0.7,
     dest: wet,
     filters: [tailLp],
     attack: 0.004,
@@ -269,8 +277,8 @@ export function playMuzzle(stats = {}, place = {}) {
 
   playMech(audio, t + p.mechDelay, {
     spikes: 2,
-    span: 0.011,
-    gain: p.mech,
+    span: 0.01,
+    gain: p.mech * 0.85,
     freq: p.mechF,
   });
 }

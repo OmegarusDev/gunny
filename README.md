@@ -14,7 +14,7 @@ A 2D HTML5 Canvas chase. Scenery, characters, and UI are drawn; sound is synthes
 ## Controls
 
 - **Aim** — mouse / touch. A tap or click snaps the muzzle *before* the round leaves, so you do not waste the first shot on the old angle.
-- **Fire** — hold. Cyclic rate is the limiter; a dry click means the gun is not ready. Holding also builds **Heat**, which opens the cone until you let off.
+- **Fire** — hold. Cyclic rate is the limiter; a dry click means the gun is not ready. Holding also builds **Heat** — an orange glow on the barrel tip — which opens the cone until you let off.
 - **Reload** — only when the mag is empty. Tap anywhere (`R` also taps). The prompt sits near the top: **Reload** / **Tap Anywhere**.
 - **Pause** — `P` / Esc / Space, or leave the tab. **Tap the pause screen to resume.** Leaving the tab **suspends** the app and the audio (it does not keep playing muted). Portrait mode pauses until you rotate.
 
@@ -51,7 +51,7 @@ Past effective range, tracers **keep flying**. Damage and accuracy fall with **d
 
 Receiver **tabs**: Shoddy → Basic → Advanced → Expert → Elite. Each gun is its **own kit**. Buying the next receiver starts that gun stub; switching back keeps the old ranks. You cannot spend upgrades on a gun you have not bought — the parts fade and **Buy** sits on the pane.
 
-Slot upgrades are **0–100**, bought one level at a time, **capped by the gun**: Shoddy 20, Basic 40, Advanced 60, Expert 80, Elite 100. The cap is silent: the button reads **Upgrade** until **MAX**. First mag is **$100** (about ten grunt kills). Costs then climb about **6%** per level, always at least $10 more than the last. Big mags (past 8) take a little longer to seat.
+Slot upgrades are **0–100**, bought one level at a time, **capped by the gun**: Shoddy 20, Basic 40, Advanced 60, Expert 80, Elite 100. Each part shows **n/20** (or that gun’s cap). The button reads **Upgrade** until **MAX**. First mag is **$100** (about ten grunt kills). Costs then climb about **6%** per level, always at least $10 more than the last. Big mags (past 8) take a little longer to seat.
 
 Shoddy opens **mag, bolt, and ammo**. Each later gun opens two more slots; Elite opens the last three:
 
@@ -86,7 +86,7 @@ The one-row strip is the live values those skills change. Hover or tap a row or 
 
 Campaign cycles **Forest Road → Fen Causeway → Transylvanian Lane → Desert Wadi → Bone Quarry**, then wraps. Each road is a **reskin** (zombie, drowned, vampire, mummy, ghoul) — same walk, different paint.
 
-Forest walkers start at **50 HP** and climb **20%** through the 250m. That is one body pool: headshots are **2×** on the same bar, not a second life. Legs take normal damage into that pool and also have an **80%** sub-pool; emptying it knocks them into a crawl. Each later road **opens 10% harder** than the last open, and still **easier than the last extract**. Density uses the same pair. Packs and short rests keep it from being a metronome.
+Forest walkers start at **50 HP** and climb **20%** through the 250m. That is one body pool: headshots are **2×** on the same bar, not a second life. Leg shots never touch that bar — they only chew an **80%** crawl pool (40 on a 50 HP walker). Empty it and they drop to a crawl, still alive. Each later road **opens 10% harder** than the last open, and still **easier than the last extract**. Density uses the same pair. Packs and short rests keep it from being a metronome.
 
 Four roles, same body, bigger as they get meaner:
 
@@ -115,7 +115,7 @@ One **4:3** wood card, floating on the canvas. Ledger is Gunner level, cash, and
 - Mag and receiver prices are a grind. Buying the next Upgrade to clear a road is the loop.
 - Forest’s first clear and Basic are both about a half-hour for a decent shot. Later roads take longer until you buy the next gun.
 - Tanks and the Behemoth look like larger biome walkers (bigger zombie, bigger vampire, …).
-- Headshots are 2× on the same body HP. Legs share that pool and also have an 80% crawl bar (40 damage to the legs of a 50 HP walker puts it on the ground with 10 left).
+- Headshots are 2× on the same body HP. Leg shots only destroy the legs: they fill an 80% crawl bar and cannot kill.
 - Crits are a Training RNG roll. They are not headshots. Both add 0.12 pen and stack.
 - Shoddy never overpens: ammo is capped at 20. Basic starts at 0.9 and overpens with a headshot, a crit, or enough barrel.
 - If a round does exit a body, leftover travel can still wound the next one.

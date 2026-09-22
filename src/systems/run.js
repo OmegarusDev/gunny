@@ -27,6 +27,8 @@ import { resolveAimPoint } from '../view/aim.js';
 import { roleOf } from '../data/roles.js';
 import { createScore, tickDistance, onHit, onKill, onPerfect, extractBonus } from './scoring.js';
 import { rectCircleOverlap } from './hits.js';
+import { emitBarrelSmoke, stepSmoke } from './smoke.js';
+import { gunLookFrom } from '../data/gunLook.js';
 import { beginFootFrame, playDry, playFlesh, playFoot, playMuzzle } from '../audio/synth.js';
 
 export function createRun({ profile, viewport, type, levelIndex, seed }) {
@@ -41,6 +43,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
   const weather = createWeather(seeded.rng);
   const stats = resolveStats(profile);
   const player = createPlayer(0, terrain);
+  player.gunLook = gunLookFrom(profile);
   return {
     type,
     endless: type === 'endless',
@@ -61,6 +64,7 @@ export function createRun({ profile, viewport, type, levelIndex, seed }) {
     particles: [],
     callouts: [],
     impacts: [],
+    smoke: [],
     pendingHits: [],
     shakeX: 0,
     shakeY: 0,
@@ -109,8 +113,8 @@ function applyHits(run) {
     const dmg = stats.damage * loc * critMul * rangeMul;
     const zone = hit.zone;
     const remaining = Math.max(0, enemy.hp.body);
-    enemy.hp.body -= dmg;
     if (isLegZone(zone)) enemy.hp.legs -= dmg;
+    else enemy.hp.body -= dmg;
     onHit(run.score, zone, crit);
     playFlesh(zone === 'head');
 
@@ -204,6 +208,7 @@ function tryFire(run, firing, viewport, tap) {
     p.max = 0.16;
   }
   run.particles.push(...sparks);
+  emitBarrelSmoke(run, muzzle.x, muzzle.y, angle, run.rng, 'shot');
   playMuzzle(stats, { receiver: run.receiver, biome: run.biome?.id });
   return true;
 }
@@ -255,6 +260,7 @@ function stepDeath(run, dt, viewport) {
   stepFootfalls(run, viewport);
   stepRagdolls(run, dt, viewport);
   stepGibs(run, dt);
+  stepSmoke(run, dt);
   if (run.deathT >= DEATH_HOLD) {
     run.dying = false;
     run.ended = 'death';
@@ -359,6 +365,12 @@ export function simulate(run, dt, viewport, input) {
     weapon.bloom = Math.max(0, weapon.bloom - stats.bloomRecover * dt);
     weapon.heat = Math.max(0, weapon.heat - stats.heatDump * dt);
   }
+  if (weapon.heat > 0.08) {
+    const g = gunWorld(player);
+    const mx = g.x + Math.cos(g.ang) * g.len;
+    const my = g.y + Math.sin(g.ang) * g.len;
+    if (run.rng() < weapon.heat * dt * 12) emitBarrelSmoke(run, mx, my, g.ang, run.rng, 'idle');
+  }
 
   const tapReloadIntent =
     input.reloadPressed ||
@@ -397,6 +409,7 @@ export function simulate(run, dt, viewport, input) {
   run.enemies = run.enemies.filter((e) => e.alive && e.worldX > left - 140);
   stepRagdolls(run, dt, viewport);
   stepGibs(run, dt);
+  stepSmoke(run, dt);
   tickDistance(run.score, runMeters(run));
   if (!run.endless && runMeters(run) >= TRACK_METERS && !run.ended && !run.dying) {
     extractBonus(run.score, run.levelIndex);

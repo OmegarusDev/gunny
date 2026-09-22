@@ -1,4 +1,5 @@
 import { KINDS, palette } from './data/kinds.js';
+import { stubGunLook } from './data/gunLook.js';
 
 export const S = 1.42;
 export const MUZZLE_LEN = 48 * S;
@@ -51,14 +52,14 @@ function between(seed, n, a, b) {
 function gaitFromSeed(kind, seed) {
   if (kind === 'gunner') {
     return {
-      cadence: 1.42,
-      stride: 22 * S,
-      lift: 8 * S,
+      cadence: 1.36,
+      stride: 18 * S,
+      lift: 6 * S,
       phase0: 0,
       limp: 0,
-      hunch: 0.04,
-      chestFlex: 0.016,
-      bob: 0.7 * S,
+      hunch: 0.02,
+      chestFlex: 0.012,
+      bob: 0.55 * S,
       arm: 0.25,
       rStride: 1,
     };
@@ -137,18 +138,20 @@ function ikElbow(shoulder, hand, preferBackX) {
   return mix(straight, bent, 0.42);
 }
 
-function stepAt(phase, locDir, stride, lift) {
+function stepAt(phase, locDir, stride, lift, reverse = false) {
   const p = ((phase % 1) + 1) % 1;
   if (p < STANCE) {
     const u = p / STANCE;
     let pitch = 0;
     if (u < 0.16) pitch = lerp(0.32, 0, u / 0.16);
     else if (u > 0.76) pitch = lerp(0, -0.38, (u - 0.76) / 0.24);
+    if (reverse) pitch = -pitch;
     return { x: lerp(locDir * stride, -locDir * stride, u), planted: true, u, pitch, lift: 0 };
   }
   const u = (p - STANCE) / (1 - STANCE);
   const swing = u * u * (3 - 2 * u);
-  const pitch = u < 0.45 ? lerp(-0.28, 0.12, u / 0.45) : lerp(0.12, 0.36, (u - 0.45) / 0.55);
+  let pitch = u < 0.45 ? lerp(-0.28, 0.12, u / 0.45) : lerp(0.12, 0.36, (u - 0.45) / 0.55);
+  if (reverse) pitch = -pitch;
   return {
     x: lerp(-locDir * stride, locDir * stride, swing),
     planted: false,
@@ -158,9 +161,10 @@ function stepAt(phase, locDir, stride, lift) {
   };
 }
 
-function placeFoot(midX, step, locDir) {
+/** Heel→toe follows facing, not travel. Gunner retreats left while toes still point at the horde. */
+function placeFoot(midX, step, faceDir) {
   const g = 0;
-  const alongD = locDir;
+  const alongD = faceDir;
   if (step.planted) {
     if (step.pitch >= 0) {
       const heel = { x: midX - alongD * FOOT_LEN * 0.36, y: g };
@@ -279,14 +283,15 @@ export function scaleLocalPose(p, s) {
   };
 }
 
-export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aimAngle = 0, lean = 0 }) {
+export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aimAngle = 0, lean = 0, gunLook = null }) {
   const chase = kind !== 'gunner';
   const locDir = -1;
   const face = kind === 'gunner' ? 1 : -1;
+  const reverse = face !== locDir;
   const g = gaitFromSeed(kind, seed);
   const phase = t * g.cadence + g.phase0;
-  const ls = stepAt(phase, locDir, crawl ? g.stride * 0.35 : g.stride, crawl ? g.lift * 0.25 : g.lift);
-  const rs = stepAt(phase + 0.5 + g.limp, locDir, (crawl ? g.stride * 0.35 : g.stride) * g.rStride, crawl ? g.lift * 0.25 : g.lift);
+  const ls = stepAt(phase, locDir, crawl ? g.stride * 0.35 : g.stride, crawl ? g.lift * 0.25 : g.lift, reverse);
+  const rs = stepAt(phase + 0.5 + g.limp, locDir, (crawl ? g.stride * 0.35 : g.stride) * g.rStride, crawl ? g.lift * 0.25 : g.lift, reverse);
   const cycle = Math.sin(phase * Math.PI * 2);
   const bob = Math.abs(Math.sin(phase * Math.PI)) * g.bob;
   const hipY = crawl ? -18 * S + bob * 0.35 : -(THIGH + SHIN) + 7 * S + bob;
@@ -311,13 +316,17 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
   const hipBR = across(pelvis, pelvisAng, 8 * S);
   hipBL.y += 2 * S;
   hipBR.y += 2 * S;
-  const lf = placeFoot(hipX + ls.x, ls, locDir);
-  const rf = placeFoot(hipX + rs.x, rs, locDir);
-  const kneeBend = chase ? KNEE_BEND : 0.48;
+  const lf = placeFoot(hipX + ls.x, ls, face);
+  const rf = placeFoot(hipX + rs.x, rs, face);
+  const kneeBend = chase ? KNEE_BEND : 0.34;
 
   let armL;
   let armR;
-  const gun = { x: rib.x + 10 * S, y: rib.y + 10 * S };
+  const look = kind === 'gunner' ? gunLook || stubGunLook() : null;
+  const gun = {
+    x: rib.x + 10 * S + (look?.stockLen || 0) * 0.42,
+    y: rib.y + 8 * S,
+  };
   if (crawl) {
     const frontHand = { x: shL.x + locDir * 28 * S, y: 2 * S };
     const rearHand = { x: pelvis.x - locDir * 6 * S, y: pelvis.y + 4 * S };
@@ -334,10 +343,15 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
   } else if (!chase) {
     const ca = Math.cos(aimAngle);
     const sa = Math.sin(aimAngle);
-    const grip = { x: gun.x + ca * 4 * S, y: gun.y + sa * 4 * S };
-    const forend = { x: gun.x + ca * 16 * S, y: gun.y + sa * 16 * S };
-    armR = { shoulder: shR, elbow: ikElbow(shR, grip, shR.x + 6 * S), hand: grip };
-    armL = { shoulder: shL, elbow: ikElbow(shL, forend, shL.x - 2 * S), hand: forend };
+    const gripAlong = 3.2 * S;
+    const forendAlong = look.forend;
+    const grip = { x: gun.x + ca * gripAlong + sa * 2.2 * S, y: gun.y + sa * gripAlong - ca * 2.2 * S };
+    const forend = {
+      x: gun.x + ca * forendAlong + sa * 1.15 * S,
+      y: gun.y + sa * forendAlong - ca * 1.15 * S,
+    };
+    armR = { shoulder: shR, elbow: ikElbow(shR, grip, shR.x - 12 * S), hand: grip };
+    armL = { shoulder: shL, elbow: ikElbow(shL, forend, shL.x + 6 * S), hand: forend };
   } else {
     const frontHand = {
       x: shL.x + locDir * (21 + cycle * 2 * g.arm) * S,
@@ -393,6 +407,7 @@ export function poseLocal({ kind = 'zombie', t = 0, seed = 1, crawl = false, aim
     locDir,
     kind,
     crawl,
+    gunLook: look,
   };
 }
 
@@ -434,6 +449,7 @@ export function posePlayerLocal(player) {
     aimAngle: player.crawling ? 0 : (player.aimAngle || 0) - (player.shotKick || 0) * 0.55,
     crawl: !!player.crawling,
     lean: (player.flinchLean || 0) - (player.shotKick || 0) * 0.28,
+    gunLook: player.gunLook || stubGunLook(),
   });
 }
 
@@ -531,15 +547,16 @@ export function limbCirclesFromPose(p) {
 export function gunWorld(player) {
   const p = posePlayerLocal(player);
   const ang = player.aimAngle || 0;
+  const len = p.gunLook?.muzzleLen || MUZZLE_LEN;
   return {
     x: player.worldX + p.gun.x,
     y: player.y + p.gun.y,
     sx: p.gun.x,
     sy: p.gun.y,
-    muzzleX: player.worldX + p.gun.x + Math.cos(ang) * MUZZLE_LEN,
-    muzzleY: player.y + p.gun.y + Math.sin(ang) * MUZZLE_LEN,
+    muzzleX: player.worldX + p.gun.x + Math.cos(ang) * len,
+    muzzleY: player.y + p.gun.y + Math.sin(ang) * len,
     ang,
-    len: MUZZLE_LEN,
+    len,
   };
 }
 

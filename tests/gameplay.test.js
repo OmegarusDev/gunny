@@ -51,6 +51,8 @@ import { mixHex, mixTone } from '../src/util/color.js';
 import { createTerrain } from '../src/world/terrain.js';
 import { createPlayer } from '../src/entities/player.js';
 import { gaitPlanted, playerCoreFromPose, playerHeadClearance, poseEnemyLocal, posePlayerLocal } from '../src/figure.js';
+import { gunLookFrom, magStyleFor, MAG_BOX_MAX, MAG_DRUM_MAX, MAG_STICK_MAX } from '../src/data/gunLook.js';
+import { emitBarrelSmoke, stepSmoke } from '../src/systems/smoke.js';
 import { shotEnergy } from '../src/systems/impulse.js';
 import { cullFrozenCorpses, spawnRagdoll } from '../src/systems/ragdoll.js';
 import { stepGibs } from '../src/systems/gibs.js';
@@ -62,6 +64,7 @@ import { spawnBullet, stepBullets, rangeDamageMul, hitPenBonus } from '../src/sy
 import { capDpr, createQuality } from '../src/engine/quality.js';
 import { pwaUpdateBlocked } from '../src/engine/pwaBusy.js';
 import { renderEnd } from '../src/ui/hub.js';
+import { renderGunsmith } from '../src/ui/gunsmith.js';
 import { deciduousH, pineH } from '../src/render/scenery/util.js';
 
 const LADDER = ['t1_stock', 't2_tactical', 't3_ordnance', 't4_duty', 't5_advanced'];
@@ -550,6 +553,49 @@ describe('gunsmith catalog', () => {
     expect(slotCapFor('t3_ordnance')).toBe(60);
     expect(slotCapFor('t4_duty')).toBe(80);
     expect(slotCapFor('t5_advanced')).toBe(100);
+  });
+
+  it('prints each Gunsmith part as rank over that gun’s cap', () => {
+    const stub = {
+      onclick: null,
+      className: '',
+      textContent: '',
+      dataset: {},
+      disabled: false,
+      classList: { add() {}, contains: () => false, toggle() {} },
+      style: {},
+      parentElement: null,
+      addEventListener() {},
+      appendChild() {},
+      querySelector() {
+        return stub;
+      },
+      querySelectorAll() {
+        return [];
+      },
+      setAttribute() {},
+    };
+    const el = {
+      dataset: {},
+      innerHTML: '',
+      querySelector: () => stub,
+      querySelectorAll: () => [],
+    };
+    const prev = globalThis.document;
+    globalThis.document = { createElement: () => stub };
+    try {
+      renderGunsmith(el, defaultProfile(), { hub() {}, back() {} });
+      expect(el.innerHTML).toContain('>0/20<');
+      expect(el.innerHTML).not.toContain('>0/100<');
+      const basic = gunAt('t2_tactical', { magazine: 12, barrel: 3 });
+      el.dataset.rec = 't2_tactical';
+      renderGunsmith(el, basic, { hub() {}, back() {} });
+      expect(el.innerHTML).toContain('>12/40<');
+      expect(el.innerHTML).toContain('>3/40<');
+      expect(el.innerHTML).toContain('>0/40<');
+    } finally {
+      globalThis.document = prev;
+    }
   });
 });
 
@@ -1093,9 +1139,26 @@ describe('hit impulse', () => {
       ny: 0,
     }];
     simulate(run, 1 / 60, viewport, idle);
-    expect(foe.hp.body).toBeCloseTo(10);
+    expect(foe.hp.body).toBe(50);
     expect(foe.hp.legs).toBeLessThanOrEqual(0);
     expect(foe.crawling).toBe(true);
+    expect(foe.alive).toBe(true);
+    expect(isDead(foe)).toBe(false);
+
+    run.pendingHits = [{
+      enemy: foe,
+      zone: 'rLeg',
+      locational: 1,
+      crit: false,
+      rangeMul: 1,
+      x: foe.worldX,
+      y: foe.y,
+      nx: 1,
+      ny: 0,
+    }];
+    run.stats.damage = 200;
+    simulate(run, 1 / 60, viewport, idle);
+    expect(foe.hp.body).toBe(50);
     expect(foe.alive).toBe(true);
     expect(isDead(foe)).toBe(false);
 
@@ -1411,6 +1474,61 @@ describe('simulate loop', () => {
       expect(side(p.l.hip, p.l.knee, p.l.ankle, p.face)).toBeGreaterThan(-1);
       expect(side(p.r.hip, p.r.knee, p.r.ankle, p.face)).toBeGreaterThan(-1);
     }
+  });
+
+  it('points gunner toes at the horde even while retreating', () => {
+    for (let x = 0; x >= -360; x -= 18) {
+      const p = posePlayerLocal({ worldX: x, aimAngle: 0 });
+      expect(p.face).toBe(1);
+      expect(p.l.toe.x).toBeGreaterThan(p.l.heel.x);
+      expect(p.r.toe.x).toBeGreaterThan(p.r.heel.x);
+    }
+    const walker = poseEnemyLocal({ id: 3, kind: 'zombie', worldX: -80, y: 0, scale: 1 });
+    expect(walker.face).toBe(-1);
+    expect(walker.l.toe.x).toBeLessThan(walker.l.heel.x);
+    expect(walker.r.toe.x).toBeLessThan(walker.r.heel.x);
+  });
+
+  it('grows the held gun from visible parts only', () => {
+    expect(magStyleFor(0)).toBe('stick');
+    expect(magStyleFor(MAG_STICK_MAX)).toBe('stick');
+    expect(magStyleFor(MAG_STICK_MAX + 1)).toBe('box');
+    expect(magStyleFor(MAG_BOX_MAX)).toBe('box');
+    expect(magStyleFor(MAG_BOX_MAX + 1)).toBe('drum');
+    expect(magStyleFor(MAG_DRUM_MAX)).toBe('drum');
+    expect(magStyleFor(MAG_DRUM_MAX + 1)).toBe('belt');
+
+    const shoddy = gunLookFrom(gunAt('t1_stock', { stock: 40, barrel: 0, magazine: 0 }));
+    expect(shoddy.stockLen).toBe(0);
+    expect(shoddy.magStyle).toBe('stick');
+    const longer = gunLookFrom(gunAt('t2_tactical', { barrel: 40, magazine: 0 }));
+    const stub = gunLookFrom(gunAt('t2_tactical', { barrel: 0, magazine: 0 }));
+    expect(longer.barrelLen).toBeGreaterThan(stub.barrelLen);
+    expect(longer.muzzleLen).toBeGreaterThan(stub.muzzleLen);
+    const expert = gunLookFrom(gunAt('t4_duty', { stock: 1, magazine: 12 }));
+    expect(expert.stockLen).toBeGreaterThan(0);
+    expect(expert.magStyle).toBe('box');
+    const drum = gunLookFrom(gunAt('t4_duty', { magazine: 24 }));
+    expect(drum.magStyle).toBe('drum');
+    const belt = gunLookFrom(gunAt('t5_advanced', { magazine: 50 }));
+    expect(belt.magStyle).toBe('belt');
+
+    const p = posePlayerLocal({ worldX: 0, aimAngle: 0, gunLook: longer });
+    const gripD = Math.hypot(p.armR.hand.x - p.gun.x, p.armR.hand.y - p.gun.y);
+    const forendD = Math.hypot(p.armL.hand.x - p.gun.x, p.armL.hand.y - p.gun.y);
+    expect(forendD).toBeGreaterThan(gripD);
+  });
+
+  it('leaves a world-space smoke trail from the barrel', () => {
+    const run = { smoke: [] };
+    emitBarrelSmoke(run, 100, 200, 0, () => 0.4, 'shot');
+    expect(run.smoke.length).toBeGreaterThan(3);
+    const first = run.smoke[0];
+    const x0 = first.x;
+    const r0 = first.r;
+    stepSmoke(run, 0.2);
+    expect(run.smoke[0].x).not.toBeCloseTo(x0, 5);
+    expect(run.smoke[0].r).toBeGreaterThan(r0);
   });
 
   it('forgives fire-spam taps at the start of reload so they do not jam', () => {

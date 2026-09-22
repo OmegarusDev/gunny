@@ -1078,6 +1078,7 @@ html:-webkit-full-screen::backdrop,
   text-transform: uppercase;
   color: var(--gunny-muted);
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 #overlay-root .slot-matrix {

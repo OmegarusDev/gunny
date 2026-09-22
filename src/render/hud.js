@@ -46,7 +46,7 @@ function layout(viewport) {
     ledgerInner,
     brandW,
     gunW: Math.min(220 * u, viewport.w * 0.4),
-    gunH: 140 * u,
+    gunH: 118 * u,
   };
 }
 
@@ -255,19 +255,11 @@ function drawGun(ctx, run, viewport, m) {
 
   ctx.font = `${m.label}px ${SANS}`;
   ctx.letterSpacing = '0.1em';
-  const labelW =
-    Math.ceil(Math.max(ctx.measureText('HEAT').width, ctx.measureText('BLOOM').width)) + 12 * m.u;
+  const labelW = Math.ceil(ctx.measureText('BLOOM').width) + 12 * m.u;
   ctx.letterSpacing = '0px';
   const barX = ix + labelW;
   const barInner = Math.max(28, innerW - labelW);
-  const heatY = y + h - 46 * m.u;
   const bloomY = y + h - 24 * m.u;
-
-  label(ctx, 'Heat', ix, heatY, m.label);
-  const heatFill = ctx.createLinearGradient(barX, heatY + 2 * m.u, barX + barInner, heatY + 2 * m.u);
-  heatFill.addColorStop(0, '#6a2018');
-  heatFill.addColorStop(1, run.biome?.accent || BLOOD);
-  meter(ctx, barX, heatY + 2 * m.u, barInner, 11 * m.u, run.weapon.heat, heatFill, 'rgba(196, 69, 54, 0.45)');
 
   label(ctx, 'Bloom', ix, bloomY, m.label);
   const bloom = Math.max(0, Math.min(1, run.weapon.bloom / Math.max(0.001, run.stats.bloomCap)));
