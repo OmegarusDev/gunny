@@ -64,7 +64,8 @@ import { spawnBullet, stepBullets, rangeDamageMul, hitPenBonus } from '../src/sy
 import { capDpr, createQuality } from '../src/engine/quality.js';
 import { pwaUpdateBlocked } from '../src/engine/pwaBusy.js';
 import { formatMetres } from '../src/ui/overlays.js';
-import { renderEnd } from '../src/ui/hub.js';
+import { renderEnd, renderHub } from '../src/ui/hub.js';
+import { hitPauseButton, pauseButtonBounds } from '../src/render/hud.js';
 import { renderGunsmith } from '../src/ui/gunsmith.js';
 import { deciduousH, pineH } from '../src/render/scenery/util.js';
 
@@ -858,6 +859,19 @@ describe('skills & profile', () => {
     expect(trained.rof).toBeGreaterThan(starter.rof);
   });
 
+  it('shows Speed and ROF after two ranks so the training strip moves', () => {
+    const starter = resolveStats(defaultProfile());
+    const speed = defaultProfile();
+    speed.skillRanks.speed = 2;
+    const sped = resolveStats(speed);
+    expect(trainingStatRows(starter).find((r) => r[0] === 'Speed')[1]).toBe('×1.00');
+    expect(trainingStatRows(sped).find((r) => r[0] === 'Speed')[1]).toBe('×1.01');
+    expect(sped.moveMul).toBeCloseTo(1.01);
+    const fire = defaultProfile();
+    fire.skillRanks.firing = 2;
+    expect(Math.round(resolveStats(fire).rof * 60)).toBeGreaterThan(Math.round(starter.rof * 60));
+  });
+
   it('drops unknown skill ranks and clamps known ones', () => {
     const ranks = sanitizeRanks({ nope: 2, marksman: 1, recoil: 99 });
     expect(ranks.nope).toBeUndefined();
@@ -917,6 +931,28 @@ describe('skills & profile', () => {
     expect(el.innerHTML).toContain('You barely escape alive...');
     expect(el.innerHTML).toContain(`Forest Road · ${TRACK_METERS}m`);
     expect(el.innerHTML).not.toContain('Same road');
+  });
+
+  it('starts campaign on the next road and picks endless biomes after Endless', () => {
+    const stub = { onclick: null, addEventListener() {} };
+    const el = {
+      innerHTML: '',
+      dataset: {},
+      querySelector: () => stub,
+      querySelectorAll: () => [],
+    };
+    const profile = defaultProfile();
+    profile.unlockedLevel = 3;
+    renderHub(el, profile, { deploy() {}, endless() {}, gunsmith() {}, training() {}, options() {} });
+    expect(el.innerHTML).toContain('data-act="options"');
+    expect(el.innerHTML).toContain('Start Run');
+    expect(el.innerHTML).toContain('Desert Wadi');
+    expect(el.innerHTML).not.toContain('data-biome');
+    el.dataset.pick = 'endless';
+    renderHub(el, profile, { deploy() {}, endless() {}, gunsmith() {}, training() {}, options() {} });
+    expect(el.innerHTML).toContain('data-biome="0"');
+    expect(el.innerHTML).toContain('Fen Causeway');
+    expect(el.innerHTML).toContain('Endless');
   });
 
   it('only auto-fullscreens the Android WebAPK unless the setting is on', () => {
@@ -1404,6 +1440,31 @@ describe('simulate loop', () => {
     const run = createRun({ profile: defaultProfile(), viewport, type: 'campaign', levelIndex: 0, seed: 1 });
     expect(run.paused).toBe(false);
     expect(typeof run.fxRng).toBe('function');
+  });
+
+  it('retreats farther with Speed ranks', () => {
+    const slow = liveRun();
+    slow.spawnTimer = 1e9;
+    slow.enemies.length = 0;
+    const profile = defaultProfile();
+    profile.skillRanks.speed = 40;
+    const fast = createRun({ profile, viewport, type: 'campaign', levelIndex: 0, seed: 1 });
+    fast.paused = false;
+    fast.spawnTimer = 1e9;
+    fast.enemies.length = 0;
+    for (let i = 0; i < 60; i++) {
+      simulate(slow, dt, viewport, idle);
+      simulate(fast, dt, viewport, idle);
+    }
+    expect(fast.player.worldX).toBeLessThan(slow.player.worldX);
+  });
+
+  it('keeps a pause control in the top-right', () => {
+    const b = pauseButtonBounds(viewport);
+    expect(b.w).toBeGreaterThan(24);
+    expect(b.x + b.w).toBeLessThanOrEqual(viewport.w);
+    expect(hitPauseButton(b.x + b.w * 0.5, b.y + b.h * 0.5, viewport)).toBe(true);
+    expect(hitPauseButton(8, 8, viewport)).toBe(false);
   });
 
   it('does not let barrel smoke steal the next shot’s spread', () => {

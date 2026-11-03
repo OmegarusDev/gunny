@@ -23,7 +23,7 @@ export function mountOverlays(root, optionHandlers) {
       for (const key of PANEL_KEYS) {
         api[key].classList.toggle('hidden', key !== name);
       }
-      options.setVisible(true);
+      options.setVisible(name === 'hub');
     },
     hideAll() {
       for (const key of PANEL_KEYS) api[key].classList.add('hidden');
@@ -67,9 +67,19 @@ export function ledgerBlock(profile) {
   </div>`;
 }
 
-export function pageHead(profile, title) {
+const COG_SVG = `<svg class="back-arrow" viewBox="0 0 24 24" aria-hidden="true">
+  <path fill="currentColor" d="M19.1 12.9a7.4 7.4 0 0 0 .1-.9 7.4 7.4 0 0 0-.1-.9l2-1.5a.5.5 0 0 0 .1-.6l-1.9-3.3a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.6-.9l-.4-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.5a7 7 0 0 0-1.6.9l-2.4-1a.5.5 0 0 0-.6.2L2.7 9a.5.5 0 0 0 .1.6l2 1.5a7.4 7.4 0 0 0-.1.9 7.4 7.4 0 0 0 .1.9l-2 1.5a.5.5 0 0 0-.1.6l1.9 3.3a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.6.9l.4 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.4-2.5a7 7 0 0 0 1.6-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.3a.5.5 0 0 0-.1-.6zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/>
+</svg>`;
+
+export function pageHead(profile, title, left = 'back') {
+  const control =
+    left === 'options'
+      ? `<button class="back" type="button" data-act="options" aria-label="Options">${COG_SVG}</button>`
+      : left === 'none'
+        ? `<span class="back back-spacer" aria-hidden="true"></span>`
+        : backButton();
   return `<div class="page-head">
-    ${backButton()}
+    ${control}
     ${ledgerBlock(profile)}
     ${title ? `<h2 class="page-title">${title}</h2>` : ''}
   </div>`;

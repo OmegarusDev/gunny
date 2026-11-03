@@ -16,7 +16,7 @@ A 2D HTML5 Canvas chase. Scenery, characters, and UI are drawn; sound is synthes
 - **Aim** — mouse / touch. A tap or click snaps the muzzle *before* the round leaves, so you do not waste the first shot on the old angle.
 - **Fire** — hold. Cyclic rate is the limiter; a dry click means the gun is not ready. Holding also builds **Heat** — an orange glow on the barrel tip — which opens the cone until you let off.
 - **Reload** — only when the mag is empty. Tap anywhere (`R` also taps). The prompt sits near the top: **Reload** / **Tap Anywhere**.
-- **Pause** — `P` / Esc / Space, or leave the tab. **Tap the pause screen to resume.** Leaving the tab **suspends** the app and the audio (it does not keep playing muted). Portrait mode pauses until you rotate.
+- **Pause** — `P` / Esc / Space, the mark at the top right of the HUD, or leave the tab. **Tap the pause screen to resume.** Leaving the tab **suspends** the app and the audio (it does not keep playing muted). Portrait mode pauses until you rotate.
 
 A **perfect** reload is a timing tap on the gold band. On a 3s seat, that mark is at **2s** (just before two-thirds of the bar). A perfect adds **10% cyclic rate** for the mag you just seated, and a little XP. Miss after the forgive window and you **jam**.
 
@@ -30,7 +30,7 @@ You start with a **Shoddy** receiver, **$0**, and Road 1 (**Forest Road**). Clea
 
 Death flavour is an escape (`You barely escape alive...`). Extract is `You made it`. Death uses the same camp card as the hub. Retry names the road (`Forest Road · 250m`, or **Endless**). Return goes to camp.
 
-**Endless** is a separate start once you have extracted. Pick any beaten road’s skin. It is about **twice as hard** as the same campaign metres, and it does not unlock the next campaign road.
+**Endless** is a separate start. It opens the beaten roads; picking one starts that skin. It is about **twice as hard** as the same campaign metres, and it does not unlock the next campaign road.
 
 ## The gun
 
@@ -107,7 +107,7 @@ Buying the next Upgrade to clear a road is the loop. Mag and receiver prices are
 
 ## Camp chrome
 
-One **4:3** wood card, floating on the canvas. Ledger is Gunner level, cash, and XP. Options is the cog outside the card: **Sound** (mute, gunshot / footsteps / background), **Fullscreen in all modes**, and **Reset progress** (hold to confirm). Install is the download glyph next to it.
+One **4:3** wood card, floating on the canvas. Ledger is Gunner level, cash, and XP, on the same row as the options cog. **Sound** (mute, gunshot / footsteps / background), **Fullscreen in all modes**, **Install app** (while it is not already installed), and **Reset progress** (hold to confirm) live in that sheet.
 
 ## Play notes (not bugs)
 

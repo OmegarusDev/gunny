@@ -22,9 +22,13 @@ export const ICONS = {
   ),
 };
 
-export function facilityButton({ act, icon, title, sub, variant = '' }) {
+export function facilityButton({ act, icon, title, sub, variant = '', data = {} }) {
   const cls = ['facility', variant].filter(Boolean).join(' ');
-  return `<button class="${cls}" type="button" data-act="${act}">
+  const extras = Object.entries(data)
+    .map(([k, v]) => `data-${k}="${v}"`)
+    .join(' ');
+  const actAttr = act ? `data-act="${act}"` : '';
+  return `<button class="${cls}" type="button" ${actAttr} ${extras}>
     <span class="facility-icon">${ICONS[icon] || ''}</span>
     <span class="facility-copy">
       <span class="facility-title">${title}</span>

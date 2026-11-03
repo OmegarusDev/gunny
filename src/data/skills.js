@@ -62,7 +62,7 @@ export const SKILLS = {
     desc: 'Walk the road a little faster. Metres tick sooner. Enemies still close.',
     maxRank: SKILL_MAX,
     baseCost: 40,
-    perRank: { moveMul: 0.002 },
+    perRank: { moveMul: 0.005 },
   },
   firing: {
     id: 'firing',
@@ -71,7 +71,7 @@ export const SKILLS = {
     desc: 'A little more cyclic rate. Bolt and trigger still do the heavy lifting.',
     maxRank: SKILL_MAX,
     baseCost: 40,
-    perRank: { rof: 0.0024 },
+    perRank: { rof: 0.005 },
   },
 };
 

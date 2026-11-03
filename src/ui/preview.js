@@ -121,6 +121,9 @@ function paintShot(id, { ctx, viewport, overlayRoot }) {
     gunsmith() {},
     training() {},
     retry() {},
+    options() {
+      overlays.options.open();
+    },
     endlessBiome: 2,
   };
 

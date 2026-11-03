@@ -6,7 +6,7 @@ import { createLoop } from './engine/loop.js';
 import { resumeAudio, setSoundscape, suspendAudio } from './audio/synth.js';
 import { pageHidden } from './engine/page.js';
 import { drawBackdrop, drawWorld } from './render/draw.js';
-import { drawHud } from './render/hud.js';
+import { drawHud, hitPauseButton } from './render/hud.js';
 import { addRewards, loadProfile, resetProfile, saveProfile, unlockLevel } from './state/profile.js';
 import { createRun, simulate } from './systems/run.js';
 import { renderGunsmith } from './ui/gunsmith.js';
@@ -59,17 +59,20 @@ const handlers = {
     startRun('campaign', level);
   },
   endless(biomeIndex) {
-    endlessBiome = biomeIndex ?? endlessBiome;
+    if (biomeIndex == null) return;
+    endlessBiome = biomeIndex;
     startRun('endless', endlessBiome);
   },
   pickEndless(biomeIndex) {
-    endlessBiome = biomeIndex;
-    showHub();
+    handlers.endless(biomeIndex);
   },
   hub: showHub,
   back: showHub,
   gunsmith: showGunsmith,
   training: showTraining,
+  options() {
+    overlays.options.open();
+  },
   retry() {
     startRun(lastType, lastLevel, lastSeed);
   },
@@ -109,6 +112,7 @@ function showHub() {
   run = null;
   setSoundscape('forest');
   overlays.show('hub');
+  overlays.hub.dataset.pick = '';
   renderHub(overlays.hub, profile, { ...handlers, endlessBiome });
   leaveRun();
 }
@@ -203,7 +207,14 @@ function frame(now) {
     if (!run.ended && !run.dying) {
       const portrait = input.state.portrait;
       if (portrait) run.portraitHold = true;
-      if (run.paused) {
+      const pauseHit = hitPauseButton(input.state.pointerX, input.state.pointerY, viewport);
+      if (pauseHit && (queuedPointerTap || pauseTap) && !portrait) {
+        run.paused = !run.paused;
+        queuedPointerTap = false;
+        queuedReloadTap = false;
+        input.clearFireIntent();
+        skipSim = true;
+      } else if (run.paused) {
         if (portrait) {
           if (queuedPointerTap || pauseTap) {
             queuedPointerTap = false;

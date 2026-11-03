@@ -5,38 +5,13 @@ import { loadSettings, saveSettings } from '../state/settings.js';
 
 const HOLD_MS = 1600;
 
-const COG_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true">
-  <path fill="currentColor" d="M19.1 12.9a7.4 7.4 0 0 0 .1-.9 7.4 7.4 0 0 0-.1-.9l2-1.5a.5.5 0 0 0 .1-.6l-1.9-3.3a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.6-.9l-.4-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.5a7 7 0 0 0-1.6.9l-2.4-1a.5.5 0 0 0-.6.2L2.7 9a.5.5 0 0 0 .1.6l2 1.5a7.4 7.4 0 0 0-.1.9 7.4 7.4 0 0 0 .1.9l-2 1.5a.5.5 0 0 0-.1.6l1.9 3.3a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.6.9l.4 2.5a.5.5 0 0 0 .5-.4l.4 2.5a7 7 0 0 0 1.6-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.3a.5.5 0 0 0-.1-.6zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/>
-</svg>`;
-
-const INSTALL_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true">
-  <path fill="currentColor" d="M11 3h2v10.2l3.2-3.2 1.4 1.4L12 17.2 6.4 11.4l1.4-1.4L11 13.2V3zM5 19h14v2H5z"/>
-</svg>`;
-
 export function mountOptions(root, handlers) {
-  const fabs = document.createElement('div');
-  fabs.className = 'opt-fabs hidden';
-
-  const installFab = document.createElement('button');
-  installFab.type = 'button';
-  installFab.className = 'opt-fab';
-  installFab.setAttribute('aria-label', 'Install app');
-  installFab.innerHTML = INSTALL_SVG;
-
-  const fab = document.createElement('button');
-  fab.type = 'button';
-  fab.className = 'opt-fab';
-  fab.setAttribute('aria-label', 'Options');
-  fab.innerHTML = COG_SVG;
-
-  fabs.append(installFab, fab);
-
   const layer = document.createElement('div');
   layer.className = 'opt-layer hidden';
   layer.innerHTML = `<div class="opt-sheet" role="dialog" aria-labelledby="opt-title"></div>`;
   const sheet = layer.querySelector('.opt-sheet');
 
-  root.append(fabs, layer);
+  root.append(layer);
 
   let view = 'menu';
   let holdRaf = 0;
@@ -50,8 +25,6 @@ export function mountOptions(root, handlers) {
     stopHold();
     view = 'menu';
     layer.classList.add('hidden');
-    fab.setAttribute('aria-expanded', 'false');
-    installFab.setAttribute('aria-expanded', 'false');
   }
 
   function open(nextView = 'menu') {
@@ -59,8 +32,6 @@ export function mountOptions(root, handlers) {
     view = nextView;
     paint();
     layer.classList.remove('hidden');
-    fab.setAttribute('aria-expanded', view === 'menu' || view === 'reset' || view === 'sound' ? 'true' : 'false');
-    installFab.setAttribute('aria-expanded', view === 'install' ? 'true' : 'false');
   }
 
   function stopHold() {
@@ -225,6 +196,11 @@ export function mountOptions(root, handlers) {
         <input type="checkbox" data-act="fullscreen" ${s.fullscreen ? 'checked' : ''} />
         Fullscreen in all modes
       </label>
+      ${
+        isStandaloneDisplay()
+          ? ''
+          : `<button type="button" data-act="install">Install app</button>`
+      }
       <button class="opt-danger" type="button" data-act="reset">Reset progress</button>
       <button class="ghost opt-done" type="button">Done</button>
     `;
@@ -232,6 +208,13 @@ export function mountOptions(root, handlers) {
       view = 'sound';
       paint();
     };
+    const install = sheet.querySelector('[data-act="install"]');
+    if (install) {
+      install.onclick = () => {
+        view = 'install';
+        paint();
+      };
+    }
     sheet.querySelector('[data-act="fullscreen"]').onchange = (e) => {
       const next = loadSettings();
       next.fullscreen = e.target.checked;
@@ -246,14 +229,6 @@ export function mountOptions(root, handlers) {
     sheet.querySelector('.opt-done').onclick = close;
   }
 
-  fab.addEventListener('click', () => {
-    if (layer.classList.contains('hidden') || view === 'install') open('menu');
-    else close();
-  });
-  installFab.addEventListener('click', () => {
-    if (layer.classList.contains('hidden') || view !== 'install') open('install');
-    else close();
-  });
   layer.addEventListener('click', (e) => {
     if (e.target === layer) close();
   });
@@ -273,10 +248,9 @@ export function mountOptions(root, handlers) {
 
   return {
     setVisible(on) {
-      fabs.classList.toggle('hidden', !on);
-      installFab.classList.toggle('hidden', !on || isStandaloneDisplay());
       if (!on) close();
     },
+    open,
     close,
   };
 }

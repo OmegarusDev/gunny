@@ -1,20 +1,56 @@
 import { TRACK_METERS, extractCash } from '../config.js';
 import { beatenRoadIndexes, biomeFor } from '../data/biomes.js';
 import { equippedLabel, resolveStats } from '../entities/loadout.js';
-import { fmtMoney, formatMetres, formatReload, ledgerBlock, statsGrid } from './overlays.js';
+import { fmtMoney, formatMetres, formatReload, pageHead, statsGrid } from './overlays.js';
 import { facilityButton } from './icons.js';
 
+function bindLedger(el, handlers) {
+  const opt = el.querySelector('[data-act="options"]');
+  if (opt) opt.onclick = () => handlers.options?.();
+  el.querySelectorAll('[data-act="gunsmith"]').forEach((btn) => {
+    btn.onclick = () => handlers.gunsmith();
+  });
+  el.querySelectorAll('[data-act="training"]').forEach((btn) => {
+    btn.onclick = () => handlers.training();
+  });
+}
+
 export function renderHub(el, profile, handlers) {
+  const roads = beatenRoadIndexes(profile.unlockedLevel);
+  if (el.dataset.pick === 'endless') {
+    el.innerHTML = `
+      <div class="panel-stack camp-stack">
+        ${pageHead(profile, 'Endless')}
+        <div class="facilities biome-picks" role="listbox" aria-label="Endless road">
+          ${roads
+            .map((idx) => {
+              const biome = biomeFor(idx);
+              return facilityButton({
+                icon: 'endless',
+                title: biome.place,
+                sub: biome.foe,
+                data: { biome: idx },
+              });
+            })
+            .join('')}
+        </div>
+      </div>
+    `;
+    el.querySelector('[data-act="hub"]').onclick = () => {
+      el.dataset.pick = '';
+      renderHub(el, profile, handlers);
+    };
+    el.querySelectorAll('[data-biome]').forEach((btn) => {
+      btn.onclick = () => (handlers.endless || handlers.pickEndless)?.(Number(btn.dataset.biome));
+    });
+    return;
+  }
+
   const stats = resolveStats(profile);
   const next = biomeFor(profile.unlockedLevel);
-  const roads = beatenRoadIndexes(profile.unlockedLevel);
-  const endlessPick = roads.includes(handlers.endlessBiome)
-    ? handlers.endlessBiome
-    : roads[roads.length - 1];
-  const endlessPlace = biomeFor(endlessPick).place;
   el.innerHTML = `
     <div class="panel-stack camp-stack">
-      ${ledgerBlock(profile)}
+      ${pageHead(profile, '', 'options')}
       <header class="camp-brand">
         <h1>GUNNY</h1>
         <p class="lede">a game with a gun</p>
@@ -46,7 +82,7 @@ export function renderHub(el, profile, handlers) {
           act: 'endless',
           icon: 'endless',
           title: 'Endless',
-          sub: endlessPlace,
+          sub: 'Pick a biome',
           variant: 'side',
         })}
         ${facilityButton({
@@ -57,27 +93,14 @@ export function renderHub(el, profile, handlers) {
           variant: 'start',
         })}
       </div>
-      ${
-        roads.length > 1
-          ? `<div class="skin-picks" role="listbox" aria-label="Endless road">
-        ${roads
-          .map(
-            (idx) =>
-              `<button class="chip ${idx === endlessPick ? 'selected' : ''}" type="button" data-biome="${idx}">${biomeFor(idx).place}</button>`,
-          )
-          .join('')}
-      </div>`
-          : ''
-      }
     </div>
   `;
+  bindLedger(el, handlers);
   el.querySelector('[data-act="deploy"]').onclick = () => handlers.deploy(profile.unlockedLevel);
-  el.querySelector('[data-act="gunsmith"]').onclick = () => handlers.gunsmith();
-  el.querySelector('[data-act="training"]').onclick = () => handlers.training();
-  el.querySelector('[data-act="endless"]').onclick = () => handlers.endless(endlessPick);
-  el.querySelectorAll('[data-biome]').forEach((btn) => {
-    btn.onclick = () => handlers.pickEndless(Number(btn.dataset.biome));
-  });
+  el.querySelector('[data-act="endless"]').onclick = () => {
+    el.dataset.pick = 'endless';
+    renderHub(el, profile, handlers);
+  };
 }
 
 export function renderEnd(el, { title, run, profile, handlers, extract }) {
@@ -87,7 +110,7 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
   const retrySub = run.endless ? 'Endless' : `${biome?.place || 'The road'} · ${TRACK_METERS}m`;
   el.innerHTML = `
     <div class="panel-stack camp-stack">
-      ${ledgerBlock(profile)}
+      ${pageHead(profile, '', 'none')}
       <header class="camp-brand">
         <h1>GUNNY</h1>
         <p class="lede">${title}</p>
@@ -143,6 +166,5 @@ export function renderEnd(el, { title, run, profile, handlers, extract }) {
   el.querySelectorAll('[data-act="hub"]').forEach((btn) => {
     btn.onclick = () => handlers.hub();
   });
-  el.querySelector('[data-act="gunsmith"]').onclick = () => handlers.gunsmith();
-  el.querySelector('[data-act="training"]').onclick = () => handlers.training();
+  bindLedger(el, handlers);
 }

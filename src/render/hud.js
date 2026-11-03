@@ -21,11 +21,14 @@ function layout(viewport) {
   let chipW = 104 * u;
   let chipGap = 8 * u;
   let brandW = 320 * u;
+  const pauseBtn = Math.max(36, 40 * u);
+  const pauseGap = 8 * u;
   const ledgerW = () => ledgerInner * 2 + chipW * 3 + chipGap * 2;
   const maxW = Math.max(160, viewport.w - pad * 2);
-  const need = brandW + gap + ledgerW();
-  if (need > maxW) {
-    const s = maxW / need;
+  const fixed = pauseGap + pauseBtn;
+  const row = () => brandW + gap + ledgerW();
+  if (row() + fixed > maxW) {
+    const s = Math.max(0.45, (maxW - fixed) / row());
     brandW *= s;
     chipW *= s;
     chipGap *= s;
@@ -40,6 +43,8 @@ function layout(viewport) {
     value: Math.round(36 * t),
     mag: Math.round(44 * t),
     pause: Math.round(42 * t),
+    pauseBtn,
+    pauseGap,
     chipW,
     chipH: 68 * u,
     chipGap,
@@ -48,6 +53,22 @@ function layout(viewport) {
     gunW: Math.min(220 * u, viewport.w * 0.4),
     gunH: 118 * u,
   };
+}
+
+export function pauseButtonBounds(viewport) {
+  const m = layout(viewport);
+  const ledgerH = m.ledgerInner * 2 + m.chipH;
+  return {
+    x: viewport.w - m.pad - m.pauseBtn,
+    y: m.pad + Math.max(0, (ledgerH - m.pauseBtn) / 2),
+    w: m.pauseBtn,
+    h: m.pauseBtn,
+  };
+}
+
+export function hitPauseButton(x, y, viewport) {
+  const b = pauseButtonBounds(viewport);
+  return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
 }
 
 function panel(ctx, x, y, w, h, r) {
@@ -208,13 +229,37 @@ function drawLedger(ctx, run, profile, viewport, m) {
   const inner = m.ledgerInner;
   const w = inner * 2 + m.chipW * 3 + m.chipGap * 2;
   const h = inner * 2 + m.chipH;
-  const x = viewport.w - m.pad - w;
+  const pause = pauseButtonBounds(viewport);
+  const x = pause.x - m.pauseGap - w;
   const y = m.pad;
   panel(ctx, x, y, w, h, m.r);
   ctx.textBaseline = 'top';
   chip(ctx, x + inner, y + inner, m.chipW, m.chipH, 'Cash', `$${Math.floor(profile.cash + run.score.cash)}`, m);
   chip(ctx, x + inner + m.chipW + m.chipGap, y + inner, m.chipW, m.chipH, 'XP', String(Math.floor(profile.xp + run.score.xp)), m);
   chip(ctx, x + inner + (m.chipW + m.chipGap) * 2, y + inner, m.chipW, m.chipH, 'Kills', String(run.score.kills), m);
+}
+
+function drawPauseButton(ctx, run, viewport, m) {
+  if (run.dying || run.ended) return;
+  const b = pauseButtonBounds(viewport);
+  panel(ctx, b.x, b.y, b.w, b.h, Math.min(m.r, 8 * m.u));
+  const cx = b.x + b.w * 0.5;
+  const cy = b.y + b.h * 0.5;
+  ctx.fillStyle = GOLD;
+  if (run.paused) {
+    const s = b.w * 0.16;
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.7, cy - s * 1.2);
+    ctx.lineTo(cx + s * 1.3, cy);
+    ctx.lineTo(cx - s * 0.7, cy + s * 1.2);
+    ctx.closePath();
+    ctx.fill();
+    return;
+  }
+  const bw = Math.max(3, b.w * 0.12);
+  const bh = b.h * 0.38;
+  fillRoundRect(ctx, cx - bw * 1.7, cy - bh * 0.5, bw, bh, 1);
+  fillRoundRect(ctx, cx + bw * 0.7, cy - bh * 0.5, bw, bh, 1);
 }
 
 function drawGun(ctx, run, viewport, m) {
@@ -352,5 +397,6 @@ export function drawHud(ctx, run, viewport, profile) {
   drawLedger(ctx, run, profile, viewport, m);
   drawGun(ctx, run, viewport, m);
   drawPause(ctx, run, viewport, m);
+  drawPauseButton(ctx, run, viewport, m);
   ctx.restore();
 }

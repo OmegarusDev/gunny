@@ -1,7 +1,7 @@
 import { DESIGN_H } from '../config.js';
 import { isPortrait } from './immersive.js';
 
-const HUD = '#overlay-root .panel, #overlay-root .opt-fabs, #overlay-root .opt-fab, #overlay-root .opt-layer';
+const HUD = '#overlay-root .panel, #overlay-root .opt-layer';
 
 export function createInput(canvas, opts = {}) {
   const combat = typeof opts.combat === 'function' ? opts.combat : () => true;
